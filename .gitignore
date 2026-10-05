@@ -1,48 +1,137 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# ==============================================================================
+# PANDA IPTV - .gitignore
+# Regras completas de versionamento para Flutter, Linux Desktop, Android e IDEs
+# ==============================================================================
 
-# IntelliJ related
+# ------------------------------------------------------------------------------
+# 1. FLUTTER & DART CORE
+# ------------------------------------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+/build/
+**/build/
+coverage/
+/coverage/
+**/doc/api/
+.widget_preview/
+
+# Symbolication & Obfuscation
+app.*.symbols
+app.*.map.json
+
+# ------------------------------------------------------------------------------
+# 2. ANDROID ESPECÍFICO
+# ------------------------------------------------------------------------------
+.gradle/
+**/android/.gradle/
+**/android/captures/
+**/android/gradleBuild/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+android/local.properties
+**/android/local.properties
+**/android/GeneratedPluginRegistrant.java
+android/.cxx/
+**/android/.cxx/
+
+# Gradle wrapper caches
+gradle-wrapper.jar
+.gradle/caches/
+
+# Chaves de Assinatura e Keystores (NUNCA COMMITAR!)
+*.keystore
+*.jks
+key.properties
+**/key.properties
+google-services.json
+
+# ------------------------------------------------------------------------------
+# 3. LINUX DESKTOP ESPECÍFICO
+# ------------------------------------------------------------------------------
+linux/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+linux/build/
+**/linux/build/
+
+# Artefatos C++ / CMake
+*.o
+*.a
+*.so
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+
+# ------------------------------------------------------------------------------
+# 4. CONFIGURAÇÕES DE AMBIENTE E SEGREDOS
+# ------------------------------------------------------------------------------
+.env
+.env.*
+*.env
+*.local
+credentials.json
+
+# ------------------------------------------------------------------------------
+# 5. IDES E EDITORES DE CÓDIGO
+# ------------------------------------------------------------------------------
+# IntelliJ / Android Studio
 *.iml
 *.ipr
 *.iws
 .idea/
+out/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
+# Editores de Texto e Backup
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
 
-# Symbolication related
-app.*.symbols
+# ------------------------------------------------------------------------------
+# 6. SISTEMAS OPERACIONAIS
+# ------------------------------------------------------------------------------
+# Linux
+.directory
+core
+vgcore.*
 
-# Obfuscation related
-app.*.map.json
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
 
-# Widget Preview related
-.widget_preview/
+# ------------------------------------------------------------------------------
+# 7. LOGS E ARTEFATOS TEMPORÁRIOS
+# ------------------------------------------------------------------------------
+*.log
+*.class
+*.pyc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
