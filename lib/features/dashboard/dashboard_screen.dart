@@ -6,6 +6,8 @@ import '../../core/widgets/bento_card.dart';
 import '../../core/widgets/hanko_badge.dart';
 import '../../core/widgets/tech_crosses.dart';
 import '../auth/presentation/auth_provider.dart';
+import '../series/presentation/series_screen.dart';
+import '../vod/presentation/vod_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -32,7 +34,7 @@ class DashboardScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Hero Banner Jellyfin-Like (Destaque / Continuar Assistindo)
+                    // Hero Banner (Destaque / Hub Principal)
                     _buildHeroBanner(context),
                     const SizedBox(height: 24),
 
@@ -83,15 +85,16 @@ class DashboardScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.accentPrimary,
-                  shape: BoxShape.circle,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 24,
+                  height: 24,
+                  fit: BoxFit.cover,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Text(
                 'PANDA IPTV.',
                 style: AppTypography.titleMedium(color: AppColors.textPrimary),
@@ -135,7 +138,7 @@ class DashboardScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const HankoBadge(text: 'JELLYFIN HUB // HUB CENTRAL', isLive: true),
+                const HankoBadge(text: 'CENTRAL DE MÍDIA // HUB', isLive: true),
                 const SizedBox(height: 12),
                 Text(
                   'BEM-VINDO AO PANDA.',
@@ -147,6 +150,16 @@ class DashboardScreen extends StatelessWidget {
                   style: AppTypography.body(color: AppColors.textMuted),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              'assets/images/logo.png',
+              width: 58,
+              height: 58,
+              fit: BoxFit.cover,
             ),
           ),
           const SizedBox(width: 16),
@@ -183,8 +196,8 @@ class DashboardScreen extends StatelessWidget {
         color: AppColors.accentCyan,
         kanji: '映画',
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Módulo Filmes em carregamento...')),
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const VodScreen()),
           );
         },
       ),
@@ -196,8 +209,8 @@ class DashboardScreen extends StatelessWidget {
         color: AppColors.textPrimary,
         kanji: '連載',
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Módulo Séries em carregamento...')),
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const SeriesScreen()),
           );
         },
       ),

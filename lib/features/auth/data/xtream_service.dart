@@ -5,15 +5,31 @@ import '../models/xtream_account.dart';
 
 /// Serviço de integração com o protocolo Xtream Codes
 class XtreamService {
-  /// Limpa a URL do servidor removendo barras finais
+  /// Normaliza a URL do servidor:
+  /// - Remove espaços nas extremidades
+  /// - Adiciona http:// se faltar protocolo
+  /// - Remove todas as barras finais ('/')
+  /// - Remove endpoints acidentais colados como '/player_api.php' ou '/get.php'
   static String formatServerUrl(String url) {
     var clean = url.trim();
+    if (clean.isEmpty) return clean;
+
     if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
       clean = 'http://$clean';
     }
-    if (clean.endsWith('/')) {
-      clean = clean.substring(0, clean.length - 1);
+
+    // Remove barras no final repetidas
+    clean = clean.replaceAll(RegExp(r'/+$'), '');
+
+    // Remove sufixos comuns caso o usuário tenha colado a URL completa de login/m3u
+    if (clean.endsWith('/player_api.php')) {
+      clean = clean.substring(0, clean.length - '/player_api.php'.length);
+      clean = clean.replaceAll(RegExp(r'/+$'), '');
+    } else if (clean.endsWith('/get.php')) {
+      clean = clean.substring(0, clean.length - '/get.php'.length);
+      clean = clean.replaceAll(RegExp(r'/+$'), '');
     }
+
     return clean;
   }
 
@@ -22,6 +38,7 @@ class XtreamService {
     required String serverUrl,
     required String username,
     required String password,
+    bool rememberMe = true,
   }) async {
     final cleanUrl = formatServerUrl(serverUrl);
     final endpoint = Uri.parse('$cleanUrl/player_api.php?username=$username&password=$password');
@@ -46,11 +63,16 @@ class XtreamService {
       final userInfo = XtreamUserInfo.fromJson(userInfoJson);
       final serverInfo = XtreamServerInfo.fromJson(data['server_info'] ?? {});
 
-      // Salva sessão localmente
+      // Salva dados localmente
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('xtream_server', cleanUrl);
       await prefs.setString('xtream_user', username);
-      await prefs.setString('xtream_pass', password);
+      await prefs.setBool('remember_me', rememberMe);
+      if (rememberMe) {
+        await prefs.setString('xtream_pass', password);
+      } else {
+        await prefs.remove('xtream_pass');
+      }
 
       return XtreamAccount(
         serverUrl: cleanUrl,
@@ -67,9 +89,12 @@ class XtreamService {
     }
   }
 
-  /// Recupera a sessão salva se existir
+  /// Recupera a sessão salva se existir para auto-login
   Future<Map<String, String>?> getSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
+    final remember = prefs.getBool('remember_me') ?? true;
+    if (!remember) return null;
+
     final server = prefs.getString('xtream_server');
     final user = prefs.getString('xtream_user');
     final pass = prefs.getString('xtream_pass');
@@ -80,11 +105,28 @@ class XtreamService {
     return null;
   }
 
-  /// Desconecta a conta atual
+  /// Recupera informações do último login para preencher campos da tela
+  Future<Map<String, String>?> getLastSessionInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    final server = prefs.getString('xtream_server');
+    final user = prefs.getString('xtream_user');
+    final pass = prefs.getString('xtream_pass');
+    final remember = prefs.getBool('remember_me') ?? true;
+
+    if (server != null || user != null) {
+      return {
+        'server': server ?? 'http://',
+        'username': user ?? '',
+        'password': pass ?? '',
+        'remember_me': remember.toString(),
+      };
+    }
+    return null;
+  }
+
+  /// Desconecta a conta atual (remove a senha salva para evitar auto-login indesejado)
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('xtream_server');
-    await prefs.remove('xtream_user');
     await prefs.remove('xtream_pass');
   }
 }

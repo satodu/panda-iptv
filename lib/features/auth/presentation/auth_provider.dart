@@ -36,6 +36,7 @@ class AuthProvider extends ChangeNotifier {
     required String serverUrl,
     required String username,
     required String password,
+    bool rememberMe = true,
   }) async {
     _status = AuthStatus.authenticating;
     _errorMessage = null;
@@ -46,6 +47,7 @@ class AuthProvider extends ChangeNotifier {
         serverUrl: serverUrl,
         username: username,
         password: password,
+        rememberMe: rememberMe,
       );
       _status = AuthStatus.authenticated;
       notifyListeners();
@@ -57,6 +59,9 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Recupera informações do último login para pré-preencher tela
+  Future<Map<String, String>?> getLastSessionInfo() => _service.getLastSessionInfo();
 
   /// Desconectar
   Future<void> logout() async {

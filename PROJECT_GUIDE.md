@@ -7,7 +7,7 @@ Este arquivo serve como contexto completo para qualquer Agente de IA ou desenvol
 
 ## 1. VISÃO GERAL DO PRODUTO
 
-O **Panda IPTV** é um reprodutor moderno de IPTV baseado no protocolo **Xtream Codes API**, com design inspirado na elegância e organização de mídia do **Jellyfin**, mas utilizando uma linguagem visual proprietária baseada no estilo **Oriental Brutalismo Minimalista** com destaque em **Azul Elétrico**.
+O **Panda IPTV** é um reprodutor moderno de IPTV baseado no protocolo **Xtream Codes API**, utilizando uma linguagem visual proprietária baseada no estilo **Oriental Brutalismo Minimalista** com destaque em **Azul Elétrico**.
 
 ### Plataformas Alvo:
 * **Linux Desktop** (Arch Linux, Fedora, Ubuntu, Flatpak) com foco em mouse, teclado e atalhos.
@@ -16,9 +16,9 @@ O **Panda IPTV** é um reprodutor moderno de IPTV baseado no protocolo **Xtream 
 
 ---
 
-## 2. ARQUITETURA JELLYFIN-LIKE (EXPERIÊNCIA DO USUÁRIO)
+## 2. ARQUITETURA DA CENTRAL DE MÍDIA (EXPERIÊNCIA DO USUÁRIO)
 
-Inspirado no Jellyfin, o aplicativo não é uma simples lista estúpida de canais, mas sim uma central multimídia organizada:
+O aplicativo é uma central multimídia organizada e de alta performance:
 
 1. **Dashboard Inicial (Hub)**:
    * **Hero Banner Dinâmico**: Último canal assistido ou destaque de transmissão ao vivo.
@@ -90,7 +90,7 @@ lib/
 │   │   ├── data/            # Repositórios e fontes de dados da autenticação
 │   │   ├── models/          # Modelos de UserInfo, ServerInfo e Account
 │   │   └── presentation/    # Telas de login e gerenciamento de perfis
-│   ├── dashboard/           # Tela inicial estilo Jellyfin / Bento Hub
+│   ├── dashboard/           # Tela inicial da Central de Mídia / Bento Hub
 │   ├── live_tv/             # Navegação de canais, categorias e EPG
 │   ├── vod/                 # Catálogo de filmes e detalhes
 │   ├── series/              # Séries, temporadas e episódios

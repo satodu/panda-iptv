@@ -70,7 +70,6 @@ Nunca utilize cores genéricas do Material Design ou temas padrões saturados.
 ## 5. RESPONSIVIDADE E ORIENTAÇÃO
 
 * **Horizontal (Desktop Linux & TV / Celular Paisagem)**:
-  * Inspirado na arquitetura do **Jellyfin / Emby**:
   * Barra de navegação lateral retrátil (Sidebar).
   * Grade Bento com hero banner em destaque, carrossel de canais ao vivo, filmes recentes e séries.
 * **Vertical (Celular Retrato)**:

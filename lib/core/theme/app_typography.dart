@@ -16,9 +16,9 @@ class AppTypography {
   }
 
   /// Título de seção / Bento Card
-  static TextStyle sectionTitle({Color color = AppColors.textPrimary}) {
+  static TextStyle sectionTitle({Color color = AppColors.textPrimary, double? fontSize}) {
     return GoogleFonts.spaceGrotesk(
-      fontSize: 18,
+      fontSize: fontSize ?? 18,
       fontWeight: FontWeight.w700,
       letterSpacing: -0.2,
       color: color,
@@ -26,20 +26,30 @@ class AppTypography {
   }
 
   /// Subtítulo ou cabeçalho secundário
-  static TextStyle titleMedium({Color color = AppColors.textPrimary}) {
+  static TextStyle titleMedium({Color color = AppColors.textPrimary, double? fontSize}) {
     return GoogleFonts.spaceGrotesk(
-      fontSize: 14,
+      fontSize: fontSize ?? 14,
       fontWeight: FontWeight.w600,
       color: color,
     );
   }
 
   /// Texto de corpo / descrição
-  static TextStyle body({Color color = AppColors.textPrimary}) {
+  static TextStyle body({Color color = AppColors.textPrimary, double? fontSize}) {
     return GoogleFonts.inter(
-      fontSize: 14,
+      fontSize: fontSize ?? 14,
       fontWeight: FontWeight.w400,
       height: 1.4,
+      color: color,
+    );
+  }
+
+  /// Texto de botão primário
+  static TextStyle button({Color color = Colors.white, double? fontSize}) {
+    return GoogleFonts.jetBrainsMono(
+      fontSize: fontSize ?? 13,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.5,
       color: color,
     );
   }
