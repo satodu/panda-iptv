@@ -15,6 +15,7 @@ import '../auth/presentation/auth_provider.dart';
 import '../favorites/presentation/favorites_screen.dart';
 import '../player/presentation/video_player_screen.dart';
 import '../series/presentation/series_screen.dart';
+import '../settings/presentation/settings_screen.dart';
 import '../vod/presentation/vod_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -152,6 +153,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(width: 8),
           ],
+
+          // Botão Configurações
+          IconButton(
+            tooltip: 'Configurações',
+            icon: const Icon(Icons.settings_outlined, size: 20, color: AppColors.textPrimary),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
 
           // Botão Desconectar
           IconButton(

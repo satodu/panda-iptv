@@ -80,5 +80,30 @@
     "unmuted": "DESMUTADO.",
     "playing": "REPRODUZINDO.",
     "paused": "PAUSADO."
+  },
+  "settings": {
+    "title": "CONFIGURAÇÕES.",
+    "badge": "SISTEMA // AJUSTES",
+    "server_section": "SERVIDOR & CONEXÃO.",
+    "current_server": "SERVIDOR ATIVO",
+    "connected_as": "CONECTADO COMO",
+    "change_server": "TROCAR SERVIDOR // RECONECTAR.",
+    "language_section": "IDIOMA DO SISTEMA.",
+    "language_badge": "I18N // IDIOMA",
+    "lang_pt": "PORTUGUÊS (BR)",
+    "lang_en": "ENGLISH (US)",
+    "lang_es": "ESPAÑOL (ES)",
+    "active_tag": "ATIVO",
+    "about_section": "SOBRE O PROJETO.",
+    "app_name": "PANDA IPTV.",
+    "version": "VERSÃO",
+    "platform": "ARQUITETURA",
+    "github_label": "REPOSITÓRIO OFICIAL NO GITHUB",
+    "copied_url": "LINK COPIADO PARA A ÁREA DE TRANSFERÊNCIA.",
+    "donation_section": "CONSIDERE UMA DOAÇÃO.",
+    "donation_subtitle": "Panda IPTV é um software livre e independente. Se este app é útil para você, considere apoiar o desenvolvimento contínuo.",
+    "donation_pix": "COPIAR CHAVE PIX DE DOAÇÃO.",
+    "donation_github": "APOIAR VIA GITHUB SPONSORS.",
+    "pix_copied": "CHAVE PIX COPIADA COM SUCESSO!"
   }
 }

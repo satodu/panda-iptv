@@ -80,5 +80,30 @@
     "unmuted": "UNMUTED.",
     "playing": "PLAYING.",
     "paused": "PAUSED."
+  },
+  "settings": {
+    "title": "SETTINGS.",
+    "badge": "SYSTEM // PREFERENCES",
+    "server_section": "SERVER & CONNECTION.",
+    "current_server": "ACTIVE SERVER",
+    "connected_as": "CONNECTED AS",
+    "change_server": "SWITCH SERVER // RECONNECT.",
+    "language_section": "SYSTEM LANGUAGE.",
+    "language_badge": "I18N // LOCALE",
+    "lang_pt": "PORTUGUÊS (BR)",
+    "lang_en": "ENGLISH (US)",
+    "lang_es": "ESPAÑOL (ES)",
+    "active_tag": "ACTIVE",
+    "about_section": "ABOUT THE PROJECT.",
+    "app_name": "PANDA IPTV.",
+    "version": "VERSION",
+    "platform": "ARCHITECTURE",
+    "github_label": "OFFICIAL GITHUB REPOSITORY",
+    "copied_url": "LINK COPIED TO CLIPBOARD.",
+    "donation_section": "CONSIDER A DONATION.",
+    "donation_subtitle": "Panda IPTV is open-source and independent. If you enjoy using this application, consider supporting its continued development.",
+    "donation_pix": "COPY PIX DONATION KEY.",
+    "donation_github": "SPONSOR ON GITHUB.",
+    "pix_copied": "PIX KEY COPIED SUCCESSFULLY!"
   }
 }
