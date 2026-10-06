@@ -20,6 +20,7 @@ import '../favorites/presentation/favorites_screen.dart';
 import '../live/presentation/live_screen.dart';
 import '../player/presentation/video_player_screen.dart';
 import '../series/presentation/series_screen.dart';
+import '../../core/services/update_service.dart';
 import '../settings/presentation/settings_screen.dart';
 import '../vod/presentation/vod_screen.dart';
 
@@ -31,12 +32,85 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  UpdateInfo? _updateInfo;
+  bool _isDownloadingUpdate = false;
+  double _downloadProgress = 0.0;
+
   @override
   void initState() {
     super.initState();
     WatchHistoryService.loadHistory();
     RecentChannelsService.loadChannels();
     FavoritesService.loadFavorites();
+    _checkForUpdates();
+  }
+
+  void _checkForUpdates() async {
+    final info = await UpdateService.checkForUpdate();
+    if (mounted && info != null && info.hasUpdate) {
+      setState(() => _updateInfo = info);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.surfaceCard,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: const BorderSide(color: AppColors.accentPrimary, width: 1.2),
+          ),
+          content: Row(
+            children: [
+              const Icon(Icons.system_update_rounded, color: AppColors.accentPrimary, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'NOVA VERSÃO DISPONÍVEL // v${info.latestVersion}',
+                  style: AppTypography.mono(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                ),
+              ),
+            ],
+          ),
+          action: SnackBarAction(
+            label: 'ATUALIZAR.',
+            textColor: AppColors.accentPrimary,
+            onPressed: _startUpdate,
+          ),
+          duration: const Duration(seconds: 8),
+        ),
+      );
+    }
+  }
+
+  void _startUpdate() {
+    if (_updateInfo == null || _isDownloadingUpdate) return;
+
+    setState(() {
+      _isDownloadingUpdate = true;
+      _downloadProgress = 0.0;
+    });
+
+    UpdateService.downloadAndInstall(
+      updateInfo: _updateInfo!,
+      onProgress: (progress) {
+        if (mounted) setState(() => _downloadProgress = progress);
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() => _isDownloadingUpdate = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AppColors.surfaceCard,
+              content: Text(
+                'ERRO AO ATUALIZAR: $error',
+                style: AppTypography.mono(color: AppColors.statusError),
+              ),
+            ),
+          );
+        }
+      },
+      onReadyToInstall: () {
+        if (mounted) setState(() => _isDownloadingUpdate = false);
+      },
+    );
   }
 
   @override
@@ -223,6 +297,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     fontSize: isNarrow ? 12 : 14,
                   ),
                 ),
+                if (_updateInfo != null) ...[
+                  const SizedBox(height: 14),
+                  if (_isDownloadingUpdate) ...[
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'BAIXANDO ATUALIZAÇÃO v${_updateInfo!.latestVersion}...',
+                              style: AppTypography.mono(
+                                fontSize: 11,
+                                color: AppColors.accentPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              '${(_downloadProgress * 100).toInt()}%',
+                              style: AppTypography.mono(fontSize: 11, color: AppColors.textPrimary),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: _downloadProgress > 0 ? _downloadProgress : null,
+                            minHeight: 4,
+                            backgroundColor: AppColors.surfaceHover,
+                            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _startUpdate,
+                          icon: const Icon(Icons.system_update_rounded, size: 16),
+                          label: Text(
+                            'ATUALIZAR PARA v${_updateInfo!.latestVersion}.',
+                            style: AppTypography.mono(
+                              fontSize: isNarrow ? 10 : 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accentPrimary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                        const HankoBadge(
+                          text: '[ NOVA VERSÃO DISPONÍVEL ]',
+                          borderColor: AppColors.accentCyan,
+                          textColor: AppColors.accentCyan,
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ],
             ),
           ),
