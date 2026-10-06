@@ -2,8 +2,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/storage/favorite_item.dart';
+import '../../../core/storage/favorites_service.dart';
+import '../../../core/storage/recent_channels_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/hanko_badge.dart';
@@ -29,6 +33,7 @@ class _LiveScreenState extends State<LiveScreen> {
   @override
   void initState() {
     super.initState();
+    FavoritesService.loadFavorites();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final account = context.read<AuthProvider>().currentAccount;
       if (account != null) {
@@ -411,6 +416,16 @@ class _LiveScreenState extends State<LiveScreen> {
       onTap: () {
         if (account == null || streamUrl.isEmpty) return;
 
+        // Registra canal como recentemente assistido
+        RecentChannelsService.recordChannelWatched(
+          streamId: channel.streamId,
+          name: channel.name,
+          streamIcon: channel.streamIcon,
+          categoryName: channel.categoryName,
+          channelNumber: channel.formattedNumber,
+          streamUrl: streamUrl,
+        );
+
         // Monta a playlist com todos os canais filtrados para permitir zapping imediato
         final playlist = allChannels.map((c) {
           return PlaylistItem(
@@ -486,29 +501,79 @@ class _LiveScreenState extends State<LiveScreen> {
                   ),
                 ),
 
-                // Tag de Resolução / Qualidade (topo direito)
+                // Tag de Resolução e Botão Favoritar (topo direito)
                 Positioned(
                   top: 6,
                   right: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: channel.resolutionTag == '4K'
-                            ? AppColors.statusLive
-                            : AppColors.accentPrimary.withValues(alpha: 0.6),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: channel.resolutionTag == '4K'
+                                ? AppColors.statusLive
+                                : AppColors.accentPrimary.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        child: Text(
+                          channel.resolutionTag,
+                          style: AppTypography.mono(
+                            fontSize: 9,
+                            color: channel.resolutionTag == '4K' ? AppColors.statusLive : AppColors.accentCyan,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      channel.resolutionTag,
-                      style: AppTypography.mono(
-                        fontSize: 9,
-                        color: channel.resolutionTag == '4K' ? AppColors.statusLive : AppColors.accentCyan,
-                        fontWeight: FontWeight.w700,
+                      const SizedBox(width: 4),
+                      ValueListenableBuilder<List<FavoriteItem>>(
+                        valueListenable: FavoritesService.favoritesNotifier,
+                        builder: (context, _, __) {
+                          final favId = 'live_${channel.streamId}';
+                          final isFav = FavoritesService.isFavoriteSync(favId);
+                          return InkWell(
+                            onTap: () async {
+                              final favItem = FavoriteItem(
+                                id: favId,
+                                title: channel.name,
+                                type: 'live',
+                                cover: channel.streamIcon,
+                                genre: channel.categoryName,
+                                streamUrl: streamUrl,
+                                channelNumber: channel.formattedNumber,
+                                addedAt: DateTime.now(),
+                              );
+                              final nowFav = await FavoritesService.toggleFavorite(favItem);
+                              if (context.mounted) {
+                                AppToast.info(
+                                  context,
+                                  nowFav ? context.tr('live.fav_added') : context.tr('live.fav_removed'),
+                                );
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(4),
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.8),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: isFav ? AppColors.statusLive : AppColors.borderHairline,
+                                ),
+                              ),
+                              child: Icon(
+                                isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                                size: 13,
+                                color: isFav ? AppColors.statusLive : AppColors.textMuted,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],

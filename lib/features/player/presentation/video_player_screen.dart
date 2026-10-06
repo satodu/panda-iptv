@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import '../../../core/storage/favorite_item.dart';
+import '../../../core/storage/favorites_service.dart';
+import '../../../core/storage/recent_channels_service.dart';
 import '../../../core/storage/watch_history_service.dart';
 import '../../../core/storage/watched_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -120,6 +123,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     if (_currentMediaId != null && _currentMediaType != 'live') {
       _isWatched = WatchedService.isWatchedSync(_currentMediaId!);
+    }
+
+    if (_currentMediaType == 'live') {
+      RecentChannelsService.recordChannelWatched(
+        streamId: int.tryParse(_currentMediaId ?? '') ?? 0,
+        name: _currentTitle,
+        streamIcon: _currentCover,
+        categoryName: _currentSubtitle,
+        streamUrl: _currentStreamUrl,
+      );
     }
 
     _player = Player(
@@ -299,6 +312,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       _duration = Duration.zero;
       _isWatched = WatchedService.isWatchedSync(nextItem.id);
     });
+
+    if (nextItem.mediaType == 'live') {
+      RecentChannelsService.recordChannelWatched(
+        streamId: int.tryParse(nextItem.id) ?? 0,
+        name: nextItem.title,
+        streamIcon: nextItem.cover,
+        categoryName: nextItem.subtitle,
+        streamUrl: nextItem.streamUrl,
+      );
+    }
 
     _showHud('CARREGANDO: ${nextItem.subtitle ?? nextItem.title}');
     await _initAndPlay(streamUrl: nextItem.streamUrl);
@@ -692,7 +715,36 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                     ],
                                   ),
                                 ),
-                                if (_currentMediaType != 'live')
+                                if (_currentMediaType == 'live' && _currentMediaId != null)
+                                  ValueListenableBuilder<List<FavoriteItem>>(
+                                    valueListenable: FavoritesService.favoritesNotifier,
+                                    builder: (context, _, __) {
+                                      final favId = 'live_$_currentMediaId';
+                                      final isFav = FavoritesService.isFavoriteSync(favId);
+                                      return IconButton(
+                                        icon: Icon(
+                                          isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                                          color: isFav ? AppColors.statusLive : AppColors.textMuted,
+                                          size: 22,
+                                        ),
+                                        tooltip: isFav ? 'Remover dos Favoritos' : 'Favoritar Canal',
+                                        onPressed: () async {
+                                          final favItem = FavoriteItem(
+                                            id: favId,
+                                            title: _currentTitle,
+                                            type: 'live',
+                                            cover: _currentCover,
+                                            genre: _currentSubtitle,
+                                            streamUrl: _currentStreamUrl,
+                                            addedAt: DateTime.now(),
+                                          );
+                                          final nowFav = await FavoritesService.toggleFavorite(favItem);
+                                          _showHud(nowFav ? 'FAVORITADO ★' : 'DESFAVORITADO ☆');
+                                        },
+                                      );
+                                    },
+                                  )
+                                else if (_currentMediaType != 'live')
                                   IconButton(
                                     icon: Icon(
                                       _isWatched ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,

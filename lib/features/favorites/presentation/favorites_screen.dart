@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/storage/favorite_item.dart';
 import '../../../core/storage/favorites_service.dart';
+import '../../../core/storage/recent_channels_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_toast.dart';
@@ -9,6 +11,8 @@ import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/tech_crosses.dart';
+import '../../auth/presentation/auth_provider.dart';
+import '../../player/presentation/video_player_screen.dart';
 import '../../series/models/series_item.dart';
 import '../../series/presentation/series_detail_screen.dart';
 import '../../vod/models/vod_item.dart';
@@ -22,7 +26,7 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
-  String _selectedFilter = 'ALL'; // 'ALL', 'movie', 'series'
+  String _selectedFilter = 'ALL'; // 'ALL', 'live', 'movie', 'series'
 
   @override
   void initState() {
@@ -102,6 +106,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget _buildFilterTabs() {
     final filters = [
       {'key': 'ALL', 'label': 'TODOS.'},
+      {'key': 'live', 'label': 'AO VIVO.'},
       {'key': 'movie', 'label': 'FILMES.'},
       {'key': 'series', 'label': 'SÉRIES.'},
     ];
@@ -222,6 +227,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildItemCard(BuildContext context, FavoriteItem item) {
+    final isLive = item.type == 'live';
     final isSeries = item.type == 'series';
     final hasCover = item.cover != null && item.cover!.trim().isNotEmpty;
 
@@ -240,10 +246,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   child: hasCover
                       ? CachedNetworkImage(
                           imageUrl: item.cover!,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => _buildFallbackCover(isSeries),
+                          fit: isLive ? BoxFit.contain : BoxFit.cover,
+                          errorWidget: (_, __, ___) => _buildFallbackCover(item),
                         )
-                      : _buildFallbackCover(isSeries),
+                      : _buildFallbackCover(item),
                 ),
 
                 // Gradiente superior para botões
@@ -266,14 +272,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ),
                 ),
 
-                // Badge de tipo (FILME / SÉRIE)
+                // Badge de tipo (AO VIVO / FILME / SÉRIE)
                 Positioned(
                   top: 8,
                   left: 8,
                   child: HankoBadge(
-                    text: isSeries ? 'SÉRIE' : 'FILME',
-                    borderColor: isSeries ? AppColors.accentCyan : AppColors.accentPrimary,
-                    textColor: isSeries ? AppColors.accentCyan : AppColors.accentPrimary,
+                    text: isLive ? 'AO VIVO' : (isSeries ? 'SÉRIE' : 'FILME'),
+                    borderColor: isLive
+                        ? AppColors.statusLive
+                        : (isSeries ? AppColors.accentCyan : AppColors.accentPrimary),
+                    textColor: isLive
+                        ? AppColors.statusLive
+                        : (isSeries ? AppColors.accentCyan : AppColors.accentPrimary),
                   ),
                 ),
 
@@ -303,7 +313,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   ),
                 ),
 
-                // Rating
+                // Rating (apenas filmes e séries)
                 if (item.rating != null && item.rating! > 0)
                   Positioned(
                     bottom: 8,
@@ -330,7 +340,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  item.genre ?? (isSeries ? 'SÉRIE' : 'FILME'),
+                  item.genre ?? (isLive ? 'CANAL AO VIVO' : (isSeries ? 'SÉRIE' : 'FILME')),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.mono(fontSize: 10, color: AppColors.textMuted),
@@ -343,12 +353,17 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  Widget _buildFallbackCover(bool isSeries) {
+  Widget _buildFallbackCover(FavoriteItem item) {
+    final isLive = item.type == 'live';
+    final isSeries = item.type == 'series';
+
     return Container(
       color: AppColors.surfaceCard,
       child: Center(
         child: Icon(
-          isSeries ? Icons.video_collection_outlined : Icons.movie_outlined,
+          isLive
+              ? Icons.live_tv_rounded
+              : (isSeries ? Icons.video_collection_outlined : Icons.movie_outlined),
           size: 40,
           color: AppColors.textDisabled,
         ),
@@ -357,6 +372,38 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   void _openDetail(BuildContext context, FavoriteItem item) {
+    if (item.type == 'live') {
+      final account = context.read<AuthProvider>().currentAccount;
+      final rawId = int.tryParse(item.id.replaceFirst('live_', '')) ?? 0;
+      final streamUrl = item.streamUrl ??
+          (account != null ? '${account.serverUrl}/live/${account.username}/${account.password}/$rawId.ts' : '');
+
+      if (streamUrl.isNotEmpty) {
+        RecentChannelsService.recordChannelWatched(
+          streamId: rawId,
+          name: item.title,
+          streamIcon: item.cover,
+          categoryName: item.genre,
+          channelNumber: item.channelNumber,
+          streamUrl: streamUrl,
+        );
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => VideoPlayerScreen(
+              title: item.title,
+              subtitle: item.genre ?? 'CANAL AO VIVO',
+              streamUrl: streamUrl,
+              mediaId: rawId.toString(),
+              cover: item.cover,
+              mediaType: 'live',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     if (item.type == 'series') {
       final rawId = int.tryParse(item.id.replaceFirst('series_', '')) ?? 0;
       final series = SeriesItem(

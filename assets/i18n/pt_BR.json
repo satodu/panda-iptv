@@ -34,6 +34,8 @@
     "favorites_title": "FAVORITOS.",
     "favorites_subtitle": "Acesso rápido aos seus canais e conteúdos salvos.",
     "favorites_badge": "FAV. LIST",
+    "continue_watching_title": "CONTINUAR ASSISTINDO.",
+    "recent_channels_title": "ÚLTIMOS CANAIS.",
     "connection": "CONEXÃO",
     "logout_tooltip": "Desconectar",
     "footer": "PANDA IPTV // ARCH LINUX & ANDROID CORE // MPV ACCELERATED"
@@ -117,6 +119,10 @@
     "channels_count": "CANAIS",
     "empty": "NENHUM CANAL ENCONTRADO.",
     "channel_number": "CANAL",
-    "playing_channel": "REPRODUZINDO CANAL"
+    "playing_channel": "REPRODUZINDO CANAL",
+    "fav_added": "CANAL ADICIONADO AOS FAVORITOS.",
+    "fav_removed": "CANAL REMOVIDO DOS FAVORITOS.",
+    "favorite_tooltip": "Favoritar Canal",
+    "unfavorite_tooltip": "Remover dos Favoritos"
   }
 }

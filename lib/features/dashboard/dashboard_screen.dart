@@ -1,6 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/localization/app_localizations.dart';
+import '../../core/storage/favorite_item.dart';
+import '../../core/storage/favorites_service.dart';
+import '../../core/storage/recent_channel_item.dart';
+import '../../core/storage/recent_channels_service.dart';
 import '../../core/storage/watch_history_item.dart';
 import '../../core/storage/watch_history_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -30,6 +35,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     WatchHistoryService.loadHistory();
+    RecentChannelsService.loadChannels();
+    FavoritesService.loadFavorites();
   }
 
   @override
@@ -67,6 +74,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       valueListenable: WatchHistoryService.historyNotifier,
                       builder: (context, historyItems, _) {
                         return _buildContinueWatchingSection(context, historyItems);
+                      },
+                    ),
+
+                    // Últimos Canais Assistidos (se houver histórico)
+                    ValueListenableBuilder<List<RecentChannelItem>>(
+                      valueListenable: RecentChannelsService.recentChannelsNotifier,
+                      builder: (context, recentChannels, _) {
+                        return _buildRecentChannelsSection(context, recentChannels);
                       },
                     ),
 
@@ -590,6 +605,295 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             minHeight: 3.5,
                             backgroundColor: Colors.white.withValues(alpha: 0.15),
                             valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentChannelsSection(BuildContext context, List<RecentChannelItem> items) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Text(
+                  context.tr('dashboard.recent_channels_title'),
+                  style: AppTypography.sectionTitle(),
+                ),
+                const SizedBox(width: 10),
+                HankoBadge(
+                  text: '[ ${items.length} ]',
+                  borderColor: AppColors.statusLive,
+                  textColor: AppColors.statusLive,
+                ),
+              ],
+            ),
+            const TechCrosses(count: 3, spacing: 6),
+          ],
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 160,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 16),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return BrutalistEntrance(
+                index: index,
+                child: _buildRecentChannelCard(context, item),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildRecentChannelCard(BuildContext context, RecentChannelItem item) {
+    final hasLogo = item.streamIcon != null && item.streamIcon!.trim().isNotEmpty;
+    final favId = 'live_${item.streamId}';
+
+    return BentoCard(
+      padding: EdgeInsets.zero,
+      borderRadius: 12,
+      onTap: () {
+        // Atualiza a posição nos canais recentes
+        RecentChannelsService.recordChannelWatched(
+          streamId: item.streamId,
+          name: item.name,
+          streamIcon: item.streamIcon,
+          categoryName: item.categoryName,
+          channelNumber: item.channelNumber,
+          streamUrl: item.streamUrl,
+        );
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => VideoPlayerScreen(
+              title: item.name,
+              subtitle: item.categoryName ?? 'CANAL AO VIVO',
+              streamUrl: item.streamUrl,
+              mediaId: item.streamId.toString(),
+              cover: item.streamIcon,
+              mediaType: 'live',
+            ),
+          ),
+        );
+      },
+      child: SizedBox(
+        width: 260,
+        height: 160,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Fundo estilizado com gradiente
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.surfaceHover,
+                      AppColors.surfaceCard,
+                      AppColors.canvas,
+                    ],
+                  ),
+                ),
+              ),
+
+              // Logo central do canal
+              Center(
+                child: Opacity(
+                  opacity: 0.85,
+                  child: hasLogo
+                      ? CachedNetworkImage(
+                          imageUrl: item.streamIcon!,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.contain,
+                          errorWidget: (_, __, ___) => const Icon(
+                            Icons.live_tv_rounded,
+                            size: 40,
+                            color: AppColors.textDisabled,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.live_tv_rounded,
+                          size: 40,
+                          color: AppColors.textDisabled,
+                        ),
+                ),
+              ),
+
+              // Gradiente de legibilidade para o rodapé e topo
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.75),
+                      Colors.black.withValues(alpha: 0.15),
+                      Colors.black.withValues(alpha: 0.90),
+                    ],
+                    stops: const [0.0, 0.45, 1.0],
+                  ),
+                ),
+              ),
+
+              // Conteúdo sobreposto
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Linha Superior: Tags à esquerda, Botões de Favoritar e Fechar à direita
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            HankoBadge(
+                              text: item.channelNumber ?? '#LIVE',
+                              borderColor: AppColors.accentCyan,
+                              textColor: AppColors.accentCyan,
+                            ),
+                            const SizedBox(width: 6),
+                            const HankoBadge(
+                              text: '● AO VIVO',
+                              borderColor: AppColors.statusLive,
+                              textColor: AppColors.statusLive,
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Botão Favoritar
+                            ValueListenableBuilder<List<FavoriteItem>>(
+                              valueListenable: FavoritesService.favoritesNotifier,
+                              builder: (context, _, __) {
+                                final isFav = FavoritesService.isFavoriteSync(favId);
+                                return InkWell(
+                                  onTap: () async {
+                                    final favItem = FavoriteItem(
+                                      id: favId,
+                                      title: item.name,
+                                      type: 'live',
+                                      cover: item.streamIcon,
+                                      genre: item.categoryName,
+                                      streamUrl: item.streamUrl,
+                                      channelNumber: item.channelNumber,
+                                      addedAt: DateTime.now(),
+                                    );
+                                    await FavoritesService.toggleFavorite(favItem);
+                                  },
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surfaceCard.withValues(alpha: 0.85),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isFav ? AppColors.statusLive : AppColors.borderHairline,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                                      size: 14,
+                                      color: isFav ? AppColors.statusLive : AppColors.textMuted,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            // Botão Fechar / Remover dos recentes
+                            InkWell(
+                              onTap: () => RecentChannelsService.removeChannel(item.streamId),
+                              borderRadius: BorderRadius.circular(14),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceCard.withValues(alpha: 0.85),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppColors.borderHairline),
+                                ),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  size: 14,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    // Linha Inferior: Play Icon + Nome do Canal + Categoria
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: AppColors.accentPrimary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.play_arrow_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                item.name.toUpperCase().endsWith('.')
+                                    ? item.name.toUpperCase()
+                                    : '${item.name.toUpperCase()}.',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.mono(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              if (item.categoryName != null && item.categoryName!.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  item.categoryName!.toUpperCase(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.mono(fontSize: 10, color: AppColors.accentCyan),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ],
