@@ -24,12 +24,10 @@ class BrutalistButton extends StatelessWidget {
     final bgColor = isSecondary ? AppColors.surfaceHover : AppColors.accentPrimary;
     final fgColor = isSecondary ? AppColors.textPrimary : Colors.white;
 
-    return InkWell(
-      onTap: isLoading ? null : onPressed,
+    return Material(
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(10),
-      child: Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Ink(
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(10),
@@ -47,34 +45,43 @@ class BrutalistButton extends StatelessWidget {
                   ),
                 ],
         ),
-        child: Center(
-          child: isLoading
-              ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(fgColor),
-                  ),
-                )
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (icon != null) ...[
-                      Icon(icon, size: 18, color: fgColor),
-                      const SizedBox(width: 8),
-                    ],
-                    Text(
-                      AppTypography.formatTitle(label),
-                      style: AppTypography.mono(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: fgColor,
+        child: InkWell(
+          onTap: isLoading ? null : onPressed,
+          borderRadius: BorderRadius.circular(10),
+          splashColor: Colors.white.withValues(alpha: 0.2),
+          child: Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Center(
+              child: isLoading
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(fgColor),
                       ),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (icon != null) ...[
+                          Icon(icon, size: 20, color: fgColor),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          AppTypography.formatTitle(label),
+                          style: AppTypography.mono(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: fgColor,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+            ),
+          ),
         ),
       ),
     );

@@ -75,24 +75,31 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
     final plot = _detail?.plot ?? 'Sem sinopse disponível.';
     final rating = _detail?.rating != null && _detail!.rating > 0 ? _detail!.rating : widget.item.rating;
 
+    final isNarrow = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
       backgroundColor: AppColors.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            // Top Bar
+            // Top Bar Responsiva
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: isNarrow ? 12 : 16, vertical: 12),
               child: Row(
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  const SizedBox(width: 8),
-                  Text('DETALHES DO FILME.', style: AppTypography.titleMedium()),
-                  const Spacer(),
-                  const TechCrosses(count: 3, opacity: 0.2),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'DETALHES DO FILME.',
+                      style: AppTypography.titleMedium(fontSize: isNarrow ? 14 : 16),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (!isNarrow) const TechCrosses(count: 3, opacity: 0.2),
                 ],
               ),
             ),
@@ -103,7 +110,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                       child: CircularProgressIndicator(color: AppColors.accentPrimary),
                     )
                   : SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.all(isNarrow ? 16 : 24),
                       child: isLandscape
                           ? Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,7 +123,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                                 const SizedBox(width: 32),
                                 // Informações
                                 Expanded(
-                                  child: _buildInfoSection(title, rating, plot),
+                                  child: _buildInfoSection(title, rating, plot, isLandscape, isNarrow),
                                 ),
                               ],
                             )
@@ -136,7 +143,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                                     ),
                                   ),
                                 const SizedBox(height: 20),
-                                _buildInfoSection(title, rating, plot),
+                                _buildInfoSection(title, rating, plot, isLandscape, isNarrow),
                               ],
                             ),
                     ),
@@ -173,33 +180,32 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
     );
   }
 
-  Widget _buildInfoSection(String title, double rating, String plot) {
+  Widget _buildInfoSection(String title, double rating, String plot, bool isLandscape, bool isNarrow) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            if (rating > 0) ...[
+            if (rating > 0)
               HankoBadge(
                 text: '★ ${rating.toStringAsFixed(1)}',
                 borderColor: AppColors.accentPrimary,
                 textColor: AppColors.accentPrimary,
               ),
-              const SizedBox(width: 10),
-            ],
-            if (_detail?.duration != null) ...[
+            if (_detail?.duration != null)
               HankoBadge(text: _detail!.duration!),
-              const SizedBox(width: 10),
-            ],
-            if (_detail?.releaseDate != null && _detail!.releaseDate!.isNotEmpty) ...[
+            if (_detail?.releaseDate != null && _detail!.releaseDate!.isNotEmpty)
               HankoBadge(text: _detail!.releaseDate!),
-              const SizedBox(width: 10),
-            ],
             const HankoBadge(text: '1080P HD', borderColor: AppColors.accentCyan, textColor: AppColors.accentCyan),
           ],
         ),
         const SizedBox(height: 14),
-        Text(title, style: AppTypography.displayLarge()),
+        Text(
+          title,
+          style: AppTypography.displayLarge().copyWith(fontSize: isNarrow ? 22 : 28),
+        ),
         const SizedBox(height: 8),
 
         if (_detail?.genre != null && _detail!.genre!.isNotEmpty) ...[
@@ -236,7 +242,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
 
         const SizedBox(height: 16),
         SizedBox(
-          width: 240,
+          width: isLandscape ? 240 : double.infinity,
           child: BrutalistButton(
             label: 'ASSISTIR AGORA.',
             icon: Icons.play_arrow_rounded,

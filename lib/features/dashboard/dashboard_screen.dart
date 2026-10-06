@@ -18,24 +18,28 @@ class DashboardScreen extends StatelessWidget {
     final user = auth.currentAccount?.userInfo;
     final server = auth.currentAccount?.serverInfo;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final isNarrow = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            // Barra Superior de Status (Brutalismo Minimalista)
-            _buildTopBar(context, auth, user, server),
+            // Barra Superior de Status (Brutalismo Minimalista Responsivo)
+            _buildTopBar(context, auth, user, server, isNarrow),
 
             // Conteúdo Rolável
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isNarrow ? 16 : 24,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Hero Banner (Destaque / Hub Principal)
-                    _buildHeroBanner(context),
+                    _buildHeroBanner(context, isNarrow),
                     const SizedBox(height: 24),
 
                     // Título de Seção
@@ -44,9 +48,9 @@ class DashboardScreen extends StatelessWidget {
                       children: [
                         Text(
                           'BIBLIOTECA & NAVEGAÇÃO.',
-                          style: AppTypography.sectionTitle(),
+                          style: AppTypography.sectionTitle(fontSize: isNarrow ? 15 : 18),
                         ),
-                        const TechCrosses(count: 4, spacing: 8),
+                        TechCrosses(count: isNarrow ? 3 : 4, spacing: 8),
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -59,6 +63,7 @@ class DashboardScreen extends StatelessWidget {
                     Center(
                       child: Text(
                         'PANDA IPTV // ARCH LINUX & ANDROID CORE // MPV ACCELERATED',
+                        textAlign: TextAlign.center,
                         style: AppTypography.mono(fontSize: 10, color: AppColors.textDisabled),
                       ),
                     ),
@@ -72,9 +77,9 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopBar(BuildContext context, AuthProvider auth, dynamic user, dynamic server) {
+  Widget _buildTopBar(BuildContext context, AuthProvider auth, dynamic user, dynamic server, bool isNarrow) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      padding: EdgeInsets.symmetric(horizontal: isNarrow ? 16 : 24, vertical: isNarrow ? 10 : 14),
       decoration: const BoxDecoration(
         color: AppColors.surfaceCard,
         border: Border(
@@ -84,37 +89,41 @@ class DashboardScreen extends StatelessWidget {
       child: Row(
         children: [
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: Image.asset(
                   'assets/images/logo.png',
-                  width: 24,
-                  height: 24,
+                  width: isNarrow ? 22 : 24,
+                  height: isNarrow ? 22 : 24,
                   fit: BoxFit.cover,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Text(
                 'PANDA IPTV.',
-                style: AppTypography.titleMedium(color: AppColors.textPrimary),
+                style: AppTypography.titleMedium(
+                  color: AppColors.textPrimary,
+                  fontSize: isNarrow ? 13 : 14,
+                ),
               ),
             ],
           ),
-          const SizedBox(width: 16),
-          const TechCrosses(count: 3, opacity: 0.2),
+          if (!isNarrow) ...[
+            const SizedBox(width: 16),
+            const TechCrosses(count: 3, opacity: 0.2),
+          ],
           const Spacer(),
 
-          // Badge de Usuário e Conexão
+          // Badge de Usuário (limpo e direto, sem contagem de conexões)
           if (user != null) ...[
-            HankoBadge(text: user.username),
-            const SizedBox(width: 10),
             HankoBadge(
-              text: 'CONEXÃO: ${user.activeCons}/${user.maxConnections}',
-              borderColor: AppColors.accentCyan,
-              textColor: AppColors.accentCyan,
+              text: user.username.toUpperCase(),
+              borderColor: AppColors.accentPrimary,
+              textColor: AppColors.textPrimary,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
           ],
 
           // Botão Desconectar
@@ -128,45 +137,58 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroBanner(BuildContext context) {
+  Widget _buildHeroBanner(BuildContext context, bool isNarrow) {
     return BentoCard(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isNarrow ? 16 : 24),
       backgroundColor: AppColors.surfaceCard,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const HankoBadge(text: 'CENTRAL DE MÍDIA // HUB', isLive: true),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   'BEM-VINDO AO PANDA.',
-                  style: AppTypography.displayLarge(color: AppColors.textPrimary),
+                  style: AppTypography.displayLarge(
+                    color: AppColors.textPrimary,
+                  ).copyWith(fontSize: isNarrow ? 20 : 28),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Acesse transmissões ao vivo com baixa latência e biblioteca sob demanda.',
-                  style: AppTypography.body(color: AppColors.textMuted),
+                  style: AppTypography.body(
+                    color: AppColors.textMuted,
+                    fontSize: isNarrow ? 12 : 14,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              'assets/images/logo.png',
-              width: 58,
-              height: 58,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Text(
-            '放送\n中心',
-            textAlign: TextAlign.center,
-            style: AppTypography.orientalAccent(fontSize: 22),
+          const SizedBox(width: 12),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: isNarrow ? 44 : 58,
+                  height: isNarrow ? 44 : 58,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              if (!isNarrow) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '放送\n中心',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.orientalAccent(fontSize: 18),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -179,7 +201,7 @@ class DashboardScreen extends StatelessWidget {
         title: 'AO VIVO.',
         subtitle: 'Canais de televisão em tempo real e guia EPG.',
         badge: 'LIVE STREAMS',
-        icon: Icons.tv_rounded,
+        icon: Icons.live_tv_rounded,
         color: AppColors.accentPrimary,
         kanji: '生放送',
         onTap: () {
@@ -192,7 +214,7 @@ class DashboardScreen extends StatelessWidget {
         title: 'FILMES.',
         subtitle: 'Catálogo de filmes em alta definição (VOD).',
         badge: 'CINEMA HD',
-        icon: Icons.movie_filter_outlined,
+        icon: Icons.movie_rounded,
         color: AppColors.accentCyan,
         kanji: '映画',
         onTap: () {
@@ -205,7 +227,7 @@ class DashboardScreen extends StatelessWidget {
         title: 'SÉRIES.',
         subtitle: 'Temporadas completas organizadas por episódios.',
         badge: 'ON DEMAND',
-        icon: Icons.video_collection_outlined,
+        icon: Icons.video_collection_rounded,
         color: AppColors.textPrimary,
         kanji: '連載',
         onTap: () {
@@ -218,7 +240,7 @@ class DashboardScreen extends StatelessWidget {
         title: 'FAVORITOS.',
         subtitle: 'Acesso rápido aos seus canais e conteúdos salvos.',
         badge: 'FAV. LIST',
-        icon: Icons.star_border_rounded,
+        icon: Icons.star_rounded,
         color: AppColors.statusLive,
         kanji: '保存',
         onTap: () {
@@ -245,7 +267,7 @@ class DashboardScreen extends StatelessWidget {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: crossAxisCount == 1 ? 2.5 : 1.25,
+            childAspectRatio: crossAxisCount == 1 ? 2.1 : 1.25,
           ),
           itemCount: cards.length,
           itemBuilder: (context, index) {
@@ -259,17 +281,33 @@ class DashboardScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      HankoBadge(text: item.badge, borderColor: item.color),
-                      Text(item.kanji, style: AppTypography.orientalAccent(fontSize: 14)),
+                      Container(
+                        padding: const EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: item.color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: item.color.withValues(alpha: 0.35),
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(item.icon, size: 22, color: item.color),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          HankoBadge(text: item.badge, borderColor: item.color),
+                          const SizedBox(width: 8),
+                          Text(item.kanji, style: AppTypography.orientalAccent(fontSize: 14)),
+                        ],
+                      ),
                     ],
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(item.icon, size: 28, color: item.color),
-                      const SizedBox(height: 8),
-                      Text(item.title, style: AppTypography.sectionTitle()),
-                      const SizedBox(height: 4),
+                      Text(item.title, style: AppTypography.sectionTitle(fontSize: 15)),
+                      const SizedBox(height: 3),
                       Text(
                         item.subtitle,
                         maxLines: 2,

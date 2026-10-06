@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/bento_card.dart';
+import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../auth/presentation/auth_provider.dart';
+import '../models/series_category.dart';
 import '../models/series_item.dart';
 import 'series_detail_screen.dart';
 import 'series_provider.dart';
@@ -19,6 +21,7 @@ class SeriesScreen extends StatefulWidget {
 
 class _SeriesScreenState extends State<SeriesScreen> {
   final TextEditingController _searchController = TextEditingController();
+  bool _isSearchExpanded = false;
 
   @override
   void initState() {
@@ -41,17 +44,43 @@ class _SeriesScreenState extends State<SeriesScreen> {
   Widget build(BuildContext context) {
     final seriesProv = context.watch<SeriesProvider>();
     final account = context.watch<AuthProvider>().currentAccount;
+    final isNarrow = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
       body: SafeArea(
         child: Column(
           children: [
-            // Top Bar
-            _buildTopBar(context, seriesProv),
+            // Top Bar Responsiva
+            _buildTopBar(context, seriesProv, isNarrow),
 
             // Categories Bar
             _buildCategorySelector(context, seriesProv, account),
+
+            // Sub-barra com contagem e status
+            if (!seriesProv.isLoadingSeries && seriesProv.error == null && seriesProv.filteredSeries.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: const BoxDecoration(
+                  color: AppColors.canvas,
+                  border: Border(bottom: BorderSide(color: AppColors.borderHairline)),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      _getSelectedCategoryName(seriesProv),
+                      style: AppTypography.mono(fontSize: 11, color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '[ ${seriesProv.filteredSeries.length} TÍTULOS ]',
+                      style: AppTypography.mono(fontSize: 10, color: AppColors.accentCyan),
+                    ),
+                    const Spacer(),
+                    const TechCrosses(count: 3, opacity: 0.15),
+                  ],
+                ),
+              ),
 
             // Series Grid
             Expanded(
@@ -93,9 +122,83 @@ class _SeriesScreenState extends State<SeriesScreen> {
     );
   }
 
-  Widget _buildTopBar(BuildContext context, SeriesProvider seriesProv) {
+  String _getSelectedCategoryName(SeriesProvider seriesProv) {
+    if (seriesProv.selectedCategoryId == null || seriesProv.selectedCategoryId == 'all') {
+      return 'TODAS AS SÉRIES';
+    }
+    final cat = seriesProv.categories.cast<SeriesCategory?>().firstWhere(
+          (c) => c?.categoryId == seriesProv.selectedCategoryId,
+          orElse: () => null,
+        );
+    return cat != null ? cat.categoryName.toUpperCase() : 'CATEGORIA';
+  }
+
+  Widget _buildTopBar(BuildContext context, SeriesProvider seriesProv, bool isNarrow) {
+    // Modo Mobile Vertical com busca expandida
+    if (isNarrow && _isSearchExpanded) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceCard,
+          border: Border(bottom: BorderSide(color: AppColors.borderHairline)),
+        ),
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+              onPressed: () {
+                setState(() => _isSearchExpanded = false);
+              },
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: SizedBox(
+                height: 40,
+                child: TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  onChanged: (val) => seriesProv.setSearchQuery(val),
+                  style: AppTypography.body(fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'DIGITE O NOME DA SÉRIE...',
+                    hintStyle: AppTypography.mono(fontSize: 11, color: AppColors.textDisabled),
+                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.accentPrimary),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 16, color: AppColors.textMuted),
+                            onPressed: () {
+                              _searchController.clear();
+                              seriesProv.setSearchQuery('');
+                            },
+                          )
+                        : null,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                    filled: true,
+                    fillColor: AppColors.surfaceHover,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.borderHairline),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.borderHairline),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.accentPrimary),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Top Bar Padrão (ou Desktop / Modo fechado no Mobile)
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isNarrow ? 12 : 20, vertical: 12),
       decoration: const BoxDecoration(
         color: AppColors.surfaceCard,
         border: Border(bottom: BorderSide(color: AppColors.borderHairline)),
@@ -106,50 +209,80 @@ class _SeriesScreenState extends State<SeriesScreen> {
             icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          const SizedBox(width: 8),
-          Text('SÉRIES.', style: AppTypography.titleMedium()),
-          const SizedBox(width: 16),
-          const TechCrosses(count: 3, opacity: 0.2),
+          const SizedBox(width: 4),
+          Text(
+            'SÉRIES.',
+            style: AppTypography.titleMedium(fontSize: isNarrow ? 14 : 16),
+          ),
+          if (!isNarrow) ...[
+            const SizedBox(width: 16),
+            const TechCrosses(count: 3, opacity: 0.2),
+          ],
           const Spacer(),
-          // Campo de busca
-          SizedBox(
-            width: 220,
-            height: 38,
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) => seriesProv.setSearchQuery(val),
-              style: AppTypography.body(fontSize: 13),
-              decoration: InputDecoration(
-                hintText: 'BUSCAR SÉRIE...',
-                hintStyle: AppTypography.mono(fontSize: 11, color: AppColors.textDisabled),
-                prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 16, color: AppColors.textMuted),
-                        onPressed: () {
-                          _searchController.clear();
-                          seriesProv.setSearchQuery('');
-                        },
-                      )
-                    : null,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                filled: true,
-                fillColor: AppColors.surfaceHover,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.borderHairline),
+
+          // No mobile: botão de busca com badge ativo se houver texto
+          if (isNarrow) ...[
+            if (_searchController.text.isNotEmpty) ...[
+              GestureDetector(
+                onTap: () => setState(() => _isSearchExpanded = true),
+                child: const HankoBadge(
+                  text: 'BUSCA ATIVA',
+                  borderColor: AppColors.accentPrimary,
+                  textColor: AppColors.accentPrimary,
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.borderHairline),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.accentPrimary),
+              ),
+              const SizedBox(width: 8),
+            ],
+            IconButton(
+              icon: Icon(
+                Icons.search_rounded,
+                color: _searchController.text.isNotEmpty ? AppColors.accentPrimary : AppColors.textPrimary,
+              ),
+              onPressed: () {
+                setState(() => _isSearchExpanded = true);
+              },
+            ),
+          ] else ...[
+            // Desktop / Landscape: campo de busca inline elegante
+            SizedBox(
+              width: 240,
+              height: 38,
+              child: TextField(
+                controller: _searchController,
+                onChanged: (val) => seriesProv.setSearchQuery(val),
+                style: AppTypography.body(fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'BUSCAR SÉRIE...',
+                  hintStyle: AppTypography.mono(fontSize: 11, color: AppColors.textDisabled),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 16, color: AppColors.textMuted),
+                          onPressed: () {
+                            _searchController.clear();
+                            seriesProv.setSearchQuery('');
+                          },
+                        )
+                      : null,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                  filled: true,
+                  fillColor: AppColors.surfaceHover,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.borderHairline),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.borderHairline),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.accentPrimary),
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -230,17 +363,19 @@ class _SeriesScreenState extends State<SeriesScreen> {
           crossAxisCount = 5;
         } else if (constraints.maxWidth > 650) {
           crossAxisCount = 4;
-        } else if (constraints.maxWidth > 450) {
+        } else if (constraints.maxWidth > 420) {
           crossAxisCount = 3;
         }
 
+        final isNarrow = constraints.maxWidth < 600;
+
         return GridView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isNarrow ? 12 : 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            childAspectRatio: 0.65,
+            crossAxisSpacing: isNarrow ? 10 : 14,
+            mainAxisSpacing: isNarrow ? 10 : 14,
+            childAspectRatio: 0.63,
           ),
           itemCount: seriesList.length,
           itemBuilder: (context, index) {
@@ -291,8 +426,8 @@ class _SeriesScreenState extends State<SeriesScreen> {
                 ),
                 if (item.rating > 0)
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: 6,
+                    right: 6,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -310,20 +445,21 @@ class _SeriesScreenState extends State<SeriesScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   item.name.toUpperCase().endsWith('.') ? item.name.toUpperCase() : '${item.name.toUpperCase()}.',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.sectionTitle(fontSize: 12),
+                  style: AppTypography.sectionTitle(fontSize: 11),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '[ SÉRIE // ON DEMAND ]',
-                  style: AppTypography.mono(fontSize: 10, color: AppColors.textMuted),
+                  style: AppTypography.mono(fontSize: 9, color: AppColors.textMuted),
                 ),
               ],
             ),

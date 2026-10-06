@@ -74,6 +74,7 @@ lib/
 ├── core/
 │   ├── api/                 # Cliente HTTP Xtream Codes, interceptores e cache
 │   ├── constants/           # Constantes globais e chaves de storage
+│   ├── localization/        # Sistema i18n JSON (AppLocalizations, LocaleProvider)
 │   ├── network/             # Gerenciamento de conectividade e tratamento de erros
 │   ├── storage/             # Cache local de credenciais, histórico e favoritos
 │   ├── theme/
@@ -110,7 +111,10 @@ lib/
 2. **Responsividade Obligatória**:
    - Todo componente deve funcionar elegantemente em tela vertical (celular 9:16) e horizontal (desktop/TV 16:9).
    - Use `LayoutBuilder`, `MediaQuery` e `Flex` adaptáveis.
-3. **Performance de Mídia no Linux & Android**:
+3. **Internacionalização Obrigatória (i18n)**:
+   - Toda string apresentada na interface deve estar mapeada nos 3 arquivos JSON sob `assets/i18n/` (`pt_BR.json`, `en_US.json`, `es_ES.json`).
+   - Consulte [I18N_GUIDE.md](file:///home/panda/orca/workspaces/panda-iptv/fiddler/I18N_GUIDE.md) para convenções de nomenclatura e exemplos.
+4. **Performance de Mídia no Linux & Android**:
    - Para reproduzir streams HLS/TS com alta performance no Linux e Android, a biblioteca recomendada é o `media_kit` (alimentada nativamente pelo `libmpv`), garantindo suporte total a aceleração por hardware (VA-API / NVDEC no Linux, MediaCodec no Android).
-4. **Tratamento de Falhas**:
+5. **Tratamento de Falhas**:
    - Servidores de IPTV podem oscilar. Sempre tratar timeouts com elegância e apresentar mensagens amigáveis no padrão visual do app.

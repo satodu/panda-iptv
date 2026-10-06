@@ -15,6 +15,9 @@
 build/
 /build/
 **/build/
+dist/
+/dist/
+**/dist/
 coverage/
 /coverage/
 **/doc/api/

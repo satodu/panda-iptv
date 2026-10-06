@@ -55,6 +55,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   void initState() {
     super.initState();
 
+    // No Android / Mobile: Força orientação horizontal (landscape) e tela cheia imersiva (sem barra de status/topo)
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
     _player = Player(
       configuration: const PlayerConfiguration(
         logLevel: MPVLogLevel.warn,
@@ -210,6 +217,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   @override
   void dispose() {
+    // Restaura a barra de status do sistema e todas as orientações permitidas ao sair do player
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+
     _hideTimer?.cancel();
     _hudTimer?.cancel();
     _posSub?.cancel();
@@ -227,6 +246,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     final formattedTitle = widget.title.toUpperCase().endsWith('.')
         ? widget.title.toUpperCase()
         : '${widget.title.toUpperCase()}.';
+
+    final isNarrow = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -393,9 +414,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Top Bar
+                          // Top Bar Responsiva
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isNarrow ? 12 : 20,
+                              vertical: isNarrow ? 10 : 16,
+                            ),
                             child: Row(
                               children: [
                                 IconButton(
@@ -412,29 +436,41 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                         formattedTitle,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: AppTypography.titleMedium(color: AppColors.textPrimary),
+                                        style: AppTypography.titleMedium(
+                                          color: AppColors.textPrimary,
+                                          fontSize: isNarrow ? 13 : 15,
+                                        ),
                                       ),
                                       if (widget.subtitle != null) ...[
                                         const SizedBox(height: 2),
                                         Text(
                                           widget.subtitle!,
-                                          style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: AppTypography.mono(
+                                            fontSize: isNarrow ? 9 : 11,
+                                            color: AppColors.textMuted,
+                                          ),
                                         ),
                                       ],
                                     ],
                                   ),
                                 ),
-                                const TechCrosses(count: 3, opacity: 0.3),
-                                const SizedBox(width: 12),
+                                if (!isNarrow) ...[
+                                  const TechCrosses(count: 3, opacity: 0.3),
+                                  const SizedBox(width: 12),
+                                ],
                                 InkWell(
                                   onTap: _toggleHwdec,
                                   borderRadius: BorderRadius.circular(6),
                                   child: HankoBadge(
-                                    text: _hwdecMode == 'no'
-                                        ? 'SW DECODER [SEGURO]'
-                                        : _hwdecMode == 'auto-copy'
-                                            ? 'HW: AUTO-COPY'
-                                            : 'HW: DIRETO',
+                                    text: isNarrow
+                                        ? (_hwdecMode == 'no' ? 'SW' : 'HW')
+                                        : (_hwdecMode == 'no'
+                                            ? 'SW DECODER [SEGURO]'
+                                            : _hwdecMode == 'auto-copy'
+                                                ? 'HW: AUTO-COPY'
+                                                : 'HW: DIRETO'),
                                     borderColor: _hwdecMode == 'no' ? AppColors.accentCyan : AppColors.accentPrimary,
                                     textColor: _hwdecMode == 'no' ? AppColors.accentCyan : AppColors.textPrimary,
                                   ),
@@ -489,7 +525,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
                           // Barra Inferior (Seek Bar + Tempos + Controle de Volume)
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isNarrow ? 16 : 24,
+                              vertical: isNarrow ? 12 : 16,
+                            ),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -522,11 +561,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                       children: [
                                         Text(
                                           _formatDuration(_position),
-                                          style: AppTypography.mono(fontSize: 12, color: AppColors.textPrimary),
+                                          style: AppTypography.mono(fontSize: isNarrow ? 11 : 12, color: AppColors.textPrimary),
                                         ),
                                         Text(
                                           ' / ${_formatDuration(_duration)}',
-                                          style: AppTypography.mono(fontSize: 12, color: AppColors.textMuted),
+                                          style: AppTypography.mono(fontSize: isNarrow ? 11 : 12, color: AppColors.textMuted),
                                         ),
                                       ],
                                     ),
@@ -548,31 +587,33 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                           ),
                                           onPressed: _toggleMute,
                                         ),
-                                        SizedBox(
-                                          width: 90,
-                                          child: SliderTheme(
-                                            data: SliderTheme.of(context).copyWith(
-                                              activeTrackColor: AppColors.accentPrimary,
-                                              inactiveTrackColor: AppColors.surfaceHover,
-                                              thumbColor: AppColors.accentPrimary,
-                                              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-                                              overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
-                                              trackHeight: 2,
-                                            ),
-                                            child: Slider(
-                                              value: _volume,
-                                              min: 0.0,
-                                              max: 100.0,
-                                              onChanged: (val) {
-                                                _setVolume(val);
-                                              },
+                                        if (!isNarrow) ...[
+                                          SizedBox(
+                                            width: 90,
+                                            child: SliderTheme(
+                                              data: SliderTheme.of(context).copyWith(
+                                                activeTrackColor: AppColors.accentPrimary,
+                                                inactiveTrackColor: AppColors.surfaceHover,
+                                                thumbColor: AppColors.accentPrimary,
+                                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+                                                overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+                                                trackHeight: 2,
+                                              ),
+                                              child: Slider(
+                                                value: _volume,
+                                                min: 0.0,
+                                                max: 100.0,
+                                                onChanged: (val) {
+                                                  _setVolume(val);
+                                                },
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 4),
+                                          const SizedBox(width: 4),
+                                        ],
                                         Text(
                                           '${_volume.toInt()}%',
-                                          style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
+                                          style: AppTypography.mono(fontSize: isNarrow ? 10 : 11, color: AppColors.textMuted),
                                         ),
                                       ],
                                     ),

@@ -22,3 +22,12 @@ Quando você atuar neste repositório, você DEVE seguir estritamente estas dire
 - Gerenciamento de estado: Mantenha a separação entre UI (Presentation), Estado e Serviços de Dados (Clean Architecture).
 - Mídia: O player de vídeo deve usar `media_kit` (alimentado por `libmpv`) para máxima performance com aceleração de hardware tanto no Linux quanto no Android.
 - API: Protocolo Xtream Codes (`player_api.php`). Detalhes em [PROJECT_GUIDE.md](file:///run/media/panda/panda/Projects/satodu/panda-iptv/PROJECT_GUIDE.md).
+
+## 3. Internacionalização Obrigatória (i18n)
+- Suporte nativo a 3 idiomas: **Português (`pt_BR`)**, **Inglês (`en_US`)** e **Espanhol (`es_ES`)**.
+- Arquivos de tradução em JSON sob `assets/i18n/`.
+- Consulte o guia completo em [I18N_GUIDE.md](file:///home/panda/orca/workspaces/panda-iptv/fiddler/I18N_GUIDE.md).
+- **Regras para Agentes**:
+  1. Nunca adicione textos de tela como strings literais (hardcoded). Use `context.tr('categoria.chave')`.
+  2. Ao adicionar uma nova chave, você **DEVE** adicioná-la simultaneamente em `pt_BR.json`, `en_US.json` e `es_ES.json`.
+  3. Mantenha os títulos em **CAIXA-ALTA com PONTO FINAL** em todos os idiomas (ex: `"AO VIVO."`, `"LIVE TV."`, `"EN VIVO."`).
