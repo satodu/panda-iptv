@@ -47,9 +47,10 @@ android/.cxx/
 gradle-wrapper.jar
 .gradle/caches/
 
-# Chaves de Assinatura e Keystores (NUNCA COMMITAR!)
+# Chaves de Assinatura e Keystores
 *.keystore
 *.jks
+!android/app/panda-release.jks
 key.properties
 **/key.properties
 google-services.json
