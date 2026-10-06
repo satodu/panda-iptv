@@ -118,7 +118,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       _currentMediaType = widget.mediaType;
     }
 
-    if (_currentMediaId != null) {
+    if (_currentMediaId != null && _currentMediaType != 'live') {
       _isWatched = WatchedService.isWatchedSync(_currentMediaId!);
     }
 
@@ -146,7 +146,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         });
 
         // Marca automaticamente como visto se assistiu mais de 90%
-        if (_duration.inSeconds > 30) {
+        if (_duration.inSeconds > 30 && _currentMediaType != 'live') {
           final ratio = _position.inSeconds / _duration.inSeconds;
           if (ratio >= 0.90 && !_isWatched && _currentMediaId != null) {
             WatchedService.markAsWatched(_currentMediaId!);
@@ -197,7 +197,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     _compSub = _player.stream.completed.listen((completed) {
       if (completed && mounted) {
-        if (_currentMediaId != null) {
+        if (_currentMediaId != null && _currentMediaType != 'live') {
           WatchedService.markAsWatched(_currentMediaId!);
           setState(() => _isWatched = true);
         }
@@ -218,6 +218,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   void _saveCurrentProgress() {
+    if (_currentMediaType == 'live') return;
     final pos = _position.inMilliseconds;
     final dur = _duration.inMilliseconds;
     if (pos > 5000 && dur > 0) {
@@ -691,22 +692,23 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                     ],
                                   ),
                                 ),
-                                IconButton(
-                                  icon: Icon(
-                                    _isWatched ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
-                                    color: _isWatched ? AppColors.statusLive : AppColors.textMuted,
-                                    size: 20,
+                                if (_currentMediaType != 'live')
+                                  IconButton(
+                                    icon: Icon(
+                                      _isWatched ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
+                                      color: _isWatched ? AppColors.statusLive : AppColors.textMuted,
+                                      size: 20,
+                                    ),
+                                    tooltip: _isWatched ? 'Marcado como Visto' : 'Marcar como Visto',
+                                    onPressed: _toggleWatched,
                                   ),
-                                  tooltip: _isWatched ? 'Marcado como Visto' : 'Marcar como Visto',
-                                  onPressed: _toggleWatched,
-                                ),
                                 if (hasNextEpisode) ...[
                                   const SizedBox(width: 6),
                                   InkWell(
                                     onTap: _playNextEpisode,
                                     borderRadius: BorderRadius.circular(6),
-                                    child: const HankoBadge(
-                                      text: 'PRÓXIMO >',
+                                    child: HankoBadge(
+                                      text: _currentMediaType == 'live' ? 'PRÓXIMO CANAL >' : 'PRÓXIMO >',
                                       borderColor: AppColors.accentCyan,
                                       textColor: AppColors.accentCyan,
                                     ),
@@ -737,7 +739,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                             ),
                           ),
 
-                          // Controles Centrais (Ep. Anterior, Seek -10s, Play/Pause, Seek +10s, Próx. Ep.)
+                          // Controles Centrais
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -746,22 +748,24 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                   iconSize: 34,
                                   color: AppColors.textPrimary,
                                   icon: const Icon(Icons.skip_previous_rounded),
-                                  tooltip: 'Episódio Anterior (P)',
+                                  tooltip: _currentMediaType == 'live' ? 'Canal Anterior (P)' : 'Episódio Anterior (P)',
                                   onPressed: _playPreviousEpisode,
                                 ),
                                 const SizedBox(width: 14),
                               ],
-                              IconButton(
-                                iconSize: 36,
-                                color: AppColors.textPrimary,
-                                icon: const Icon(Icons.replay_10_rounded),
-                                onPressed: () {
-                                  _player.seek(_position - const Duration(seconds: 10));
-                                  _showHud('-10s');
-                                  _startHideTimer();
-                                },
-                              ),
-                              const SizedBox(width: 24),
+                              if (_currentMediaType != 'live') ...[
+                                IconButton(
+                                  iconSize: 36,
+                                  color: AppColors.textPrimary,
+                                  icon: const Icon(Icons.replay_10_rounded),
+                                  onPressed: () {
+                                    _player.seek(_position - const Duration(seconds: 10));
+                                    _showHud('-10s');
+                                    _startHideTimer();
+                                  },
+                                ),
+                                const SizedBox(width: 24),
+                              ],
                               Container(
                                 decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
@@ -777,31 +781,33 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                   },
                                 ),
                               ),
-                              const SizedBox(width: 24),
-                              IconButton(
-                                iconSize: 36,
-                                color: AppColors.textPrimary,
-                                icon: const Icon(Icons.forward_10_rounded),
-                                onPressed: () {
-                                  _player.seek(_position + const Duration(seconds: 10));
-                                  _showHud('+10s');
-                                  _startHideTimer();
-                                },
-                              ),
+                              if (_currentMediaType != 'live') ...[
+                                const SizedBox(width: 24),
+                                IconButton(
+                                  iconSize: 36,
+                                  color: AppColors.textPrimary,
+                                  icon: const Icon(Icons.forward_10_rounded),
+                                  onPressed: () {
+                                    _player.seek(_position + const Duration(seconds: 10));
+                                    _showHud('+10s');
+                                    _startHideTimer();
+                                  },
+                                ),
+                              ],
                               if (hasNextEpisode) ...[
                                 const SizedBox(width: 14),
                                 IconButton(
                                   iconSize: 34,
                                   color: AppColors.accentCyan,
                                   icon: const Icon(Icons.skip_next_rounded),
-                                  tooltip: 'Próximo Episódio (N)',
+                                  tooltip: _currentMediaType == 'live' ? 'Próximo Canal (N)' : 'Próximo Episódio (N)',
                                   onPressed: _playNextEpisode,
                                 ),
                               ],
                             ],
                           ),
 
-                          // Barra Inferior (Seek Bar + Tempos + Controle de Volume)
+                          // Barra Inferior (Seek Bar / Live Badge + Tempos + Controle de Volume)
                           Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: isNarrow ? 16 : 24,
@@ -810,43 +816,62 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Barra de Progresso
-                                SliderTheme(
-                                  data: SliderTheme.of(context).copyWith(
-                                    activeTrackColor: AppColors.accentPrimary,
-                                    inactiveTrackColor: AppColors.borderHairline,
-                                    thumbColor: AppColors.accentPrimary,
-                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                                    trackHeight: 3,
+                                if (_currentMediaType != 'live') ...[
+                                  // Barra de Progresso
+                                  SliderTheme(
+                                    data: SliderTheme.of(context).copyWith(
+                                      activeTrackColor: AppColors.accentPrimary,
+                                      inactiveTrackColor: AppColors.borderHairline,
+                                      thumbColor: AppColors.accentPrimary,
+                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                      trackHeight: 3,
+                                    ),
+                                    child: Slider(
+                                      value: _position.inMilliseconds.clamp(0, _duration.inMilliseconds).toDouble(),
+                                      max: _duration.inMilliseconds.toDouble() > 0 ? _duration.inMilliseconds.toDouble() : 1.0,
+                                      onChanged: (val) {
+                                        _startHideTimer();
+                                        _player.seek(Duration(milliseconds: val.toInt()));
+                                      },
+                                    ),
                                   ),
-                                  child: Slider(
-                                    value: _position.inMilliseconds.clamp(0, _duration.inMilliseconds).toDouble(),
-                                    max: _duration.inMilliseconds.toDouble() > 0 ? _duration.inMilliseconds.toDouble() : 1.0,
-                                    onChanged: (val) {
-                                      _startHideTimer();
-                                      _player.seek(Duration(milliseconds: val.toInt()));
-                                    },
-                                  ),
-                                ),
+                                ],
 
-                                // Linha de Status: Duração à esquerda, Controle de Volume à direita
+                                // Linha de Status: Duração / Ao Vivo à esquerda, Controle de Volume à direita
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    // Tempos
-                                    Row(
-                                      children: [
-                                        Text(
-                                          _formatDuration(_position),
-                                          style: AppTypography.mono(fontSize: isNarrow ? 11 : 12, color: AppColors.textPrimary),
-                                        ),
-                                        Text(
-                                          ' / ${_formatDuration(_duration)}',
-                                          style: AppTypography.mono(fontSize: isNarrow ? 11 : 12, color: AppColors.textMuted),
-                                        ),
-                                      ],
-                                    ),
+                                    if (_currentMediaType == 'live') ...[
+                                      Row(
+                                        children: [
+                                          const HankoBadge(
+                                            text: '● AO VIVO',
+                                            borderColor: AppColors.statusLive,
+                                            textColor: AppColors.statusLive,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            '[ TRANSMISSÃO EM DIRETO ]',
+                                            style: AppTypography.mono(fontSize: isNarrow ? 10 : 11, color: AppColors.accentCyan),
+                                          ),
+                                        ],
+                                      ),
+                                    ] else ...[
+                                      // Tempos
+                                      Row(
+                                        children: [
+                                          Text(
+                                            _formatDuration(_position),
+                                            style: AppTypography.mono(fontSize: isNarrow ? 11 : 12, color: AppColors.textPrimary),
+                                          ),
+                                          Text(
+                                            ' / ${_formatDuration(_duration)}',
+                                            style: AppTypography.mono(fontSize: isNarrow ? 11 : 12, color: AppColors.textMuted),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
 
                                     // Controle de Volume Dedicado
                                     Row(

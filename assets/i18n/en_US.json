@@ -104,6 +104,19 @@
     "donation_subtitle": "Panda IPTV is open-source and independent. If you enjoy using this application, consider supporting its continued development.",
     "donation_pix": "COPY PIX DONATION KEY.",
     "donation_github": "SPONSOR ON GITHUB.",
+    "donation_kofi": "SUPPORT ON KO-FI.",
     "pix_copied": "PIX KEY COPIED SUCCESSFULLY!"
+  },
+  "live": {
+    "title": "LIVE TV.",
+    "badge": "CHANNEL // LIVE",
+    "search_hint": "TYPE CHANNEL NAME...",
+    "search_desktop_hint": "SEARCH CHANNEL...",
+    "search_active": "ACTIVE SEARCH",
+    "all_channels": "ALL CHANNELS",
+    "channels_count": "CHANNELS",
+    "empty": "NO CHANNELS FOUND.",
+    "channel_number": "CHANNEL",
+    "playing_channel": "PLAYING CHANNEL"
   }
 }

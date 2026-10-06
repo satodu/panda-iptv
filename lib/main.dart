@@ -8,6 +8,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
+import 'features/live/presentation/live_provider.dart';
 import 'features/series/presentation/series_provider.dart';
 import 'features/vod/presentation/vod_provider.dart';
 
@@ -28,6 +29,7 @@ class PandaIptvApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()..checkSavedSession()),
         ChangeNotifierProvider(create: (_) => VodProvider()),
         ChangeNotifierProvider(create: (_) => SeriesProvider()),
+        ChangeNotifierProvider(create: (_) => LiveProvider()),
       ],
       child: Consumer<LocaleProvider>(
         builder: (context, localeProv, _) {

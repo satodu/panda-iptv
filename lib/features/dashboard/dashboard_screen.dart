@@ -5,7 +5,6 @@ import '../../core/storage/watch_history_item.dart';
 import '../../core/storage/watch_history_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
-import '../../core/widgets/app_toast.dart';
 import '../../core/widgets/bento_card.dart';
 import '../../core/widgets/bento_card_background.dart';
 import '../../core/widgets/brutalist_entrance.dart';
@@ -13,6 +12,7 @@ import '../../core/widgets/hanko_badge.dart';
 import '../../core/widgets/tech_crosses.dart';
 import '../auth/presentation/auth_provider.dart';
 import '../favorites/presentation/favorites_screen.dart';
+import '../live/presentation/live_screen.dart';
 import '../player/presentation/video_player_screen.dart';
 import '../series/presentation/series_screen.dart';
 import '../settings/presentation/settings_screen.dart';
@@ -251,7 +251,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         watermarkKanji: '生',
         technicalTag: 'SYS // 01.LIVE [ 24H ]',
         onTap: () {
-          AppToast.info(context, 'MÓDULO AO VIVO EM DESENVOLVIMENTO.');
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const LiveScreen()),
+          );
         },
       ),
       _BentoItem(

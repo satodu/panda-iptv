@@ -18,6 +18,7 @@ class SettingsScreen extends StatelessWidget {
 
   static const String _githubUrl = 'https://github.com/satodu/panda-iptv';
   static const String _pixKey = 'sato.du@gmail.com';
+  static const String _kofiUrl = 'https://ko-fi.com/retro_panda';
 
   String _formatExpDate(String expDate) {
     if (expDate.isEmpty) return 'ILIMITADO';
@@ -447,7 +448,7 @@ class SettingsScreen extends StatelessWidget {
                                 runSpacing: 10,
                                 children: [
                                   SizedBox(
-                                    width: isNarrow ? double.infinity : 240,
+                                    width: isNarrow ? double.infinity : 220,
                                     child: BrutalistButton(
                                       label: context.tr('settings.donation_pix'),
                                       icon: Icons.copy_rounded,
@@ -459,7 +460,16 @@ class SettingsScreen extends StatelessWidget {
                                     ),
                                   ),
                                   SizedBox(
-                                    width: isNarrow ? double.infinity : 240,
+                                    width: isNarrow ? double.infinity : 220,
+                                    child: BrutalistButton(
+                                      label: context.tr('settings.donation_kofi'),
+                                      isSecondary: true,
+                                      icon: Icons.coffee_rounded,
+                                      onPressed: () => _openUrl(context, _kofiUrl),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: isNarrow ? double.infinity : 220,
                                     child: BrutalistButton(
                                       label: context.tr('settings.donation_github'),
                                       isSecondary: true,
