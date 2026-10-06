@@ -198,14 +198,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _durSub = _player.stream.duration.listen((dur) {
       if (mounted) {
         setState(() => _duration = dur);
-        _checkAndApplyResume();
       }
     });
 
     _playSub = _player.stream.playing.listen((playing) {
       if (mounted) {
         setState(() => _isPlaying = playing);
-        if (playing) _checkAndApplyResume();
       }
     });
 
@@ -265,6 +263,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
   void _saveCurrentProgress() {
     if (_currentMediaType == 'live') return;
+    // Não salvar enquanto o ponto de retomada ainda estiver pendente de validação
+    if (_pendingResumePosition != null && !_hasResumed) return;
+
     // Pega a posição mais recente do player caso disponível ou do estado _position
     final currentPos = _player.state.position > Duration.zero
         ? _player.state.position
@@ -293,22 +294,26 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (_pendingResumePosition == null || _hasResumed) return;
     final target = _pendingResumePosition!;
 
-    // Se a posição atual já está próxima do ponto de retomada (mpv aplicou via start param)
-    if (_position >= target - const Duration(seconds: 3)) {
+    // 1. Caso Principal: O player carregou e iniciou na posição salva via Media(start: ...)
+    // Consideramos retomado se a posição atual do player já estiver próxima ou após o ponto alvo.
+    if (_position >= target - const Duration(seconds: 8)) {
       _hasResumed = true;
       _pendingResumePosition = null;
       _showHud('${context.tr('player.resuming')} [ ${_formatDuration(target)} ]');
       return;
     }
 
-    // Se o stream já informou duração ou começou a reproduzir/avançar
-    if (_duration > Duration.zero || _isPlaying || _position > Duration.zero) {
+    // 2. Caso Fallback: Se o stream remoto não respeitou o parâmetro inicial (Media.start)
+    // e começou a tocar desde 00:00:
+    // Apenas efetuamos o seek quando o stream já estiver ativo e decodificando com estabilidade (_position >= 1.5s).
+    // NUNCA disparar seek enquanto _position for Duration.zero / buffering inicial, pois no Android (libmpv)
+    // comandos assíncronos de seek durante o loadfile abortam a conexão HTTP do demuxer e resetam para 0.
+    if (_position >= const Duration(milliseconds: 1500) && _position < target - const Duration(seconds: 8)) {
       _hasResumed = true;
       _pendingResumePosition = null;
       final label = context.tr('player.resuming');
-      Future.microtask(() async {
+      _player.seek(target).then((_) {
         if (mounted) {
-          await _player.seek(target);
           _showHud('$label [ ${_formatDuration(target)} ]');
         }
       });
@@ -345,19 +350,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         },
       ),
     );
-
-    if (_pendingResumePosition != null) {
-      Future.delayed(const Duration(milliseconds: 700), () {
-        if (mounted && _pendingResumePosition != null && !_hasResumed) {
-          _checkAndApplyResume();
-        }
-      });
-      Future.delayed(const Duration(milliseconds: 1800), () {
-        if (mounted && _pendingResumePosition != null && !_hasResumed) {
-          _checkAndApplyResume();
-        }
-      });
-    }
   }
 
   void _playNextEpisode() {
@@ -820,7 +812,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                                   ],
                                   const SizedBox(height: 8),
                                   Text(
-                                    context.tr('player.loading_stream'),
+                                    _pendingResumePosition != null
+                                        ? '${context.tr('player.resuming')} [ ${_formatDuration(_pendingResumePosition!)} ]'
+                                        : context.tr('player.loading_stream'),
                                     style: const TextStyle(
                                       fontFamily: 'JetBrainsMono',
                                       fontSize: 10,
