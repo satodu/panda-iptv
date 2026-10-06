@@ -150,8 +150,15 @@ flutter run
 
 ## RELEASES & PACKAGING.
 
-### Linux AppImage & Tarball:
-Build universal standalone Linux packages with the included release script:
+### CI/CD Automated Releases (GitHub Actions):
+Whenever you push a version tag (e.g. `v0.0.1`, `v1.0.0`), a GitHub Action workflow automatically builds the Linux AppImage, `.tar.gz`, and Android APK, then publishes them directly as downloadable assets on GitHub Releases:
+```bash
+git tag v0.0.1
+git push origin v0.0.1
+```
+
+### Linux AppImage & Tarball (Manual):
+Build universal standalone Linux packages locally with the included release script:
 ```bash
 bash scripts/build_release.sh
 ```
@@ -162,8 +169,8 @@ Artifacts are automatically produced inside the `dist/` directory:
 ### Arch User Repository (AUR):
 An official `PKGBUILD` template is available in `packaging/aur/PKGBUILD` for publishing to the AUR (`panda-iptv-bin`).
 
-### Android APK Release:
-To compile the release APK:
+### Android APK Release (Manual):
+To compile the release APK locally:
 ```bash
 flutter build apk --release
 ```

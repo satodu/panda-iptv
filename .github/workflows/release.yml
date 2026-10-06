@@ -1,0 +1,80 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build Release Artifacts (Linux AppImage & Android APK)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 (JDK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Linux build dependencies & libmpv
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libmpv-dev mpv curl
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Run verification tests
+        run: flutter test
+
+      - name: Extract Version from Tag
+        id: get_version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Building release for version: ${VERSION}"
+
+      - name: Build Android APK
+        run: |
+          flutter build apk --release
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/Panda-IPTV-${{ steps.get_version.outputs.VERSION }}.apk"
+
+      - name: Build Linux Desktop Bundle
+        run: |
+          flutter build linux --release
+          cd build/linux/x64/release
+          tar -czf "$GITHUB_WORKSPACE/dist/panda-iptv-${{ steps.get_version.outputs.VERSION }}-linux-x64.tar.gz" bundle/
+          cd "$GITHUB_WORKSPACE"
+
+      - name: Build Linux AppImage
+        run: |
+          chmod +x ./packaging/appimage/build_appimage.sh
+          ./packaging/appimage/build_appimage.sh
+
+      - name: Create GitHub Release and Upload Artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Panda IPTV v${{ steps.get_version.outputs.VERSION }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/Panda-IPTV-*.AppImage
+            dist/Panda-IPTV-*.apk
+            dist/panda-iptv-*-linux-x64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
