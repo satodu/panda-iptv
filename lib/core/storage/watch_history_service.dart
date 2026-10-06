@@ -10,7 +10,20 @@ class WatchHistoryService {
   static final ValueNotifier<List<WatchHistoryItem>> historyNotifier =
       ValueNotifier<List<WatchHistoryItem>>([]);
 
-  /// Carrega o histórico salvo
+  /// Identifica a série de maneira unificada:
+  /// Se o id segue o formato padrão 'series_{seriesId}_{episodeId}', agrupa por 'series_{seriesId}'.
+  /// Caso contrário, agrupa pelo título limpo da série.
+  static String _seriesKey(String id, String title) {
+    if (id.startsWith('series_')) {
+      final parts = id.split('_');
+      if (parts.length >= 3) {
+        return 'series_${parts[1]}';
+      }
+    }
+    return 'title_${title.trim().toLowerCase()}';
+  }
+
+  /// Carrega o histórico salvo, garantindo apenas o episódio mais recente de cada série
   static Future<List<WatchHistoryItem>> loadHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final rawList = prefs.getStringList(_storageKey) ?? [];
@@ -26,11 +39,36 @@ class WatchHistoryService {
     }
 
     items.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    historyNotifier.value = items;
-    return items;
+
+    // Deduplica séries: mantém apenas o episódio assistido mais recente de cada série
+    final Set<String> seenSeries = {};
+    final List<WatchHistoryItem> deduplicated = [];
+    bool hadDuplicates = false;
+
+    for (final item in items) {
+      if (item.type == 'series') {
+        final key = _seriesKey(item.id, item.title);
+        if (seenSeries.contains(key)) {
+          hadDuplicates = true;
+          continue; // Ignora episódios mais antigos da mesma série
+        }
+        seenSeries.add(key);
+      }
+      deduplicated.add(item);
+    }
+
+    // Se encontramos duplicatas antigas salvas, limpa o SharedPreferences
+    if (hadDuplicates) {
+      final encodedList = deduplicated.map((e) => jsonEncode(e.toJson())).toList();
+      await prefs.setStringList(_storageKey, encodedList);
+    }
+
+    historyNotifier.value = List.unmodifiable(deduplicated);
+    return deduplicated;
   }
 
   /// Salva ou atualiza o progresso de um item
+  /// Para séries: substitui qualquer episódio anterior pelo episódio assistido mais recente
   static Future<void> saveProgress({
     required String id,
     required String title,
@@ -47,9 +85,21 @@ class WatchHistoryService {
     final prefs = await SharedPreferences.getInstance();
     final items = await loadHistory();
 
+    final isSeries = type == 'series';
+    final targetSeriesKey = isSeries ? _seriesKey(id, title) : null;
+
     // Se assistiu mais de 93% do vídeo, considera finalizado e remove
     if (durationMs > 0 && (positionMs / durationMs) >= 0.93) {
-      await removeItem(id);
+      items.removeWhere((item) {
+        if (item.id == id) return true;
+        if (isSeries && item.type == 'series' && _seriesKey(item.id, item.title) == targetSeriesKey) {
+          return true;
+        }
+        return false;
+      });
+      final encodedList = items.map((e) => jsonEncode(e.toJson())).toList();
+      await prefs.setStringList(_storageKey, encodedList);
+      historyNotifier.value = List.unmodifiable(items);
       return;
     }
 
@@ -65,12 +115,20 @@ class WatchHistoryService {
       type: type,
     );
 
-    // Remove versão anterior se já existia
-    items.removeWhere((item) => item.id == id);
-    // Insere no topo
+    // Remove versão anterior se já existia:
+    // Para séries, remove qualquer outro episódio da mesma série (garante que apenas o último visto permaneça)
+    items.removeWhere((item) {
+      if (item.id == id) return true;
+      if (isSeries && item.type == 'series' && _seriesKey(item.id, item.title) == targetSeriesKey) {
+        return true;
+      }
+      return false;
+    });
+
+    // Insere o novo episódio no topo
     items.insert(0, newItem);
 
-    // Limita tamanho
+    // Limita tamanho máximo do histórico
     if (items.length > _maxItems) {
       items.removeRange(_maxItems, items.length);
     }
