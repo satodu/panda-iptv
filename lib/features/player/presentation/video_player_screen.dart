@@ -294,29 +294,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (_pendingResumePosition == null || _hasResumed) return;
     final target = _pendingResumePosition!;
 
-    // 1. Caso Principal: O player carregou e iniciou na posição salva via Media(start: ...)
-    // Consideramos retomado se a posição atual do player já estiver próxima ou após o ponto alvo.
+    // O player carregou e iniciou na posição salva nativamente via Media(start: ...)
+    // Confirmamos a retomada assim que a reprodução alcançar a faixa do tempo alvo
     if (_position >= target - const Duration(seconds: 8)) {
       _hasResumed = true;
       _pendingResumePosition = null;
       _showHud('${context.tr('player.resuming')} [ ${_formatDuration(target)} ]');
       return;
-    }
-
-    // 2. Caso Fallback: Se o stream remoto não respeitou o parâmetro inicial (Media.start)
-    // e começou a tocar desde 00:00:
-    // Apenas efetuamos o seek quando o stream já estiver ativo e decodificando com estabilidade (_position >= 1.5s).
-    // NUNCA disparar seek enquanto _position for Duration.zero / buffering inicial, pois no Android (libmpv)
-    // comandos assíncronos de seek durante o loadfile abortam a conexão HTTP do demuxer e resetam para 0.
-    if (_position >= const Duration(milliseconds: 1500) && _position < target - const Duration(seconds: 8)) {
-      _hasResumed = true;
-      _pendingResumePosition = null;
-      final label = context.tr('player.resuming');
-      _player.seek(target).then((_) {
-        if (mounted) {
-          _showHud('$label [ ${_formatDuration(target)} ]');
-        }
-      });
     }
   }
 
@@ -336,6 +320,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       if (platform is NativePlayer) {
         await platform.setProperty('hwdec', _hwdecMode);
         await platform.setProperty('user-agent', 'IPTVSmartersPro/3.1.5 (Linux; Android 12)');
+        await platform.setProperty('force-seekable', 'yes');
+        await platform.setProperty('cache', 'yes');
+        await platform.setProperty('demuxer-seekable-cache', 'yes');
+        await platform.setProperty('demuxer-max-bytes', '67108864'); // 64 MB
+        await platform.setProperty('demuxer-max-back-bytes', '33554432'); // 32 MB
+        await platform.setProperty('hr-seek', 'yes');
       }
     } catch (_) {}
 

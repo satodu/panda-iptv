@@ -583,6 +583,31 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
   }
 
   Widget _buildTabsHeader(bool isNarrow) {
+    if (isNarrow) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildTabButton(
+            title: context.tr('series.episodes_tab'),
+            badge: _detail != null ? '${_detail!.seasonNumbers.length} TEMP' : null,
+            isSelected: _activeTab == 0,
+            onTap: () => setState(() => _activeTab = 0),
+            isFullWidth: true,
+          ),
+          const SizedBox(height: 10),
+          _buildTabButton(
+            title: context.tr('series.similar_tab'),
+            badge: _similarSeries.isNotEmpty
+                ? '${_similarSeries.length}'
+                : (_loadingTmdb ? '...' : null),
+            isSelected: _activeTab == 1,
+            onTap: () => setState(() => _activeTab = 1),
+            isFullWidth: true,
+          ),
+        ],
+      );
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -612,12 +637,14 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
     String? badge,
     required bool isSelected,
     required VoidCallback onTap,
+    bool isFullWidth = false,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        width: isFullWidth ? double.infinity : null,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.accentPrimary.withValues(alpha: 0.15) : AppColors.surfaceCard,
           borderRadius: BorderRadius.circular(8),
@@ -627,7 +654,8 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
           ),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisAlignment: isFullWidth ? MainAxisAlignment.spaceBetween : MainAxisAlignment.start,
           children: [
             Text(
               title,

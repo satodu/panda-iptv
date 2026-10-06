@@ -96,6 +96,7 @@
     "server_section": "SERVER & CONNECTION.",
     "current_server": "ACTIVE SERVER",
     "connected_as": "CONNECTED AS",
+    "expires": "EXPIRES",
     "change_server": "SWITCH SERVER // RECONNECT.",
     "language_section": "SYSTEM LANGUAGE.",
     "language_badge": "I18N // LOCALE",

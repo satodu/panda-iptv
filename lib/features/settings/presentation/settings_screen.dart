@@ -163,29 +163,70 @@ class SettingsScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  Text(
-                                    '${context.tr('settings.connected_as')}: ',
-                                    style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
-                                  ),
-                                  Text(
-                                    user?.username ?? 'root',
-                                    style: AppTypography.mono(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.accentPrimary,
-                                    ),
-                                  ),
-                                  if (user?.expDate != null && user!.expDate.isNotEmpty) ...[
-                                    const SizedBox(width: 12),
+                              if (isNarrow) ...[
+                                Row(
+                                  children: [
                                     Text(
-                                      '// VENCE: ${_formatExpDate(user.expDate)}',
+                                      '${context.tr('settings.connected_as')}: ',
                                       style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
                                     ),
+                                    Expanded(
+                                      child: Text(
+                                        user?.username ?? 'root',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTypography.mono(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.accentPrimary,
+                                        ),
+                                      ),
+                                    ),
                                   ],
+                                ),
+                                if (user?.expDate != null && user!.expDate.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '// ${context.tr('settings.expires')}: ',
+                                        style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
+                                      ),
+                                      Text(
+                                        _formatExpDate(user.expDate),
+                                        style: AppTypography.mono(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.accentCyan,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
-                              ),
+                              ] else ...[
+                                Row(
+                                  children: [
+                                    Text(
+                                      '${context.tr('settings.connected_as')}: ',
+                                      style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
+                                    ),
+                                    Text(
+                                      user?.username ?? 'root',
+                                      style: AppTypography.mono(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.accentPrimary,
+                                      ),
+                                    ),
+                                    if (user?.expDate != null && user!.expDate.isNotEmpty) ...[
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        '// ${context.tr('settings.expires')}: ${_formatExpDate(user.expDate)}',
+                                        style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
                               const SizedBox(height: 16),
                               BrutalistButton(
                                 label: context.tr('settings.change_server'),

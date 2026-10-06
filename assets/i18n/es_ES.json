@@ -96,6 +96,7 @@
     "server_section": "SERVIDOR Y CONEXIÓN.",
     "current_server": "SERVIDOR ACTIVO",
     "connected_as": "CONECTADO COMO",
+    "expires": "VENCE",
     "change_server": "CAMBIAR SERVIDOR // RECONECTAR.",
     "language_section": "IDIOMA DEL SISTEMA.",
     "language_badge": "I18N // IDIOMA",
