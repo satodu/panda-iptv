@@ -127,13 +127,19 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
     final saved = WatchHistoryService.getItem(mediaId);
     final initialPos = (saved != null && saved.positionMs > 5000) ? saved.positionMs : null;
 
+    bool isValidImg(String? s) {
+      if (s == null) return false;
+      final t = s.trim().toLowerCase();
+      return t.isNotEmpty && t != 'null' && t != 'undefined' && (t.startsWith('http://') || t.startsWith('https://'));
+    }
+
     final coverCandidates = [
+      widget.item.streamIcon,
       _detail?.cover,
       _detail?.backdrop,
-      widget.item.streamIcon,
     ];
     final coverUrl = coverCandidates.firstWhere(
-      (c) => c != null && c.trim().isNotEmpty,
+      isValidImg,
       orElse: () => null,
     );
 

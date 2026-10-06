@@ -96,12 +96,22 @@ class WatchHistoryService {
     final isSeries = type == 'series';
     final targetSeriesKey = isSeries ? _seriesKey(id, title) : null;
 
-    // Se o novo cover for nulo ou vazio, preserva a capa salva anteriormente caso exista
-    String? finalCover = (cover != null && cover.trim().isNotEmpty) ? cover.trim() : null;
+    bool isValidImg(String? s) {
+      if (s == null) return false;
+      final t = s.trim().toLowerCase();
+      return t.isNotEmpty && t != 'null' && t != 'undefined' && (t.startsWith('http://') || t.startsWith('https://'));
+    }
+
+    // Se o novo cover for nulo ou inválido, preserva a capa salva anteriormente caso exista
+    String? finalCover = isValidImg(cover) ? cover!.trim() : null;
     if (finalCover == null) {
-      final existing = items.where((e) => e.id == id).firstOrNull;
-      if (existing?.cover != null && existing!.cover!.trim().isNotEmpty) {
-        finalCover = existing.cover;
+      final existing = items.where((e) {
+        if (e.id == id) return true;
+        if (isSeries && e.type == 'series' && _seriesKey(e.id, e.title) == targetSeriesKey) return true;
+        return false;
+      }).firstOrNull;
+      if (isValidImg(existing?.cover)) {
+        finalCover = existing!.cover;
       }
     }
 

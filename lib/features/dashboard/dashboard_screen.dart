@@ -592,7 +592,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildContinueWatchingCard(BuildContext context, WatchHistoryItem item) {
-    final hasCover = item.cover != null && item.cover!.trim().isNotEmpty;
+    final coverClean = item.cover?.trim().toLowerCase();
+    final hasCover = coverClean != null &&
+        coverClean.isNotEmpty &&
+        coverClean != 'null' &&
+        coverClean != 'undefined' &&
+        (coverClean.startsWith('http://') || coverClean.startsWith('https://'));
     final isSeries = item.type == 'series';
 
     return BentoCard(

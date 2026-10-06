@@ -115,16 +115,22 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
     final seriesProvider = context.read<SeriesProvider>();
     final episodes = _detail?.episodesBySeason[_selectedSeason] ?? [];
 
+    bool isValidImg(String? s) {
+      if (s == null) return false;
+      final t = s.trim().toLowerCase();
+      return t.isNotEmpty && t != 'null' && t != 'undefined' && (t.startsWith('http://') || t.startsWith('https://'));
+    }
+
     final playlist = episodes.map((ep) {
       final url = seriesProvider.buildStreamUrl(account, ep.id, ep.containerExtension);
       final epCandidates = [
-        ep.image,
+        widget.item.cover,
         _detail?.cover,
         _detail?.backdrop,
-        widget.item.cover,
+        ep.image,
       ];
       final epCover = epCandidates.firstWhere(
-        (c) => c != null && c.trim().isNotEmpty,
+        isValidImg,
         orElse: () => null,
       );
 
@@ -141,13 +147,13 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
     final currentIndex = episodes.indexWhere((e) => e.id == episode.id);
 
     final selectedCandidates = [
-      episode.image,
+      widget.item.cover,
       _detail?.cover,
       _detail?.backdrop,
-      widget.item.cover,
+      episode.image,
     ];
     final selectedCover = selectedCandidates.firstWhere(
-      (c) => c != null && c.trim().isNotEmpty,
+      isValidImg,
       orElse: () => null,
     );
 

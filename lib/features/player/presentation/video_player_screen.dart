@@ -78,6 +78,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
   Duration? _pendingResumePosition;
   bool _hasResumed = false;
+  bool _isSeekingToResume = false;
 
   static const String _volumePrefKey = 'panda_player_last_volume';
   static double _lastSavedVolume = 100.0;
@@ -198,6 +199,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _durSub = _player.stream.duration.listen((dur) {
       if (mounted) {
         setState(() => _duration = dur);
+        _checkAndApplyResume();
       }
     });
 
@@ -290,28 +292,66 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     }
   }
 
-  void _checkAndApplyResume() {
-    if (_pendingResumePosition == null || _hasResumed) return;
-    final target = _pendingResumePosition!;
+  Future<void> _checkAndApplyResume() async {
+    if (_pendingResumePosition == null || _hasResumed || _isSeekingToResume) return;
 
-    // O player carregou e iniciou na posição salva nativamente via Media(start: ...)
-    // Confirmamos a retomada assim que a reprodução alcançar a faixa do tempo alvo
-    if (_position >= target - const Duration(seconds: 8)) {
-      _hasResumed = true;
-      _pendingResumePosition = null;
-      _showHud('${context.tr('player.resuming')} [ ${_formatDuration(target)} ]');
-      return;
+    // Aguarda o player reportar duração válida e começar a reproduzir/emitir posição (> 0)
+    if (_duration > Duration.zero && _position > Duration.zero) {
+      _isSeekingToResume = true;
+      final target = _pendingResumePosition!;
+
+      try {
+        await _player.seek(target);
+        if (mounted) {
+          _player.setVolume(_volume);
+          setState(() {
+            _hasResumed = true;
+            _pendingResumePosition = null;
+            _position = target;
+            _isBuffering = false;
+          });
+          _showHud('${context.tr('player.resuming')} [ ${_formatDuration(target)} ]');
+        }
+      } catch (e) {
+        debugPrint('[RESUME SEEK ERROR] $e');
+        if (mounted) {
+          _player.setVolume(_volume);
+          setState(() {
+            _hasResumed = true;
+            _pendingResumePosition = null;
+          });
+        }
+      } finally {
+        _isSeekingToResume = false;
+      }
     }
   }
 
   Future<void> _initAndPlay({String? streamUrl, int? startPositionMs}) async {
     final pos = startPositionMs ?? (streamUrl == null ? widget.initialPositionMs : null);
-    if (pos != null && pos > 2000) {
+    if (pos != null && pos > 3000) {
       _pendingResumePosition = Duration(milliseconds: pos);
       _hasResumed = false;
+      _isSeekingToResume = false;
+      // Silencia momentaneamente o volume para evitar tocar som do início antes de posicionar no ponto de retomada
+      try {
+        _player.setVolume(0);
+      } catch (_) {}
+
+      // Timeout de segurança: se após 6 segundos não conseguir dar seek, retoma normal para não travar
+      Timer(const Duration(seconds: 6), () {
+        if (mounted && !_hasResumed) {
+          setState(() {
+            _hasResumed = true;
+            _pendingResumePosition = null;
+          });
+          _player.setVolume(_volume);
+        }
+      });
     } else {
       _pendingResumePosition = null;
       _hasResumed = true;
+      _isSeekingToResume = false;
     }
 
     final url = streamUrl ?? _currentStreamUrl;
@@ -320,7 +360,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       if (platform is NativePlayer) {
         await platform.setProperty('hwdec', _hwdecMode);
         await platform.setProperty('user-agent', 'IPTVSmartersPro/3.1.5 (Linux; Android 12)');
-        await platform.setProperty('force-seekable', 'yes');
         await platform.setProperty('cache', 'yes');
         await platform.setProperty('demuxer-seekable-cache', 'yes');
         await platform.setProperty('demuxer-max-bytes', '67108864'); // 64 MB
@@ -332,7 +371,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     await _player.open(
       Media(
         url,
-        start: _pendingResumePosition,
+        // NÃO passamos start: aqui para evitar que o demuxer HTTP no Android libmpv aborte o handshake inicial
         httpHeaders: const {
           'User-Agent': 'IPTVSmartersPro/3.1.5 (Linux; Android 12)',
           'Accept': '*/*',
@@ -695,7 +734,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 ),
 
                 // Tela de Carregamento Inicial com Capa (Oriental Brutalism)
-                if (_errorMessage == null && _position == Duration.zero)
+                if (_errorMessage == null && (_position == Duration.zero || !_hasResumed))
                   Positioned.fill(
                     child: Stack(
                       fit: StackFit.expand,
@@ -769,7 +808,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                                     const SizedBox(height: 16),
                                   ],
                                   HankoLoader(
-                                    label: context.tr('player.loading_label'),
+                                    label: _pendingResumePosition != null && !_hasResumed
+                                        ? '${context.tr('player.resuming')} [ ${_formatDuration(_pendingResumePosition!)} ]'
+                                        : context.tr('player.loading_label'),
                                   ),
                                   const SizedBox(height: 14),
                                   Text(
