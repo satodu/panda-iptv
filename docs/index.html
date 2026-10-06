@@ -837,34 +837,256 @@
       margin: 0 auto;
     }
 
+    /* ==========================================================================
+       RESPONSIVIDADE COMPLETA: TABLET & SMARTPHONES (MOBILE FIRST COMPATIBLE)
+       ========================================================================== */
     @media (max-width: 900px) {
       .features-grid {
         grid-template-columns: 1fr;
+        gap: 16px;
       }
       .feature-card.span-2 {
         grid-column: span 1;
       }
+      .hero h1 {
+        font-size: clamp(2rem, 5.5vw, 3.2rem);
+      }
     }
 
     @media (max-width: 768px) {
-      .hero {
-        padding: 50px 0 35px;
+      .container {
+        padding: 0 18px;
       }
+
+      /* Navbar Compacta Mobile */
+      .nav-inner {
+        height: 62px;
+      }
+      .nav-links .nav-btn:not(.primary) {
+        display: none; /* Oculta atalhos extras de abas no header para não quebrar ou vazar a barra */
+      }
+      .nav-btn.primary {
+        padding: 8px 12px;
+        font-size: 0.78rem;
+        gap: 6px;
+      }
+
+      /* Hero Section Mobile */
+      .hero {
+        padding: 42px 0 28px;
+      }
+      .hero-badge-row {
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+      .hero-badge-row .hanko-seal {
+        font-size: 0.68rem;
+        padding: 0.18rem 0.45rem;
+      }
+      .tech-crosses {
+        font-size: 0.72rem;
+        letter-spacing: 4px;
+        margin-bottom: 18px;
+      }
+      .hero h1 {
+        font-size: clamp(1.85rem, 7.5vw, 2.8rem);
+        letter-spacing: -1px;
+        margin-bottom: 16px;
+      }
+      .hero p {
+        font-size: 0.98rem;
+        line-height: 1.55;
+        margin-bottom: 26px;
+      }
+      .hero-actions {
+        flex-direction: column;
+        gap: 12px;
+      }
+      .hero-actions .action-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 14px 18px;
+      }
+
+      /* Seção de Instalação e Abas */
+      .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        margin: 38px 0 20px;
+      }
+      .section-header h2 {
+        font-size: 1.28rem;
+      }
+      .section-header .counter {
+        font-size: 0.74rem;
+      }
+
       .tabs-nav {
         flex-direction: column;
+        gap: 8px;
+        padding: 6px;
       }
       .tab-trigger {
         width: 100%;
-        justify-content: flex-start;
+        min-width: 0;
+        justify-content: space-between;
+        padding: 13px 15px;
+        font-size: 0.82rem;
       }
-      .code-box-hero {
+
+      /* Bento Card da Aba */
+      .bento-card {
+        padding: 22px 16px;
+        border-radius: var(--radius-lg);
+      }
+      .writing-vertical {
+        display: none; /* Remove kanji de fundo no mobile para evitar sobreposição */
+      }
+      .card-top {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
+        gap: 14px;
+        margin-bottom: 18px;
       }
-      .btn-copy {
+      .card-icon-title {
+        gap: 12px;
+      }
+      .icon-badge {
+        width: 46px;
+        height: 46px;
+      }
+      .icon-badge .svg-icon.large {
+        width: 20px;
+        height: 20px;
+      }
+      .card-heading {
+        font-size: 1.2rem;
+      }
+      .card-subheading {
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+
+      /* Downloader Box Hero (AFTV) */
+      .code-box-hero {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+        padding: 16px;
+      }
+      .code-number {
+        font-size: 2.1rem;
+        letter-spacing: 3px;
+      }
+      .code-box-hero .btn-copy {
         width: 100%;
         justify-content: center;
+        padding: 12px;
+      }
+
+      /* Passos de Instalação */
+      .step-item {
+        padding: 12px 14px;
+        font-size: 0.88rem;
+        line-height: 1.45;
+        gap: 12px;
+      }
+      .step-item:hover {
+        transform: none; /* Desativa deslocamento de hover no toque */
+      }
+      .step-num {
+        width: 22px;
+        height: 22px;
+        font-size: 0.72rem;
+      }
+
+      /* Caixas de Terminal */
+      .terminal-box {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 12px 14px;
+        font-size: 0.82rem;
+      }
+      .terminal-box code {
+        word-break: break-all;
+        white-space: normal;
+      }
+      .terminal-box .btn-copy {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Botões de Ação de Download */
+      .actions-row {
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .actions-row .action-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 13px 16px;
+        font-size: 0.82rem;
+      }
+
+      /* Recursos Bento Grid */
+      .feature-card {
+        padding: 20px 18px;
+      }
+      .feature-card:hover {
+        transform: none;
+      }
+      .feature-card h3 {
+        font-size: 1.05rem;
+      }
+      .feature-card p {
+        font-size: 0.86rem;
+        line-height: 1.5;
+      }
+
+      /* Footer */
+      footer {
+        padding: 36px 0 28px;
+        margin-top: 40px;
+      }
+      .footer-text {
+        font-size: 0.78rem;
+      }
+      .footer-disclaimer {
+        font-size: 0.72rem;
+        line-height: 1.45;
+      }
+
+      /* Toast Centralizado no Mobile */
+      #toast {
+        right: 16px;
+        left: 16px;
+        bottom: 16px;
+        justify-content: center;
+        text-align: center;
+        padding: 12px 16px;
+        font-size: 0.82rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 0 14px;
+      }
+      .brand img {
+        width: 36px;
+        height: 36px;
+      }
+      .brand-title {
+        font-size: 1.15rem;
+      }
+      .hero h1 {
+        font-size: 1.75rem;
+      }
+      .code-number {
+        font-size: 1.85rem;
       }
     }
   </style>
