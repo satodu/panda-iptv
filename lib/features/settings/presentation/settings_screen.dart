@@ -302,7 +302,7 @@ class SettingsScreen extends StatelessWidget {
                                     ),
                                   ),
                                   const HankoBadge(
-                                    text: 'v0.0.1-alpha',
+                                    text: 'v0.0.2',
                                     borderColor: AppColors.accentPrimary,
                                     textColor: AppColors.accentPrimary,
                                   ),
