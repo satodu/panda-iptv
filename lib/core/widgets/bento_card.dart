@@ -4,6 +4,7 @@ import '../theme/app_colors.dart';
 /// Card Bento Oriental Brutalista
 /// Totalmente otimizado para Controle Remoto (D-Pad TV), Teclado e Mouse.
 class BentoCard extends StatefulWidget {
+  final Widget? background;
   final Widget child;
   final VoidCallback? onTap;
   final EdgeInsetsGeometry? padding;
@@ -16,6 +17,7 @@ class BentoCard extends StatefulWidget {
   const BentoCard({
     super.key,
     required this.child,
+    this.background,
     this.onTap,
     this.padding,
     this.backgroundColor,
@@ -120,18 +122,26 @@ class _BentoCardState extends State<BentoCard> {
                     ]
                   : null),
         ),
-        child: Material(
-          color: Colors.transparent,
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(widget.borderRadius),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(widget.borderRadius),
-            onTap: widget.onTap,
-            splashColor: AppColors.accentPrimary.withValues(alpha: 0.15),
-            highlightColor: AppColors.accentPrimary.withValues(alpha: 0.05),
-            child: Padding(
-              padding: widget.padding ?? const EdgeInsets.all(20),
-              child: widget.child,
-            ),
+          child: Stack(
+            fit: StackFit.passthrough,
+            children: [
+              if (widget.background != null)
+                Positioned.fill(child: widget.background!),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: widget.onTap,
+                  splashColor: AppColors.accentPrimary.withValues(alpha: 0.15),
+                  highlightColor: AppColors.accentPrimary.withValues(alpha: 0.05),
+                  child: Padding(
+                    padding: widget.padding ?? const EdgeInsets.all(20),
+                    child: widget.child,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

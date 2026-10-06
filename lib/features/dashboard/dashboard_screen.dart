@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_toast.dart';
 import '../../core/widgets/bento_card.dart';
+import '../../core/widgets/bento_card_background.dart';
 import '../../core/widgets/brutalist_entrance.dart';
 import '../../core/widgets/hanko_badge.dart';
 import '../../core/widgets/tech_crosses.dart';
@@ -167,6 +168,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return BentoCard(
       padding: EdgeInsets.all(isNarrow ? 16 : 24),
       backgroundColor: AppColors.surfaceCard,
+      background: const BentoCardBackground(
+        accentColor: AppColors.accentPrimary,
+        watermarkKanji: '熊猫',
+        technicalTag: 'PANDA.IPTV // CORE.HUB [ 1080P ]',
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -230,6 +236,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         icon: Icons.live_tv_rounded,
         color: AppColors.accentPrimary,
         kanji: '生放送',
+        watermarkKanji: '生',
+        technicalTag: 'SYS // 01.LIVE [ 24H ]',
         onTap: () {
           AppToast.info(context, 'MÓDULO AO VIVO EM DESENVOLVIMENTO.');
         },
@@ -241,6 +249,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         icon: Icons.movie_rounded,
         color: AppColors.accentCyan,
         kanji: '映画',
+        watermarkKanji: '映',
+        technicalTag: 'VOD // 4K.CINEMA [ 2160P ]',
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const VodScreen()),
@@ -254,6 +264,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         icon: Icons.video_collection_rounded,
         color: AppColors.textPrimary,
         kanji: '連載',
+        watermarkKanji: '連',
+        technicalTag: 'SERIES // EP.RUN [ ON-DEMAND ]',
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const SeriesScreen()),
@@ -267,6 +279,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         icon: Icons.star_rounded,
         color: AppColors.statusLive,
         kanji: '保存',
+        watermarkKanji: '星',
+        technicalTag: 'FAV // PIN.SAV [ QUICK ]',
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const FavoritesScreen()),
@@ -300,6 +314,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               index: index,
               child: BentoCard(
                 onTap: item.onTap,
+                background: BentoCardBackground(
+                  accentColor: item.color,
+                  watermarkKanji: item.watermarkKanji,
+                  technicalTag: item.technicalTag,
+                  watermarkIcon: item.icon,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -591,6 +611,8 @@ class _BentoItem {
   final IconData icon;
   final Color color;
   final String kanji;
+  final String? watermarkKanji;
+  final String? technicalTag;
   final VoidCallback onTap;
 
   _BentoItem({
@@ -600,6 +622,8 @@ class _BentoItem {
     required this.icon,
     required this.color,
     required this.kanji,
+    this.watermarkKanji,
+    this.technicalTag,
     required this.onTap,
   });
 }
