@@ -7,6 +7,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/hanko_badge.dart';
+import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../models/vod_item.dart';
 import 'vod_detail_screen.dart';
@@ -89,7 +90,7 @@ class _ActorDetailScreenState extends State<ActorDetailScreen> {
             Expanded(
               child: _loading
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.accentPrimary),
+                      child: HankoLoader(label: 'CARREGANDO ATOR.'),
                     )
                   : SingleChildScrollView(
                       padding: EdgeInsets.all(isNarrow ? 16 : 24),

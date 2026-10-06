@@ -12,6 +12,7 @@ import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_button.dart';
 import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/hanko_badge.dart';
+import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../../core/services/tmdb_service.dart';
 import '../../auth/presentation/auth_provider.dart';
@@ -230,7 +231,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
             Expanded(
               child: _loading
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.accentPrimary),
+                      child: HankoLoader(label: 'CARREGANDO FILME.'),
                     )
                   : SingleChildScrollView(
                       padding: EdgeInsets.all(isNarrow ? 16 : 24),
@@ -472,14 +473,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
         return const Padding(
           padding: EdgeInsets.symmetric(vertical: 16),
           child: Center(
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
-              ),
-            ),
+            child: HankoLoader.compact(label: 'CARREGANDO ELENCO.'),
           ),
         );
       }
@@ -511,9 +505,11 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
         ),
         const SizedBox(height: 14),
         SizedBox(
-          height: 145,
+          height: 165,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            padding: const EdgeInsets.only(top: 10, bottom: 6),
             itemCount: _cast.length,
             separatorBuilder: (_, __) => const SizedBox(width: 14),
             itemBuilder: (context, index) {

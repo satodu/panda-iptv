@@ -767,13 +767,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                                           placeholder: (_, __) => Container(
                                             color: AppColors.surfaceCard,
                                             child: const Center(
-                                              child: SizedBox(
-                                                width: 24,
-                                                height: 24,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
-                                                ),
+                                              child: HankoLoader.mini(
+                                                miniSize: 24,
+                                                primaryColor: AppColors.accentPrimary,
                                               ),
                                             ),
                                           ),

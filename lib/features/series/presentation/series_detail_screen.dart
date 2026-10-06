@@ -228,7 +228,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
             Expanded(
               child: _loading
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.accentPrimary),
+                      child: HankoLoader(label: 'CARREGANDO SÉRIE.'),
                     )
                   : SingleChildScrollView(
                       padding: EdgeInsets.all(isNarrow ? 16 : 24),
@@ -689,6 +689,8 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
         ? seriesProvider.filteredSeries
         : seriesProvider.seriesList;
 
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -706,113 +708,252 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final crossAxisCount = (constraints.maxWidth / 160).floor().clamp(2, 6);
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.58,
-              ),
-              itemCount: _similarSeries.length,
-              itemBuilder: (context, index) {
-                final show = _similarSeries[index];
-                final iptvMatch = _findIptvMatch(show.title, allSeries);
+        if (!isLandscape)
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _similarSeries.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final show = _similarSeries[index];
+              final iptvMatch = _findIptvMatch(show.title, allSeries);
+              final year = show.releaseDate != null && show.releaseDate!.length >= 4
+                  ? show.releaseDate!.substring(0, 4)
+                  : '';
 
-                return BrutalistEntrance(
-                  index: index,
-                  child: BentoCard(
-                    padding: EdgeInsets.zero,
-                    borderRadius: 10,
-                    onTap: iptvMatch != null
-                        ? () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => SeriesDetailScreen(item: iptvMatch),
+              return BrutalistEntrance(
+                index: index,
+                child: BentoCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  borderRadius: 10,
+                  onTap: () {
+                    if (iptvMatch != null) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SeriesDetailScreen(item: iptvMatch),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppColors.surfaceCard,
+                          content: Text(
+                            'Título não disponível na lista atual do seu IPTV.',
+                            style: AppTypography.mono(color: AppColors.accentCyan),
+                          ),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      // Poster thumbnail compacto
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          width: 48,
+                          height: 66,
+                          color: AppColors.surfaceHover,
+                          child: show.posterUrl != null
+                              ? CachedNetworkImage(
+                                  imageUrl: show.posterUrl!,
+                                  fit: BoxFit.cover,
+                                  placeholder: (_, __) => const Center(
+                                    child: HankoLoader.mini(miniSize: 18),
+                                  ),
+                                  errorWidget: (_, __, ___) => _buildFallbackCover(),
+                                )
+                              : _buildFallbackCover(),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      // Duas linhas de informações ocupando 100% de largura
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Linha 1: Título da Série
+                            Text(
+                              show.title.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.titleMedium(
+                                fontSize: 13,
+                                color: iptvMatch != null ? AppColors.textPrimary : AppColors.textPrimary.withValues(alpha: 0.85),
                               ),
-                            );
-                          }
-                        : null,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Poster da Série
-                        Expanded(
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              ClipRRect(
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                                child: show.posterUrl != null
-                                    ? CachedNetworkImage(
-                                        imageUrl: show.posterUrl!,
-                                        fit: BoxFit.cover,
-                                        errorWidget: (_, __, ___) => _buildFallbackCover(),
-                                      )
-                                    : _buildFallbackCover(),
-                              ),
-                              if (iptvMatch != null)
-                                const Positioned(
-                                  top: 6,
-                                  left: 6,
-                                  child: HankoBadge(
+                            ),
+                            const SizedBox(height: 6),
+                            // Linha 2: Metadados, Avaliação e Badges
+                            Row(
+                              children: [
+                                if (year.isNotEmpty) ...[
+                                  Text(
+                                    year,
+                                    style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                if (show.rating > 0) ...[
+                                  HankoBadge(
+                                    text: '★ ${show.rating.toStringAsFixed(1)}',
+                                    borderColor: AppColors.accentPrimary.withValues(alpha: 0.6),
+                                    textColor: AppColors.accentPrimary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                if (iptvMatch != null)
+                                  const HankoBadge(
                                     text: 'DISPONÍVEL',
                                     borderColor: AppColors.statusLive,
                                     textColor: AppColors.statusLive,
+                                  )
+                                else
+                                  const HankoBadge(
+                                    text: 'TMDB',
+                                    borderColor: AppColors.borderHairline,
+                                    textColor: AppColors.textMuted,
                                   ),
-                                ),
-                              if (show.rating > 0)
-                                Positioned(
-                                  bottom: 6,
-                                  right: 6,
-                                  child: HankoBadge(
-                                    text: '★ ${show.rating.toStringAsFixed(1)}',
-                                    borderColor: AppColors.accentPrimary,
-                                    textColor: AppColors.accentPrimary,
-                                  ),
-                                ),
-                            ],
-                          ),
+                              ],
+                            ),
+                          ],
                         ),
-                        // Informações
-                        Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                show.title.toUpperCase(),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTypography.titleMedium(fontSize: 11, color: AppColors.textPrimary),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                iptvMatch != null
-                                    ? '[ NO SEU CATÁLOGO ]'
-                                    : (show.releaseDate != null && show.releaseDate!.length >= 4
-                                        ? show.releaseDate!.substring(0, 4)
-                                        : 'TMDB'),
-                                style: AppTypography.mono(
-                                  fontSize: 9.5,
-                                  color: iptvMatch != null ? AppColors.accentCyan : AppColors.textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 13,
+                        color: iptvMatch != null ? AppColors.accentPrimary : AppColors.textDisabled,
+                      ),
+                    ],
                   ),
-                );
-              },
-            );
-          },
-        ),
+                ),
+              );
+            },
+          )
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = (constraints.maxWidth / 160).floor().clamp(2, 6);
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.58,
+                ),
+                itemCount: _similarSeries.length,
+                itemBuilder: (context, index) {
+                  final show = _similarSeries[index];
+                  final iptvMatch = _findIptvMatch(show.title, allSeries);
+
+                  return BrutalistEntrance(
+                    index: index,
+                    child: BentoCard(
+                      padding: EdgeInsets.zero,
+                      borderRadius: 10,
+                      onTap: () {
+                        if (iptvMatch != null) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => SeriesDetailScreen(item: iptvMatch),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: AppColors.surfaceCard,
+                              content: Text(
+                                'Título não disponível na lista atual do seu IPTV.',
+                                style: AppTypography.mono(color: AppColors.accentCyan),
+                              ),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Poster da Série
+                          Expanded(
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                                  child: show.posterUrl != null
+                                      ? CachedNetworkImage(
+                                          imageUrl: show.posterUrl!,
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, __) => const Center(
+                                            child: HankoLoader.mini(miniSize: 22),
+                                          ),
+                                          errorWidget: (_, __, ___) => _buildFallbackCover(),
+                                        )
+                                      : _buildFallbackCover(),
+                                ),
+                                if (iptvMatch != null)
+                                  const Positioned(
+                                    top: 6,
+                                    left: 6,
+                                    child: HankoBadge(
+                                      text: 'DISPONÍVEL',
+                                      borderColor: AppColors.statusLive,
+                                      textColor: AppColors.statusLive,
+                                    ),
+                                  ),
+                                if (show.rating > 0)
+                                  Positioned(
+                                    bottom: 6,
+                                    right: 6,
+                                    child: HankoBadge(
+                                      text: '★ ${show.rating.toStringAsFixed(1)}',
+                                      borderColor: AppColors.accentPrimary,
+                                      textColor: AppColors.accentPrimary,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          // Informações
+                          Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  show.title.toUpperCase(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.titleMedium(fontSize: 11, color: AppColors.textPrimary),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  iptvMatch != null
+                                      ? '[ NO SEU CATÁLOGO ]'
+                                      : (show.releaseDate != null && show.releaseDate!.length >= 4
+                                          ? show.releaseDate!.substring(0, 4)
+                                          : 'TMDB'),
+                                  style: AppTypography.mono(
+                                    fontSize: 9.5,
+                                    color: iptvMatch != null ? AppColors.accentCyan : AppColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
       ],
     );
   }

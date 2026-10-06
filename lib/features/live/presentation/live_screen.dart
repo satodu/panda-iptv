@@ -11,6 +11,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/hanko_badge.dart';
+import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../player/models/playlist_item.dart';
@@ -93,7 +94,7 @@ class _LiveScreenState extends State<LiveScreen> {
             // Channels Grid
             Expanded(
               child: live.isLoadingChannels
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.accentPrimary))
+                  ? const Center(child: HankoLoader(label: 'CARREGANDO CANAIS.'))
                   : live.error != null
                       ? Center(
                           child: Column(
@@ -300,11 +301,7 @@ class _LiveScreenState extends State<LiveScreen> {
       return const SizedBox(
         height: 48,
         child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentPrimary),
-          ),
+          child: HankoLoader.compact(label: 'CATEGORIAS.'),
         ),
       );
     }

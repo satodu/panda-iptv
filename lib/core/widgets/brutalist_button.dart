@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
+import 'hanko_loader.dart';
 
 /// Botão Primário no estilo Oriental Brutalismo
 /// Suporta controle remoto TV (D-pad), hover e teclado.
@@ -125,13 +126,9 @@ class _BrutalistButtonState extends State<BrutalistButton> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Center(
                 child: widget.isLoading
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(fgColor),
-                        ),
+                    ? HankoLoader.mini(
+                        miniSize: 20,
+                        primaryColor: fgColor,
                       )
                     : Row(
                         mainAxisSize: MainAxisSize.min,

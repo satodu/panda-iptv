@@ -6,6 +6,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/hanko_badge.dart';
+import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../models/vod_category.dart';
@@ -86,7 +87,7 @@ class _VodScreenState extends State<VodScreen> {
             // Movies Grid
             Expanded(
               child: vod.isLoadingMovies
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.accentPrimary))
+                  ? const Center(child: HankoLoader(label: 'CARREGANDO FILMES.'))
                   : vod.error != null
                       ? Center(
                           child: Column(
@@ -294,11 +295,7 @@ class _VodScreenState extends State<VodScreen> {
       return const SizedBox(
         height: 48,
         child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentPrimary),
-          ),
+          child: HankoLoader.compact(label: 'CATEGORIAS.'),
         ),
       );
     }

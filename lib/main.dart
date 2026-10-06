@@ -4,7 +4,9 @@ import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 import 'core/localization/app_localizations.dart';
 import 'core/localization/locale_provider.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/hanko_loader.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
@@ -49,8 +51,9 @@ class PandaIptvApp extends StatelessWidget {
               builder: (context, auth, _) {
                 if (auth.status == AuthStatus.initial || auth.status == AuthStatus.authenticating) {
                   return const Scaffold(
+                    backgroundColor: AppColors.canvas,
                     body: Center(
-                      child: CircularProgressIndicator(),
+                      child: HankoLoader(label: 'INICIALIZANDO.'),
                     ),
                   );
                 }

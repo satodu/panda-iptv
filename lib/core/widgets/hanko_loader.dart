@@ -8,6 +8,8 @@ class HankoLoader extends StatefulWidget {
   final String label;
   final String kanji;
   final bool isCompact;
+  final bool isMini;
+  final double miniSize;
   final Color primaryColor;
 
   const HankoLoader({
@@ -16,7 +18,26 @@ class HankoLoader extends StatefulWidget {
     this.kanji = '読込中',
     this.isCompact = false,
     this.primaryColor = AppColors.accentPrimary,
-  });
+  })  : isMini = false,
+        miniSize = 20.0;
+
+  const HankoLoader.compact({
+    super.key,
+    this.label = 'CARREGANDO.',
+    this.kanji = '読込中',
+    this.primaryColor = AppColors.accentPrimary,
+  })  : isCompact = true,
+        isMini = false,
+        miniSize = 20.0;
+
+  const HankoLoader.mini({
+    super.key,
+    this.primaryColor = AppColors.accentPrimary,
+    this.miniSize = 20.0,
+    this.kanji = '中',
+  })  : isCompact = false,
+        isMini = true,
+        label = '';
 
   @override
   State<HankoLoader> createState() => _HankoLoaderState();
@@ -55,6 +76,107 @@ class _HankoLoaderState extends State<HankoLoader> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isMini) {
+      final size = widget.miniSize;
+      return AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final progress = _fillAnimation.value;
+          final scale = _stampPulse.value;
+
+          return Transform.scale(
+            scale: scale,
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceCard.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(
+                  color: widget.primaryColor.withValues(alpha: 0.7),
+                  width: 1.0,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.primaryColor.withValues(alpha: 0.25 * progress),
+                    blurRadius: 6 * progress,
+                    spreadRadius: 0.5,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: Stack(
+                  children: [
+                    // Camada de Tinta
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: size * progress,
+                      child: Container(
+                        color: widget.primaryColor,
+                      ),
+                    ),
+                    // Pincel brilhante
+                    if (progress > 0.05 && progress < 0.95)
+                      Positioned(
+                        left: (size * progress) - 1,
+                        top: 0,
+                        bottom: 0,
+                        width: 2,
+                        child: Container(
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    // Kanji de Fundo
+                    Center(
+                      child: Text(
+                        widget.kanji,
+                        style: TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontSize: size * 0.55,
+                          color: AppColors.textMuted,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    // Kanji Iluminado Pintado
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: size * progress,
+                      child: ClipRect(
+                        child: OverflowBox(
+                          alignment: Alignment.centerLeft,
+                          minWidth: size,
+                          maxWidth: size,
+                          minHeight: size,
+                          maxHeight: size,
+                          child: Center(
+                            child: Text(
+                              widget.kanji,
+                              style: TextStyle(
+                                fontFamily: 'JetBrainsMono',
+                                fontSize: size * 0.55,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
     final height = widget.isCompact ? 30.0 : 42.0;
     final width = widget.isCompact ? 160.0 : 210.0;
     final fontSize = widget.isCompact ? 9.5 : 11.5;

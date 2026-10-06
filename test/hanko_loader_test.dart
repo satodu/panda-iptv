@@ -42,4 +42,22 @@ void main() {
     expect(find.text('BUFFERING.'), findsWidgets);
     expect(find.byType(HankoLoader), findsOneWidget);
   });
+
+  testWidgets('HankoLoader mini mode renders properly', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: HankoLoader.mini(
+            miniSize: 22,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('中'), findsWidgets);
+    expect(find.byType(HankoLoader), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(HankoLoader), findsOneWidget);
+  });
 }
