@@ -125,13 +125,15 @@ lib/
 
 O repositório possui automação completa para distribuição multiplataforma:
 
-* **Versão Ativa:** `0.0.1-alpha+1` (em [pubspec.yaml](file:///run/media/panda/panda/Projects/satodu/panda-iptv/pubspec.yaml)).
+* **Versão Ativa:** `0.0.2+2` (em [pubspec.yaml](file:///run/media/panda/panda/Projects/satodu/panda-iptv/pubspec.yaml)).
 * **Distribuição Linux:**
   * **Script Mestre:** Execute `./scripts/build_release.sh` para compilar tudo de uma vez.
   * **AppImage Universal:** Gerado via [packaging/appimage/build_appimage.sh](file:///run/media/panda/panda/Projects/satodu/panda-iptv/packaging/appimage/build_appimage.sh) em `dist/Panda-IPTV-<version>-x86_64.AppImage`.
   * **Bundle Tarball:** `dist/panda-iptv-<version>-linux-x64.tar.gz`.
   * **Arch Linux / AUR:** Template de [packaging/aur/PKGBUILD](file:///run/media/panda/panda/Projects/satodu/panda-iptv/packaging/aur/PKGBUILD) para publicação no AUR sob o pacote `panda-iptv-bin`.
-* **Distribuição Android:**
-  * **APK Release:** `flutter build apk --release` (ou `flutter build apk --split-per-abi`).
+* **Distribuição Android & TV Downloader:**
+  * **Código do Downloader (AFTV):** **`9916531`** (ou link direto `https://aftv.news/9916531`).
+  * **Link Permanente (Latest APK):** `https://github.com/satodu/panda-iptv/releases/latest/download/Panda-IPTV.apk`.
+  * **APK Release Local:** `flutter build apk --release` (ou `flutter build apk --split-per-abi`).
   * **Google Play Bundle:** `flutter build appbundle --release`.
 
