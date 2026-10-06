@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_button.dart';
 import '../../../core/widgets/hanko_badge.dart';
@@ -60,12 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final pass = _passwordController.text.trim();
 
     if (server.isEmpty || user.isEmpty || pass.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: AppColors.statusError,
-          content: Text('Preencha servidor, usuário e senha.'),
-        ),
-      );
+      AppToast.error(context, 'PREENCHA SERVIDOR, USUÁRIO E SENHA.');
       return;
     }
 
@@ -92,25 +88,47 @@ class _LoginScreenState extends State<LoginScreen> {
               constraints: BoxConstraints(
                 maxWidth: isLandscape ? 920 : 460,
               ),
-              child: isLandscape && screenWidth > 720
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(child: _buildBrandingPanel()),
-                        const SizedBox(width: 32),
-                        Expanded(child: _buildFormCard()),
-                      ],
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildBrandingPanel(isCompact: true),
-                        const SizedBox(height: 24),
-                        _buildFormCard(),
-                      ],
-                    ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  isLandscape && screenWidth > 720
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(child: _buildBrandingPanel()),
+                            const SizedBox(width: 32),
+                            Expanded(child: _buildFormCard()),
+                          ],
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildBrandingPanel(isCompact: true),
+                            const SizedBox(height: 24),
+                            _buildFormCard(),
+                          ],
+                        ),
+                  const SizedBox(height: 24),
+                  _buildDisclaimerText(),
+                ],
+              ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDisclaimerText() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Text(
+        '[ AVISO LEGAL: O PANDA IPTV É EXCLUSIVAMENTE UM REPRODUTOR DE MÍDIA. '
+        'NÃO HOSPEDA, NÃO FORNECE E NÃO DISTRIBUI NENHUM CONTEÚDO OU LISTA. ]',
+        textAlign: TextAlign.center,
+        style: AppTypography.mono(
+          fontSize: 10,
+          color: AppColors.textMuted.withValues(alpha: 0.6),
         ),
       ),
     );

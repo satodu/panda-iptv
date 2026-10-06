@@ -5,8 +5,8 @@
 <h1 align="center">PANDA IPTV.</h1>
 
 <p align="center">
-  <b>Reprodutor Multimídia IPTV Moderno com Identidade Oriental Brutalismo Minimalista.</b><br/>
-  Construído em Flutter para <b>Linux Desktop</b> e <b>Android</b>, alimentado pela aceleração nativa de vídeo do <b>libmpv</b>.
+  <b>Modern IPTV Multimedia Player with Oriental Minimalist Brutalism Design.</b><br/>
+  Engineered with Flutter for <b>Linux Desktop</b> and <b>Android</b>, powered by native <b>libmpv</b> video acceleration.
 </p>
 
 <p align="center">
@@ -15,89 +15,110 @@
   <img src="https://img.shields.io/badge/Android-%233DDC84.svg?style=for-the-badge&logo=android&logoColor=white" alt="Android" />
   <img src="https://img.shields.io/badge/Player-libmpv-0A84FF?style=for-the-badge" alt="libmpv" />
   <img src="https://img.shields.io/badge/Design-Oriental_Brutalism-0D1216?style=for-the-badge&labelColor=0A84FF" alt="Oriental Brutalism" />
-  <a href="https://ko-fi.com/retro_panda" target="_blank"><img src="https://img.shields.io/badge/Ko--fi-Apoie_o_Projeto-%23FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi" /></a>
+  <a href="https://ko-fi.com/retro_panda" target="_blank"><img src="https://img.shields.io/badge/Ko--fi-Support_the_Project-%23FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi" /></a>
 </p>
 
 ---
 
-## VISÃO GERAL.
+## OVERVIEW.
 
-O **Panda IPTV** é uma central multimídia de alta performance para reprodução de listas e conteúdos sob o protocolo **Xtream Codes API**. Rompendo com interfaces genéricas, o Panda adota uma identidade autoral baseada no **Oriental Brutalismo Minimalista**: tipografia geométrica pesada em caixa-alta com ponto final seco, layout Bento modular com respiros equilibrados (*conceito japonês 'Ma'*) e acentos cirúrgicos em **Azul Elétrico** (`#0A84FF`).
-
----
-
-## DESTAQUES & FUNCIONALIDADES.
-
-* **Central Multimídia Completa:**
-  * **Filmes (VOD):** Catálogo completo com busca em tempo real, filtros por categorias (iniciando em `TODOS`), pôsteres em alta definição, sinopse, elenco, diretor, ano e classificação.
-  * **Séries:** Organização por temporadas e episódios com metadados, tempo de duração e reprodução direta com um clique.
-  * **Canais Ao Vivo:** Suporte à navegação de transmissões em tempo real via Xtream API.
-  * **Hub Central (Dashboard):** Visão geral da conexão ativa, badges técnicos de bitrate/resolução e atalhos rápidos.
-
-* **Player de Vídeo de Alta Performance (libmpv):**
-  * OSD (On-Screen Display) minimalista que se recolhe automaticamente após inatividade.
-  * **Controle de Volume Dedicado:** Slider interativo no player, atalhos de teclado e ajuste suave pelo scroll do mouse.
-  * **Seletor Dinâmico de Decodificador (Hardware / Software):** Compatibilidade total com distribuições Linux modernas (incluindo **Wayland + Nvidia**) com decodificação segura `hwdec=no` por padrão para evitar telas azuis ou falhas de textura GL, além de alternância ao vivo para `auto-copy` ou `auto`.
-  * **Headers de Player Profissional:** Simulação transparente de User-Agent de player IPTV (`IPTVSmartersPro/3.1.5`) para contornar bloqueios comuns de provedores.
-
-* **Autenticação & Sessão Inteligente:**
-  * **Login Automático & Lembrar Credenciais:** Opção de auto-login persistente via `SharedPreferences`.
-  * **Tratamento Automático de URL:** Normalização automática de URLs com ou sem barras finais (`/`, `///`), inclusão de `http://` caso ausente e limpeza de sufixos colados acidentalmente (como `/player_api.php` ou `/get.php`).
-  * Mesmo após desconectar, o servidor e usuário permanecem pré-preenchidos para agilidade.
-
-* **Totalmente Responsivo:**
-  * Adaptação fluida para **Desktop Horizontal** (Linux) e **Mobile Vertical/Horizontal** (Android Smartphones, Tablets e TV Boxes).
+**Panda IPTV** is a high-performance multimedia center designed for streaming playlists and on-demand content through the **Xtream Codes API** protocol. Breaking away from generic IPTV templates, Panda introduces a signature **Oriental Minimalist Brutalism** design language: bold geometric uppercase typography with abrupt periods, modular Bento grid layouts with balanced spatial breathing room (*the Japanese aesthetic concept 'Ma'*), and surgical accents in **Electric Blue** (`#0A84FF`).
 
 ---
 
-## ATALHOS DO PLAYER DE VÍDEO.
+## IMPORTANT LEGAL DISCLAIMER & ANTI-PIRACY POLICY.
 
-Ao reproduzir qualquer filme, série ou canal no desktop:
+> [!IMPORTANT]
+> **Panda IPTV is strictly a generic media player client and multimedia player.**
+>
+> 1. **Zero Content Provided:** Panda IPTV **does NOT provide, host, supply, bundle, archive, or resell any digital content**, streams, television channels, movies, series, or playlists. The application comes completely devoid of any pre-configured media or server endpoints.
+> 2. **Bring Your Own Content (BYOC):** The application is purely an interface (client). Users are solely and exclusively responsible for providing their own legally obtained playlist credentials or streaming links (such as legitimate Xtream Codes API credentials).
+> 3. **Anti-Piracy Compliance:** The developers of Panda IPTV strictly condemn and **do not condone or facilitate copyright infringement, media piracy, or unauthorized distribution of intellectual property**. Users must hold all necessary rights, licenses, or explicit permissions from content owners to stream any media through this application.
+> 4. **No Third-Party Affiliation:** Panda IPTV is an independent open-source software project. It is **not affiliated, endorsed, sponsored, or associated** with any third-party IPTV providers, streaming services, or resellers.
 
-| Tecla / Ação | Função |
+---
+
+## KEY FEATURES.
+
+* **Complete Multimedia Hub:**
+  * **Movies (VOD):** Comprehensive catalog with real-time instant search, category filters (defaulting to `ALL`), high-resolution posters, plot synopses, cast, director, release year, age rating, and watched markers.
+  * **Series & Binge-Watching:** Full season and episode hierarchy, runtimes, next/previous episode transitions, and automatic 6-second countdown cards to play next episodes seamlessly.
+  * **Favorites System:** 1-click star bookmarking for channels, movies, and TV series, stored locally and accessible instantly from the central dashboard.
+  * **Watched History & Progress Tracking:** Automatic detection marking movies and episodes as watched (`[ VISTO ]`) upon reaching $\ge 90\%$ playback or completion, with full manual checkmark toggles.
+  * **Continue Watching:** Persistent local watch history powered by local storage. Displays remaining time badges (`[ X MIN REMAINING ]`), Electric Blue playback progress bars, and instant 1-click resume from the exact second you left off.
+  * **Live TV:** Stream navigation and playback via Xtream Codes protocol.
+  * **Central Dashboard:** Active account connection monitor, live active/max connection counters, and technical Bento navigation tiles.
+
+* **High-Performance Video Engine (libmpv):**
+  * Minimalist OSD (On-Screen Display) with automatic inactivity hide.
+  * **Dedicated Volume Control:** Interactive on-screen slider, dedicated keyboard hotkeys, and smooth pointer mouse-wheel adjustment.
+  * **Dynamic Hardware / Software Decoder Switcher:** Tailored for modern Linux workstations (including **Wayland + Nvidia** setups), defaulting to safe software decoding (`hwdec=no`) to eliminate blue-screen or OpenGL context glitches, with on-the-fly toggling between `SW Safe`, `Auto-Copy`, and `HW`.
+  * **Pro IPTV Player User-Agent:** Transparent simulation of standard IPTV player headers (`IPTVSmartersPro/3.1.5`) to circumvent provider-side stream throttling and blockades.
+
+* **Smart Authentication & Session Management:**
+  * **Auto-Login & Remember Credentials:** Optional persistent session storage via encrypted/local preferences.
+  * **URL Normalizer:** Seamless handling of trailing slashes (`/`, `///`), auto-prefixing missing `http://`, and automatic stripping of mistakenly pasted file endpoints (e.g. `/player_api.php` or `/get.php`).
+  * Server host and username pre-filled even after manual logout for rapid re-entry.
+
+* **Fully Responsive & TV Remote Ready:**
+  * Smooth adaptive layout supporting **Desktop Landscape** (Linux workstation / HTPC) and **Mobile Portrait / Landscape** (Android smartphones, tablets, and TV boxes).
+  * Optimized D-Pad navigation with auto-scroll focus for TV remotes.
+
+---
+
+## PLAYER KEYBOARD SHORTCUTS.
+
+When playing any movie, episode, or stream on Desktop:
+
+| Key / Action | Function |
 | :--- | :--- |
-| **Espaço** | Pausar / Reproduzir (`Play/Pause`) |
-| **Seta $\rightarrow$** | Avançar 10 segundos (`+10s`) |
-| **Seta $\leftarrow$** | Retroceder 10 segundos (`-10s`) |
-| **Seta $\uparrow$** | Aumentar volume (+5%) |
-| **Seta $\downarrow$** | Diminuir volume (-5%) |
-| **Scroll do Mouse** | Aumentar / diminuir volume na posição do ponteiro |
-| **M** | Mutar / Desmutar áudio |
-| **D** | Alternar modo de decodificação (`SW Seguro` / `Auto-Copy` / `HW`) |
-| **ESC** | Sair do player e voltar aos detalhes |
+| **Space** | Play / Pause |
+| **Right Arrow $\rightarrow$** | Seek forward 10 seconds (`+10s`) |
+| **Left Arrow $\leftarrow$** | Seek backward 10 seconds (`-10s`) |
+| **Up Arrow $\uparrow$** | Volume up (+5%) |
+| **Down Arrow $\downarrow$** | Volume down (-5%) |
+| **Mouse Wheel** | Adjust volume up / down at cursor position |
+| **N / Next Track** | Skip to next episode in playlist |
+| **P / Previous Track** | Return to previous episode in playlist |
+| **M** | Toggle Mute / Unmute audio |
+| **D** | Cycle decoding mode (`Safe SW` / `Auto-Copy` / `HW`) |
+| **ESC** | Exit player and return to media details |
 
 ---
 
-## ARQUITETURA DE CÓDIGO (CLEAN ARCHITECTURE / FEATURE-FIRST).
+## ARCHITECTURE (CLEAN ARCHITECTURE / FEATURE-FIRST).
 
 ```
 lib/
 ├── core/
+│   ├── storage/
+│   │   ├── watch_history_item.dart    # Watch history data model
+│   │   └── watch_history_service.dart # Local history persistence & reactive notifier
 │   ├── theme/
-│   │   ├── app_colors.dart        # Tokens da paleta (Preto mineral, Azul Elétrico, Ciano)
-│   │   ├── app_theme.dart         # Tema escuro brutalista
-│   │   └── app_typography.dart    # Grotesk + JetBrains Mono + Noto Sans JP
+│   │   ├── app_colors.dart            # Design tokens (Mineral Black, Electric Blue, Cyan)
+│   │   ├── app_theme.dart             # Brutalist dark theme
+│   │   └── app_typography.dart        # Space Grotesk + JetBrains Mono + Noto Sans JP
 │   └── widgets/
-│       ├── bento_card.dart        # Painéis modulares Bento
-│       ├── brutalist_button.dart  # Botões de ação em Azul Elétrico
-│       ├── hanko_badge.dart       # Selos orientais e tags de status
-│       └── tech_crosses.dart      # Elementos decorativos técnicos (+ + +)
+│       ├── bento_card.dart            # Interactive modular Bento cards
+│       ├── brutalist_button.dart      # Electric Blue action buttons
+│       ├── hanko_badge.dart           # Japanese Hanko status badges & tags
+│       └── tech_crosses.dart          # Technical crosshair accents (+ + +)
 ├── features/
-│   ├── auth/                      # Login, modelos de conta e validação Xtream
-│   ├── dashboard/                 # Tela inicial e grade Bento de navegação
-│   ├── vod/                       # Catálogo de filmes e telas de detalhes
-│   ├── series/                    # Catálogo de séries, temporadas e episódios
-│   └── player/                    # Player integrado media_kit (libmpv) com OSD
-└── main.dart                      # Inicialização de dependências nativas e Providers
+│   ├── auth/                          # Xtream authentication, account models & URL sanitization
+│   ├── dashboard/                     # Central Hub, Continue Watching row & Bento grid
+│   ├── vod/                           # VOD movie catalog, category filters & details
+│   ├── series/                        # Series catalog, seasons, episodes & details
+│   └── player/                        # libmpv media player with custom OSD & volume control
+└── main.dart                          # Native dependency initialization & Provider wiring
 ```
 
 ---
 
-## COMO EXECUTAR EM DESENVOLVIMENTO.
+## DEVELOPMENT & RUNNING.
 
-### Pré-requisitos:
+### Prerequisites:
 * **Flutter SDK:** `>= 3.10.0`
-* **Linux (Arch, Ubuntu, Fedora):** Ter o pacote `mpv` e `libmpv` instalado no sistema:
+* **Linux (Arch, Ubuntu, Fedora):** System-level `mpv` and `libmpv` packages:
   ```bash
   # Arch Linux
   sudo pacman -S mpv
@@ -109,38 +130,71 @@ lib/
   sudo dnf install mpv-libs-devel mpv
   ```
 
-### Executando no Linux Desktop:
+### Running on Linux Desktop:
 ```bash
 flutter run -d linux
 ```
 
-### Executando no Android:
-Conecte o smartphone ou emulador via USB com depuração ativada e execute:
+### Running on Android:
+Connect your Android phone or emulator with USB debugging enabled, then execute:
 ```bash
 flutter run
 ```
 
-### Durante o Desenvolvimento (Hot Reload):
-* Pressione **`r`** no terminal para **Hot Reload** instantâneo.
-* Pressione **`R`** para **Hot Restart** do aplicativo.
-* Pressione **`q`** para sair.
+### Hot Reload Keybindings:
+* Press **`r`** in the terminal for instant **Hot Reload**.
+* Press **`R`** for a full **Hot Restart**.
+* Press **`q`** to quit the session.
 
 ---
 
-## APOIE O PROJETO (KO-FI).
+## RELEASES & PACKAGING.
 
-Se você gosta do **Panda IPTV** e deseja apoiar o desenvolvimento contínuo:
+### Linux AppImage & Tarball:
+Build universal standalone Linux packages with the included release script:
+```bash
+bash scripts/build_release.sh
+```
+Artifacts are automatically produced inside the `dist/` directory:
+* `dist/Panda-IPTV-<version>-x86_64.AppImage` (Universal portable Linux executable)
+* `dist/panda-iptv-<version>-linux-x64.tar.gz` (Standalone tarball bundle)
+
+### Arch User Repository (AUR):
+An official `PKGBUILD` template is available in `packaging/aur/PKGBUILD` for publishing to the AUR (`panda-iptv-bin`).
+
+### Android APK Release:
+To compile the release APK:
+```bash
+flutter build apk --release
+```
+Or generate optimized per-architecture APKs (arm64-v8a, armeabi-v7a, x86_64):
+```bash
+flutter build apk --release --split-per-abi
+```
+Generated APK outputs will be placed in `build/app/outputs/flutter-apk/`.
+
+---
+
+## SUPPORT THE PROJECT (KO-FI).
+
+If you enjoy **Panda IPTV** and would like to support ongoing development:
 
 <p align="center">
   <a href="https://ko-fi.com/retro_panda" target="_blank">
-    <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" height="38" alt="Buy Me a Coffee at ko-fi.com" />
+    <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" height="38" alt="Support on Ko-fi" />
   </a>
 </p>
 
-☕ **Apoie em:** [ko-fi.com/retro_panda](https://ko-fi.com/retro_panda)
+☕ **Support at:** [ko-fi.com/retro_panda](https://ko-fi.com/retro_panda)
 
 ---
 
-## LICENÇA.
+## LICENSE & TERMS OF USE.
 
-Desenvolvido para uso pessoal e projetos sob demanda. Todos os direitos reservados.
+Distributed under the **MIT License** with an explicit Anti-Piracy Addendum. See the full [`LICENSE`](file:///run/media/panda/panda/Projects/satodu/panda-iptv/LICENSE) file for complete details.
+
+```
+Panda IPTV is strictly an independent client video player.
+It does not supply, broadcast, host, or condone unauthorized access to media streams.
+```
+

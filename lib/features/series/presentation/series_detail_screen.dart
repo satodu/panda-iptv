@@ -1,12 +1,17 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/storage/favorite_item.dart';
+import '../../../core/storage/favorites_service.dart';
+import '../../../core/storage/watched_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../auth/presentation/auth_provider.dart';
+import '../../player/models/playlist_item.dart';
 import '../../player/presentation/video_player_screen.dart';
 import '../models/series_detail.dart';
 import '../models/series_item.dart';
@@ -25,11 +30,40 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
   SeriesDetail? _detail;
   bool _loading = true;
   String? _selectedSeason;
+  bool _isFavorite = false;
 
   @override
   void initState() {
     super.initState();
     _loadDetail();
+    _checkFavorite();
+    WatchedService.loadWatched();
+  }
+
+  void _checkFavorite() async {
+    final isFav = await FavoritesService.isFavorite('series_${widget.item.seriesId}');
+    if (mounted) setState(() => _isFavorite = isFav);
+  }
+
+  void _toggleFavorite() async {
+    final item = FavoriteItem(
+      id: 'series_${widget.item.seriesId}',
+      title: widget.item.name,
+      type: 'series',
+      cover: _detail?.cover ?? widget.item.cover,
+      rating: _detail?.rating ?? widget.item.rating,
+      genre: _detail?.genre ?? widget.item.genre,
+      addedAt: DateTime.now(),
+    );
+    final isFav = await FavoritesService.toggleFavorite(item);
+    if (mounted) {
+      setState(() => _isFavorite = isFav);
+      if (isFav) {
+        AppToast.favorite(context, 'ADICIONADO AOS FAVORITOS.');
+      } else {
+        AppToast.info(context, 'REMOVIDO DOS FAVORITOS.');
+      }
+    }
   }
 
   Future<void> _loadDetail() async {
@@ -53,14 +87,33 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
     if (account == null) return;
 
     final seriesProvider = context.read<SeriesProvider>();
-    final streamUrl = seriesProvider.buildStreamUrl(account, episode.id, episode.containerExtension);
+    final episodes = _detail?.episodesBySeason[_selectedSeason] ?? [];
+
+    final playlist = episodes.map((ep) {
+      final url = seriesProvider.buildStreamUrl(account, ep.id, ep.containerExtension);
+      return PlaylistItem(
+        id: 'series_${widget.item.seriesId}_${ep.id}',
+        title: widget.item.name,
+        subtitle: 'TEMP $_selectedSeason // EP ${ep.episodeNum} - ${ep.title}',
+        streamUrl: url,
+        cover: ep.image ?? _detail?.cover ?? widget.item.cover,
+        mediaType: 'series',
+      );
+    }).toList();
+
+    final currentIndex = episodes.indexWhere((e) => e.id == episode.id);
 
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => VideoPlayerScreen(
           title: widget.item.name,
           subtitle: 'TEMP $_selectedSeason // EP ${episode.episodeNum} - ${episode.title}',
-          streamUrl: streamUrl,
+          streamUrl: seriesProvider.buildStreamUrl(account, episode.id, episode.containerExtension),
+          mediaId: 'series_${widget.item.seriesId}_${episode.id}',
+          cover: episode.image ?? _detail?.cover ?? widget.item.cover,
+          mediaType: 'series',
+          playlist: playlist.isNotEmpty ? playlist : null,
+          initialPlaylistIndex: currentIndex >= 0 ? currentIndex : 0,
         ),
       ),
     );
@@ -95,6 +148,16 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                   const SizedBox(width: 8),
                   Text('DETALHES DA SÉRIE.', style: AppTypography.titleMedium()),
                   const Spacer(),
+                  IconButton(
+                    icon: Icon(
+                      _isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+                      color: _isFavorite ? AppColors.statusLive : AppColors.textPrimary,
+                      size: 22,
+                    ),
+                    tooltip: _isFavorite ? 'Remover dos Favoritos' : 'Adicionar aos Favoritos',
+                    onPressed: _toggleFavorite,
+                  ),
+                  const SizedBox(width: 8),
                   const TechCrosses(count: 3, opacity: 0.2),
                 ],
               ),
@@ -231,7 +294,32 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
             overflow: TextOverflow.ellipsis,
             style: AppTypography.mono(fontSize: 12, color: AppColors.textMuted),
           ),
+          const SizedBox(height: 14),
         ],
+        OutlinedButton.icon(
+          onPressed: _toggleFavorite,
+          icon: Icon(
+            _isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+            color: _isFavorite ? AppColors.statusLive : AppColors.textPrimary,
+            size: 18,
+          ),
+          label: Text(
+            _isFavorite ? 'SALVO NOS FAVORITOS.' : 'ADICIONAR AOS FAVORITOS.',
+            style: AppTypography.mono(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _isFavorite ? AppColors.statusLive : AppColors.textPrimary,
+            ),
+          ),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(
+              color: _isFavorite ? AppColors.statusLive : AppColors.borderHairline,
+              width: 1,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
       ],
     );
   }
@@ -326,53 +414,98 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final ep = episodes[index];
-              return BentoCard(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                onTap: () => _playEpisode(ep),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceHover,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: AppColors.borderHairline),
-                      ),
-                      child: Text(
-                        '${ep.episodeNum}',
-                        style: AppTypography.mono(fontSize: 13, color: AppColors.accentPrimary),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            ep.title.toUpperCase(),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.sectionTitle(fontSize: 13),
-                          ),
-                          if (ep.duration != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              '[ DURAÇÃO: ${ep.duration} ]',
-                              style: AppTypography.mono(fontSize: 10, color: AppColors.textMuted),
+              final epMediaId = 'series_${widget.item.seriesId}_${ep.id}';
+
+              return ValueListenableBuilder<Set<String>>(
+                valueListenable: WatchedService.watchedNotifier,
+                builder: (context, watchedSet, _) {
+                  final isWatched = watchedSet.contains(epMediaId);
+
+                  return BentoCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    onTap: () => _playEpisode(ep),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: isWatched
+                                ? AppColors.statusLive.withValues(alpha: 0.15)
+                                : AppColors.surfaceHover,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isWatched
+                                  ? AppColors.statusLive.withValues(alpha: 0.5)
+                                  : AppColors.borderHairline,
                             ),
-                          ],
-                        ],
-                      ),
+                          ),
+                          child: Text(
+                            '${ep.episodeNum}',
+                            style: AppTypography.mono(
+                              fontSize: 13,
+                              color: isWatched ? AppColors.statusLive : AppColors.accentPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      ep.title.toUpperCase(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTypography.sectionTitle(
+                                        fontSize: 13,
+                                        color: isWatched ? AppColors.textMuted : AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isWatched) ...[
+                                    const SizedBox(width: 8),
+                                    const HankoBadge(
+                                      text: 'VISTO',
+                                      borderColor: AppColors.statusLive,
+                                      textColor: AppColors.statusLive,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              if (ep.duration != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  '[ DURAÇÃO: ${ep.duration} ]',
+                                  style: AppTypography.mono(fontSize: 10, color: AppColors.textMuted),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          tooltip: isWatched ? 'Marcar como não visto' : 'Marcar como visto',
+                          icon: Icon(
+                            isWatched ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
+                            color: isWatched ? AppColors.statusLive : AppColors.textMuted,
+                            size: 22,
+                          ),
+                          onPressed: () => WatchedService.toggleWatched(epMediaId),
+                        ),
+                        IconButton(
+                          tooltip: 'Assistir',
+                          icon: const Icon(Icons.play_circle_fill_rounded, color: AppColors.accentPrimary, size: 30),
+                          onPressed: () => _playEpisode(ep),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      icon: const Icon(Icons.play_circle_fill_rounded, color: AppColors.accentPrimary, size: 30),
-                      onPressed: () => _playEpisode(ep),
-                    ),
-                  ],
-                ),
+                  );
+                },
               );
             },
           ),

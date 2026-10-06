@@ -114,3 +114,20 @@ lib/
    - Para reproduzir streams HLS/TS com alta performance no Linux e Android, a biblioteca recomendada é o `media_kit` (alimentada nativamente pelo `libmpv`), garantindo suporte total a aceleração por hardware (VA-API / NVDEC no Linux, MediaCodec no Android).
 4. **Tratamento de Falhas**:
    - Servidores de IPTV podem oscilar. Sempre tratar timeouts com elegância e apresentar mensagens amigáveis no padrão visual do app.
+
+---
+
+## 6. SISTEMA DE BUILDS, PACKAGING E RELEASES
+
+O repositório possui automação completa para distribuição multiplataforma:
+
+* **Versão Ativa:** `0.0.1-alpha+1` (em [pubspec.yaml](file:///run/media/panda/panda/Projects/satodu/panda-iptv/pubspec.yaml)).
+* **Distribuição Linux:**
+  * **Script Mestre:** Execute `./scripts/build_release.sh` para compilar tudo de uma vez.
+  * **AppImage Universal:** Gerado via [packaging/appimage/build_appimage.sh](file:///run/media/panda/panda/Projects/satodu/panda-iptv/packaging/appimage/build_appimage.sh) em `dist/Panda-IPTV-<version>-x86_64.AppImage`.
+  * **Bundle Tarball:** `dist/panda-iptv-<version>-linux-x64.tar.gz`.
+  * **Arch Linux / AUR:** Template de [packaging/aur/PKGBUILD](file:///run/media/panda/panda/Projects/satodu/panda-iptv/packaging/aur/PKGBUILD) para publicação no AUR sob o pacote `panda-iptv-bin`.
+* **Distribuição Android:**
+  * **APK Release:** `flutter build apk --release` (ou `flutter build apk --split-per-abi`).
+  * **Google Play Bundle:** `flutter build appbundle --release`.
+

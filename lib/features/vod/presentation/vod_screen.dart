@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/bento_card.dart';
+import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../models/vod_item.dart';
@@ -245,7 +246,10 @@ class _VodScreenState extends State<VodScreen> {
           itemCount: movies.length,
           itemBuilder: (context, index) {
             final movie = movies[index];
-            return _buildMovieCard(context, movie);
+            return BrutalistEntrance(
+              index: index,
+              child: _buildMovieCard(context, movie),
+            );
           },
         );
       },

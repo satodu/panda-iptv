@@ -4,21 +4,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import '../../../core/storage/watch_history_service.dart';
+import '../../../core/storage/watched_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/tech_crosses.dart';
+import '../models/playlist_item.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final String title;
   final String? subtitle;
   final String streamUrl;
+  final String? mediaId;
+  final String? cover;
+  final int? initialPositionMs;
+  final String mediaType; // 'movie' or 'series'
+  final List<PlaylistItem>? playlist;
+  final int initialPlaylistIndex;
 
   const VideoPlayerScreen({
     super.key,
     required this.title,
     this.subtitle,
     required this.streamUrl,
+    this.mediaId,
+    this.cover,
+    this.initialPositionMs,
+    this.mediaType = 'movie',
+    this.playlist,
+    this.initialPlaylistIndex = 0,
   });
 
   @override
@@ -29,9 +44,23 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   late final Player _player;
   late final VideoController _controller;
 
+  late int _currentIndex;
+  late String _currentTitle;
+  late String? _currentSubtitle;
+  late String _currentStreamUrl;
+  late String? _currentMediaId;
+  late String? _currentCover;
+  late String _currentMediaType;
+
+  bool _isWatched = false;
+  bool _showNextCountdown = false;
+  int _countdownSeconds = 5;
+  Timer? _countdownTimer;
+
   bool _showControls = true;
   Timer? _hideTimer;
   Timer? _hudTimer;
+  Timer? _saveProgressTimer;
   String? _hudMessage;
 
   bool _isPlaying = true;
@@ -50,10 +79,41 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   StreamSubscription? _bufSub;
   StreamSubscription? _errSub;
   StreamSubscription? _volSub;
+  StreamSubscription? _compSub;
+
+  bool get hasNextEpisode =>
+      widget.playlist != null && _currentIndex < widget.playlist!.length - 1;
+  bool get hasPreviousEpisode =>
+      widget.playlist != null && _currentIndex > 0;
 
   @override
   void initState() {
     super.initState();
+
+    _currentIndex = widget.initialPlaylistIndex;
+    if (widget.playlist != null &&
+        widget.playlist!.isNotEmpty &&
+        _currentIndex >= 0 &&
+        _currentIndex < widget.playlist!.length) {
+      final item = widget.playlist![_currentIndex];
+      _currentTitle = item.title;
+      _currentSubtitle = item.subtitle;
+      _currentStreamUrl = item.streamUrl;
+      _currentMediaId = item.id;
+      _currentCover = item.cover;
+      _currentMediaType = item.mediaType;
+    } else {
+      _currentTitle = widget.title;
+      _currentSubtitle = widget.subtitle;
+      _currentStreamUrl = widget.streamUrl;
+      _currentMediaId = widget.mediaId;
+      _currentCover = widget.cover;
+      _currentMediaType = widget.mediaType;
+    }
+
+    if (_currentMediaId != null) {
+      _isWatched = WatchedService.isWatchedSync(_currentMediaId!);
+    }
 
     _player = Player(
       configuration: const PlayerConfiguration(
@@ -77,6 +137,23 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             _isBuffering = false;
           }
         });
+
+        // Marca automaticamente como visto se assistiu mais de 90%
+        if (_duration.inSeconds > 30) {
+          final ratio = _position.inSeconds / _duration.inSeconds;
+          if (ratio >= 0.90 && !_isWatched && _currentMediaId != null) {
+            WatchedService.markAsWatched(_currentMediaId!);
+            setState(() => _isWatched = true);
+          }
+
+          // Se faltam <= 15s para o fim e há próximo episódio, aciona contagem regressiva
+          if (_duration.inSeconds - _position.inSeconds <= 15 &&
+              !_showNextCountdown &&
+              hasNextEpisode &&
+              _isPlaying) {
+            _triggerNextEpisodeCountdown();
+          }
+        }
       }
     });
 
@@ -111,12 +188,46 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       }
     });
 
+    _compSub = _player.stream.completed.listen((completed) {
+      if (completed && mounted) {
+        if (_currentMediaId != null) {
+          WatchedService.markAsWatched(_currentMediaId!);
+          setState(() => _isWatched = true);
+        }
+        if (hasNextEpisode) {
+          _triggerNextEpisodeCountdown();
+        }
+      }
+    });
+
     _initAndPlay();
     _startHideTimer();
+
+    _saveProgressTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (mounted && _isPlaying) {
+        _saveCurrentProgress();
+      }
+    });
   }
 
-  Future<void> _initAndPlay() async {
-    // Configura propriedades nativas do mpv se disponíveis
+  void _saveCurrentProgress() {
+    final pos = _position.inMilliseconds;
+    final dur = _duration.inMilliseconds;
+    if (pos > 5000 && dur > 0) {
+      WatchHistoryService.saveProgress(
+        id: _currentMediaId ?? _currentStreamUrl,
+        title: _currentTitle,
+        subtitle: _currentSubtitle,
+        streamUrl: _currentStreamUrl,
+        cover: _currentCover,
+        positionMs: pos,
+        durationMs: dur,
+        type: _currentMediaType,
+      );
+    }
+  }
+  Future<void> _initAndPlay({String? streamUrl, int? startPositionMs}) async {
+    final url = streamUrl ?? _currentStreamUrl;
     try {
       final platform = _player.platform;
       if (platform is NativePlayer) {
@@ -127,7 +238,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     await _player.open(
       Media(
-        widget.streamUrl,
+        url,
         httpHeaders: const {
           'User-Agent': 'IPTVSmartersPro/3.1.5 (Linux; Android 12)',
           'Accept': '*/*',
@@ -135,6 +246,94 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         },
       ),
     );
+
+    final pos = startPositionMs ?? (streamUrl == null ? widget.initialPositionMs : null);
+    if (pos != null && pos > 2000) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (mounted) {
+          _player.seek(Duration(milliseconds: pos));
+          _showHud('RETOMANDO REPRODUÇÃO.');
+        }
+      });
+    }
+  }
+
+  void _playNextEpisode() {
+    if (!hasNextEpisode) return;
+    _playEpisodeIndex(_currentIndex + 1);
+  }
+
+  void _playPreviousEpisode() {
+    if (!hasPreviousEpisode) return;
+    _playEpisodeIndex(_currentIndex - 1);
+  }
+
+  void _playEpisodeIndex(int index) async {
+    if (widget.playlist == null || index < 0 || index >= widget.playlist!.length) return;
+    _cancelNextCountdown();
+
+    if (_currentMediaId != null) {
+      WatchedService.markAsWatched(_currentMediaId!);
+    }
+    _saveCurrentProgress();
+
+    final nextItem = widget.playlist![index];
+    setState(() {
+      _currentIndex = index;
+      _currentTitle = nextItem.title;
+      _currentSubtitle = nextItem.subtitle;
+      _currentStreamUrl = nextItem.streamUrl;
+      _currentMediaId = nextItem.id;
+      _currentCover = nextItem.cover;
+      _currentMediaType = nextItem.mediaType;
+      _isBuffering = true;
+      _position = Duration.zero;
+      _duration = Duration.zero;
+      _isWatched = WatchedService.isWatchedSync(nextItem.id);
+    });
+
+    _showHud('CARREGANDO: ${nextItem.subtitle ?? nextItem.title}');
+    await _initAndPlay(streamUrl: nextItem.streamUrl);
+  }
+
+  void _triggerNextEpisodeCountdown() {
+    if (_showNextCountdown || !hasNextEpisode) return;
+    setState(() {
+      _showNextCountdown = true;
+      _countdownSeconds = 6;
+    });
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_countdownSeconds <= 1) {
+        timer.cancel();
+        _playNextEpisode();
+      } else {
+        setState(() {
+          _countdownSeconds--;
+        });
+      }
+    });
+  }
+
+  void _cancelNextCountdown() {
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
+    if (_showNextCountdown && mounted) {
+      setState(() => _showNextCountdown = false);
+    }
+  }
+
+  void _toggleWatched() async {
+    if (_currentMediaId == null) return;
+    final isNowWatched = await WatchedService.toggleWatched(_currentMediaId!);
+    if (mounted) {
+      setState(() => _isWatched = isNowWatched);
+      _showHud(isNowWatched ? 'MARCADO COMO VISTO.' : 'DESMARCADO COMO VISTO.');
+    }
   }
 
   Future<void> _toggleHwdec() async {
@@ -210,6 +409,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   @override
   void dispose() {
+    _cancelNextCountdown();
+    _saveProgressTimer?.cancel();
+    _saveCurrentProgress();
     _hideTimer?.cancel();
     _hudTimer?.cancel();
     _posSub?.cancel();
@@ -218,15 +420,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     _bufSub?.cancel();
     _volSub?.cancel();
     _errSub?.cancel();
+    _compSub?.cancel();
     _player.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final formattedTitle = widget.title.toUpperCase().endsWith('.')
-        ? widget.title.toUpperCase()
-        : '${widget.title.toUpperCase()}.';
+    final formattedTitle = _currentTitle.toUpperCase().endsWith('.')
+        ? _currentTitle.toUpperCase()
+        : '${_currentTitle.toUpperCase()}.';
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -234,34 +437,66 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         autofocus: true,
         onKeyEvent: (node, event) {
           if (event is KeyDownEvent) {
-            if (event.logicalKey == LogicalKeyboardKey.space) {
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.space ||
+                key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.numpadEnter ||
+                key == LogicalKeyboardKey.gameButtonA ||
+                key == LogicalKeyboardKey.mediaPlayPause) {
               _player.playOrPause();
               _showHud(_isPlaying ? 'PAUSADO.' : 'REPRODUZINDO.');
               _startHideTimer();
               return KeyEventResult.handled;
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            } else if (key == LogicalKeyboardKey.mediaPlay) {
+              _player.play();
+              _showHud('REPRODUZINDO.');
+              _startHideTimer();
+              return KeyEventResult.handled;
+            } else if (key == LogicalKeyboardKey.mediaPause) {
+              _player.pause();
+              _showHud('PAUSADO.');
+              _startHideTimer();
+              return KeyEventResult.handled;
+            } else if (key == LogicalKeyboardKey.arrowRight ||
+                key == LogicalKeyboardKey.mediaFastForward) {
               _player.seek(_position + const Duration(seconds: 10));
               _showHud('+10s');
               _startHideTimer();
               return KeyEventResult.handled;
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+            } else if (key == LogicalKeyboardKey.arrowLeft ||
+                key == LogicalKeyboardKey.mediaRewind) {
               _player.seek(_position - const Duration(seconds: 10));
               _showHud('-10s');
               _startHideTimer();
               return KeyEventResult.handled;
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            } else if (key == LogicalKeyboardKey.keyN ||
+                key == LogicalKeyboardKey.mediaTrackNext) {
+              if (hasNextEpisode) {
+                _playNextEpisode();
+                return KeyEventResult.handled;
+              }
+            } else if (key == LogicalKeyboardKey.keyP ||
+                key == LogicalKeyboardKey.mediaTrackPrevious) {
+              if (hasPreviousEpisode) {
+                _playPreviousEpisode();
+                return KeyEventResult.handled;
+              }
+            } else if (key == LogicalKeyboardKey.arrowUp) {
               _setVolume(_volume + 5);
               return KeyEventResult.handled;
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            } else if (key == LogicalKeyboardKey.arrowDown) {
               _setVolume(_volume - 5);
               return KeyEventResult.handled;
-            } else if (event.logicalKey == LogicalKeyboardKey.keyM) {
+            } else if (key == LogicalKeyboardKey.keyM) {
               _toggleMute();
               return KeyEventResult.handled;
-            } else if (event.logicalKey == LogicalKeyboardKey.keyD) {
+            } else if (key == LogicalKeyboardKey.keyD) {
               _toggleHwdec();
               return KeyEventResult.handled;
-            } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+            } else if (key == LogicalKeyboardKey.escape ||
+                key == LogicalKeyboardKey.backspace ||
+                key == LogicalKeyboardKey.goBack) {
               Navigator.of(context).pop();
               return KeyEventResult.handled;
             }
@@ -414,16 +649,38 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                         overflow: TextOverflow.ellipsis,
                                         style: AppTypography.titleMedium(color: AppColors.textPrimary),
                                       ),
-                                      if (widget.subtitle != null) ...[
+                                      if (_currentSubtitle != null) ...[
                                         const SizedBox(height: 2),
                                         Text(
-                                          widget.subtitle!,
+                                          _currentSubtitle!,
                                           style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
                                         ),
                                       ],
                                     ],
                                   ),
                                 ),
+                                IconButton(
+                                  icon: Icon(
+                                    _isWatched ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
+                                    color: _isWatched ? AppColors.statusLive : AppColors.textMuted,
+                                    size: 20,
+                                  ),
+                                  tooltip: _isWatched ? 'Marcado como Visto' : 'Marcar como Visto',
+                                  onPressed: _toggleWatched,
+                                ),
+                                if (hasNextEpisode) ...[
+                                  const SizedBox(width: 6),
+                                  InkWell(
+                                    onTap: _playNextEpisode,
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: const HankoBadge(
+                                      text: 'PRÓXIMO >',
+                                      borderColor: AppColors.accentCyan,
+                                      textColor: AppColors.accentCyan,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(width: 8),
                                 const TechCrosses(count: 3, opacity: 0.3),
                                 const SizedBox(width: 12),
                                 InkWell(
@@ -443,10 +700,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                             ),
                           ),
 
-                          // Controles Centrais (Seek -10s, Play/Pause, Seek +10s)
+                          // Controles Centrais (Ep. Anterior, Seek -10s, Play/Pause, Seek +10s, Próx. Ep.)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
+                              if (hasPreviousEpisode) ...[
+                                IconButton(
+                                  iconSize: 34,
+                                  color: AppColors.textPrimary,
+                                  icon: const Icon(Icons.skip_previous_rounded),
+                                  tooltip: 'Episódio Anterior (P)',
+                                  onPressed: _playPreviousEpisode,
+                                ),
+                                const SizedBox(width: 14),
+                              ],
                               IconButton(
                                 iconSize: 36,
                                 color: AppColors.textPrimary,
@@ -484,6 +751,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                   _startHideTimer();
                                 },
                               ),
+                              if (hasNextEpisode) ...[
+                                const SizedBox(width: 14),
+                                IconButton(
+                                  iconSize: 34,
+                                  color: AppColors.accentCyan,
+                                  icon: const Icon(Icons.skip_next_rounded),
+                                  tooltip: 'Próximo Episódio (N)',
+                                  onPressed: _playNextEpisode,
+                                ),
+                              ],
                             ],
                           ),
 
@@ -586,10 +863,98 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     ),
                   ),
                 ),
+
+                // Prompt flutuante de próximo episódio com contagem regressiva
+                if (_showNextCountdown && hasNextEpisode)
+                  Positioned(
+                    bottom: 96,
+                    right: 24,
+                    child: _buildNextEpisodeCountdownCard(),
+                  ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildNextEpisodeCountdownCard() {
+    if (!hasNextEpisode) return const SizedBox.shrink();
+    final nextItem = widget.playlist![_currentIndex + 1];
+
+    return Container(
+      width: 320,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.accentPrimary, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.8),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: AppColors.accentPrimary.withValues(alpha: 0.35),
+            blurRadius: 16,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              HankoBadge(
+                text: 'PRÓXIMO EM ${_countdownSeconds}S',
+                borderColor: AppColors.accentCyan,
+                textColor: AppColors.accentCyan,
+              ),
+              InkWell(
+                onTap: _cancelNextCountdown,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceHover,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.borderHairline),
+                  ),
+                  child: const Icon(Icons.close_rounded, size: 14, color: AppColors.textMuted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            nextItem.subtitle ?? nextItem.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.titleMedium(fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 38,
+            child: ElevatedButton.icon(
+              onPressed: _playNextEpisode,
+              icon: const Icon(Icons.play_arrow_rounded, size: 18),
+              label: Text(
+                'ASSISTIR AGORA.',
+                style: AppTypography.mono(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accentPrimary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
