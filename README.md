@@ -169,7 +169,16 @@ Artifacts are automatically produced inside the `dist/` directory:
 ### Arch User Repository (AUR):
 An official `PKGBUILD` template is available in `packaging/aur/PKGBUILD` for publishing to the AUR (`panda-iptv-bin`).
 
-### Android APK Release (Manual):
+### Android APK & TV Downloader (Android TV / Fire Stick):
+You can download the APK directly or install it on your TV using the **Downloader by AFTVnews** app:
+* **Direct URL (Always latest release):**  
+  `https://github.com/satodu/panda-iptv/releases/latest/download/Panda-IPTV.apk`
+* **Via Downloader App:**  
+  1. Open the **Downloader** app on your Android TV or Fire TV Stick.
+  2. Type the direct URL above (or your short Downloader code once generated at [aftv.news/shorten](https://aftv.news/shorten) with this URL).
+  3. The APK will download and open the installer automatically.
+
+### Android APK Release (Manual Build):
 To compile the release APK locally:
 ```bash
 flutter build apk --release

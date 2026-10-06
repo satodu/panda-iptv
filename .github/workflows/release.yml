@@ -52,6 +52,7 @@ jobs:
           flutter build apk --release
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk "dist/Panda-IPTV-${{ steps.get_version.outputs.VERSION }}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/Panda-IPTV.apk"
 
       - name: Build Linux Desktop Bundle
         run: |
