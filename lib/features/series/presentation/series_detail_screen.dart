@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../core/services/tmdb_service.dart';
 import '../../../core/storage/favorite_item.dart';
 import '../../../core/storage/favorites_service.dart';
 import '../../../core/storage/watch_history_service.dart';
@@ -9,7 +11,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/bento_card.dart';
+import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/hanko_badge.dart';
+import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../player/models/playlist_item.dart';
@@ -32,6 +36,10 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
   bool _loading = true;
   String? _selectedSeason;
   bool _isFavorite = false;
+
+  int _activeTab = 0; // 0 = EPISÓDIOS, 1 = SEMELHANTES
+  List<TmdbMovie> _similarSeries = [];
+  bool _loadingTmdb = false;
 
   @override
   void initState() {
@@ -80,6 +88,23 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
           _selectedSeason = detail.seasonNumbers.first;
         }
       });
+      _loadTmdbData(detail);
+    }
+  }
+
+  Future<void> _loadTmdbData(SeriesDetail? detail) async {
+    setState(() => _loadingTmdb = true);
+    final tvId = await TmdbService.searchTvId(widget.item.name, year: detail?.releaseDate);
+    if (tvId != null && tvId > 0 && mounted) {
+      final similar = await TmdbService.getSimilarTv(tvId);
+      if (mounted) {
+        setState(() {
+          _similarSeries = similar;
+          _loadingTmdb = false;
+        });
+      }
+    } else if (mounted) {
+      setState(() => _loadingTmdb = false);
     }
   }
 
@@ -247,8 +272,14 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
 
                           const SizedBox(height: 32),
 
-                          // Temporadas e Episódios
-                          _buildSeasonsAndEpisodes(),
+                          // Tabs de Conteúdo: Episódios vs Títulos Semelhantes
+                          _buildTabsHeader(isNarrow),
+                          const SizedBox(height: 20),
+
+                          if (_activeTab == 0)
+                            _buildSeasonsAndEpisodes()
+                          else
+                            _buildSimilarSeries(),
                         ],
                       ),
                     ),
@@ -548,6 +579,271 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
             },
           ),
       ],
+    );
+  }
+
+  Widget _buildTabsHeader(bool isNarrow) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildTabButton(
+            title: context.tr('series.episodes_tab'),
+            badge: _detail != null ? '${_detail!.seasonNumbers.length} TEMP' : null,
+            isSelected: _activeTab == 0,
+            onTap: () => setState(() => _activeTab = 0),
+          ),
+          const SizedBox(width: 10),
+          _buildTabButton(
+            title: context.tr('series.similar_tab'),
+            badge: _similarSeries.isNotEmpty
+                ? '${_similarSeries.length}'
+                : (_loadingTmdb ? '...' : null),
+            isSelected: _activeTab == 1,
+            onTap: () => setState(() => _activeTab = 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabButton({
+    required String title,
+    String? badge,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.accentPrimary.withValues(alpha: 0.15) : AppColors.surfaceCard,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? AppColors.accentPrimary : AppColors.borderHairline,
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: AppTypography.mono(
+                fontSize: 12,
+                color: isSelected ? AppColors.textPrimary : AppColors.textMuted,
+              ).copyWith(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500),
+            ),
+            if (badge != null) ...[
+              const SizedBox(width: 8),
+              HankoBadge(
+                text: badge,
+                borderColor: isSelected ? AppColors.accentPrimary : AppColors.borderHairline,
+                textColor: isSelected ? AppColors.accentPrimary : AppColors.textMuted,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSimilarSeries() {
+    if (_loadingTmdb && _similarSeries.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: HankoLoader(label: 'BUSCANDO SEMELHANTES.'),
+        ),
+      );
+    }
+
+    if (_similarSeries.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceCard,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderHairline),
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              const Icon(Icons.movie_filter_outlined, size: 40, color: AppColors.textDisabled),
+              const SizedBox(height: 12),
+              Text(
+                context.tr('series.no_similar'),
+                textAlign: TextAlign.center,
+                style: AppTypography.mono(fontSize: 12, color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final seriesProvider = context.read<SeriesProvider>();
+    final allSeries = seriesProvider.filteredSeries.isNotEmpty
+        ? seriesProvider.filteredSeries
+        : seriesProvider.seriesList;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Text(context.tr('series.similar_title'), style: AppTypography.sectionTitle()),
+                const SizedBox(width: 8),
+                const HankoBadge(text: 'TMDB', borderColor: AppColors.accentCyan, textColor: AppColors.accentCyan),
+              ],
+            ),
+            const TechCrosses(count: 3, opacity: 0.2),
+          ],
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final crossAxisCount = (constraints.maxWidth / 160).floor().clamp(2, 6);
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.58,
+              ),
+              itemCount: _similarSeries.length,
+              itemBuilder: (context, index) {
+                final show = _similarSeries[index];
+                final iptvMatch = _findIptvMatch(show.title, allSeries);
+
+                return BrutalistEntrance(
+                  index: index,
+                  child: BentoCard(
+                    padding: EdgeInsets.zero,
+                    borderRadius: 10,
+                    onTap: iptvMatch != null
+                        ? () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => SeriesDetailScreen(item: iptvMatch),
+                              ),
+                            );
+                          }
+                        : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Poster da Série
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ClipRRect(
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                                child: show.posterUrl != null
+                                    ? CachedNetworkImage(
+                                        imageUrl: show.posterUrl!,
+                                        fit: BoxFit.cover,
+                                        errorWidget: (_, __, ___) => _buildFallbackCover(),
+                                      )
+                                    : _buildFallbackCover(),
+                              ),
+                              if (iptvMatch != null)
+                                const Positioned(
+                                  top: 6,
+                                  left: 6,
+                                  child: HankoBadge(
+                                    text: 'DISPONÍVEL',
+                                    borderColor: AppColors.statusLive,
+                                    textColor: AppColors.statusLive,
+                                  ),
+                                ),
+                              if (show.rating > 0)
+                                Positioned(
+                                  bottom: 6,
+                                  right: 6,
+                                  child: HankoBadge(
+                                    text: '★ ${show.rating.toStringAsFixed(1)}',
+                                    borderColor: AppColors.accentPrimary,
+                                    textColor: AppColors.accentPrimary,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        // Informações
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                show.title.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.titleMedium(fontSize: 11, color: AppColors.textPrimary),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                iptvMatch != null
+                                    ? '[ NO SEU CATÁLOGO ]'
+                                    : (show.releaseDate != null && show.releaseDate!.length >= 4
+                                        ? show.releaseDate!.substring(0, 4)
+                                        : 'TMDB'),
+                                style: AppTypography.mono(
+                                  fontSize: 9.5,
+                                  color: iptvMatch != null ? AppColors.accentCyan : AppColors.textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  SeriesItem? _findIptvMatch(String title, List<SeriesItem> catalog) {
+    final cleanTmdb = _cleanString(title);
+    if (cleanTmdb.isEmpty) return null;
+    for (final s in catalog) {
+      final cleanCatalog = _cleanString(s.name);
+      if (cleanCatalog == cleanTmdb ||
+          cleanCatalog.contains(cleanTmdb) ||
+          cleanTmdb.contains(cleanCatalog)) {
+        return s;
+      }
+    }
+    return null;
+  }
+
+  String _cleanString(String str) {
+    return str
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]'), '')
+        .trim();
+  }
+
+  Widget _buildFallbackCover() {
+    return Container(
+      color: AppColors.surfaceCard,
+      child: const Center(
+        child: Icon(Icons.tv_rounded, color: AppColors.textDisabled, size: 32),
+      ),
     );
   }
 }

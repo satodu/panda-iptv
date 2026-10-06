@@ -69,7 +69,11 @@
     "season": "TEMPORADA",
     "episode": "EPISODIO",
     "duration": "DURACIÓN",
-    "no_episodes": "NO HAY EPISODIOS EN ESTA TEMPORADA."
+    "no_episodes": "NO HAY EPISODIOS EN ESTA TEMPORADA.",
+    "episodes_tab": "EPISODIOS.",
+    "similar_tab": "TÍTULOS SIMILARES.",
+    "similar_title": "SERIES RECOMENDADAS.",
+    "no_similar": "NO SE ENCONTRARON SERIES SIMILARES EN TMDB."
   },
   "player": {
     "decoder_sw": "SW DECODER [SEGURO]",
@@ -83,7 +87,8 @@
     "playing": "REPRODUCIENDO.",
     "paused": "PAUSADO.",
     "loading_stream": "+ + + [ CARGANDO TRANSMISIÓN ] + + +",
-    "resuming": "REANUDANDO REPRODUCCIÓN."
+    "resuming": "REANUDANDO REPRODUCCIÓN.",
+    "loading_label": "CARGANDO."
   },
   "settings": {
     "title": "CONFIGURACIÓN.",

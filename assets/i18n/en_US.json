@@ -69,7 +69,11 @@
     "season": "SEASON",
     "episode": "EPISODE",
     "duration": "DURATION",
-    "no_episodes": "NO EPISODES IN THIS SEASON."
+    "no_episodes": "NO EPISODES IN THIS SEASON.",
+    "episodes_tab": "EPISODES.",
+    "similar_tab": "SIMILAR TITLES.",
+    "similar_title": "RECOMMENDED SERIES.",
+    "no_similar": "NO SIMILAR SERIES FOUND ON TMDB."
   },
   "player": {
     "decoder_sw": "SW DECODER [SAFE]",
@@ -83,7 +87,8 @@
     "playing": "PLAYING.",
     "paused": "PAUSED.",
     "loading_stream": "+ + + [ LOADING STREAM ] + + +",
-    "resuming": "RESUMING PLAYBACK."
+    "resuming": "RESUMING PLAYBACK.",
+    "loading_label": "LOADING."
   },
   "settings": {
     "title": "SETTINGS.",

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/storage/favorite_item.dart';
 import '../../../core/storage/favorites_service.dart';
@@ -14,6 +15,7 @@ import '../../../core/storage/watched_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/hanko_badge.dart';
+import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../models/playlist_item.dart';
 
@@ -77,6 +79,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   Duration? _pendingResumePosition;
   bool _hasResumed = false;
 
+  static const String _volumePrefKey = 'panda_player_last_volume';
+  static double _lastSavedVolume = 100.0;
+  static bool _volumePrefLoaded = false;
+
   double _volume = 100.0;
   double _lastVolume = 100.0;
   String _hwdecMode = 'no';
@@ -97,6 +103,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   @override
   void initState() {
     super.initState();
+
+    _volume = _lastSavedVolume;
+    _lastVolume = _lastSavedVolume > 0 ? _lastSavedVolume : 100.0;
 
     // No Android / Mobile: Força orientação horizontal (landscape) e tela cheia imersiva (sem barra de status/topo)
     SystemChrome.setPreferredOrientations([
@@ -145,6 +154,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         logLevel: MPVLogLevel.warn,
       ),
     );
+    _player.setVolume(_lastSavedVolume);
+    _loadSavedVolume();
 
     _controller = VideoController(
       _player,
@@ -471,10 +482,33 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     }
   }
 
+  Future<void> _loadSavedVolume() async {
+    if (!_volumePrefLoaded) {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getDouble(_volumePrefKey);
+      if (saved != null) {
+        _lastSavedVolume = saved.clamp(0.0, 100.0);
+      }
+      _volumePrefLoaded = true;
+    }
+    if (mounted) {
+      _player.setVolume(_lastSavedVolume);
+      setState(() {
+        _volume = _lastSavedVolume;
+        if (_lastSavedVolume > 0) _lastVolume = _lastSavedVolume;
+      });
+    }
+  }
+
   void _setVolume(double newVol) {
     final clamped = newVol.clamp(0.0, 100.0);
     _player.setVolume(clamped);
     setState(() => _volume = clamped);
+    if (clamped > 0) {
+      _lastVolume = clamped;
+      _lastSavedVolume = clamped;
+      SharedPreferences.getInstance().then((prefs) => prefs.setDouble(_volumePrefKey, clamped));
+    }
     _showHud('VOLUME: ${clamped.toInt()}%');
     _startHideTimer();
   }
@@ -482,11 +516,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   void _toggleMute() {
     if (_volume > 0) {
       _lastVolume = _volume;
-      _setVolume(0);
-      _showHud('MUTADO.');
+      _player.setVolume(0);
+      setState(() => _volume = 0);
+      _showHud(context.tr('player.muted'));
     } else {
-      _setVolume(_lastVolume > 0 ? _lastVolume : 80);
-      _showHud('DESMUTADO.');
+      final restore = _lastVolume > 0 ? _lastVolume : 80.0;
+      _setVolume(restore);
+      _showHud(context.tr('player.unmuted'));
     }
   }
 
@@ -754,13 +790,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                                     ),
                                     const SizedBox(height: 16),
                                   ],
-                                  const SizedBox(
-                                    width: 36,
-                                    height: 36,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 3,
-                                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
-                                    ),
+                                  HankoLoader(
+                                    label: context.tr('player.loading_label'),
                                   ),
                                   const SizedBox(height: 14),
                                   Text(
@@ -813,13 +844,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 // Indicador de buffering no meio do vídeo (após primeiro frame)
                 if (_isBuffering && _errorMessage == null && _position > Duration.zero)
                   const Center(
-                    child: SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
-                      ),
+                    child: HankoLoader(
+                      label: 'BUFFERING.',
+                      isCompact: true,
                     ),
                   ),
 

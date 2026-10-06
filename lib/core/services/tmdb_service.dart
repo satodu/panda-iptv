@@ -134,6 +134,38 @@ class TmdbService {
     return null;
   }
 
+  /// Busca o ID da série no TMDB a partir do título e ano
+  static Future<int?> searchTvId(String title, {String? year}) async {
+    if (!hasKey) return null;
+    try {
+      final cleanTitle = title
+          .replaceAll(RegExp(r'\[.*?\]|\(.*?\)|4K|FHD|HD|TEMPORADA.*|TEMP.*|S\d+.*', caseSensitive: false), '')
+          .trim();
+      final queryParams = {
+        'api_key': apiKey,
+        'query': cleanTitle,
+        'language': 'pt-BR',
+      };
+      if (year != null && year.isNotEmpty) {
+        final parsedYear = RegExp(r'\d{4}').firstMatch(year)?.group(0);
+        if (parsedYear != null) queryParams['first_air_date_year'] = parsedYear;
+      }
+
+      final uri = Uri.parse('$_baseUrl/search/tv').replace(queryParameters: queryParams);
+      final res = await http.get(uri).timeout(const Duration(seconds: 6));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final results = data['results'] as List<dynamic>?;
+        if (results != null && results.isNotEmpty) {
+          return results.first['id'] as int?;
+        }
+      }
+    } catch (e) {
+      debugPrint('[TMDB SEARCH TV ERROR] $e');
+    }
+    return null;
+  }
+
   /// Busca filmes semelhantes pelo ID do TMDB
   static Future<List<TmdbMovie>> getSimilarMovies(int tmdbId) async {
     if (!hasKey) return [];
@@ -161,6 +193,37 @@ class TmdbService {
       }
     } catch (e) {
       debugPrint('[TMDB SIMILAR ERROR] $e');
+    }
+    return [];
+  }
+
+  /// Busca séries semelhantes pelo ID do TMDB
+  static Future<List<TmdbMovie>> getSimilarTv(int tmdbId) async {
+    if (!hasKey) return [];
+    try {
+      final uri = Uri.parse('$_baseUrl/tv/$tmdbId/recommendations?api_key=$apiKey&language=pt-BR');
+      final res = await http.get(uri).timeout(const Duration(seconds: 6));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final results = (data['results'] as List<dynamic>? ?? [])
+            .map((item) => TmdbMovie.fromJson(item as Map<String, dynamic>))
+            .where((m) => m.title.isNotEmpty)
+            .toList();
+        if (results.isNotEmpty) return results;
+      }
+
+      // Fallback para similar se recommendations vier vazio
+      final similarUri = Uri.parse('$_baseUrl/tv/$tmdbId/similar?api_key=$apiKey&language=pt-BR');
+      final simRes = await http.get(similarUri).timeout(const Duration(seconds: 6));
+      if (simRes.statusCode == 200) {
+        final data = jsonDecode(simRes.body);
+        return (data['results'] as List<dynamic>? ?? [])
+            .map((item) => TmdbMovie.fromJson(item as Map<String, dynamic>))
+            .where((m) => m.title.isNotEmpty)
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('[TMDB SIMILAR TV ERROR] $e');
     }
     return [];
   }

@@ -28,6 +28,7 @@ class SeriesProvider extends ChangeNotifier {
   String? get selectedCategoryId => _selectedCategoryId;
   String get searchQuery => _searchQuery;
 
+  List<SeriesItem> get seriesList => _seriesList;
   List<SeriesItem> get filteredSeries {
     if (_searchQuery.trim().isEmpty) {
       return _seriesList;
