@@ -9,31 +9,28 @@
   <!-- Google Fonts: Space Grotesk (Display), Inter (Corpo), JetBrains Mono (Técnico) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700;800&family=Space+Grotesk:wght@600;700;800;900&display=swap" rel="stylesheet">
-
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700;800&family=Space+Grotesk:wght@600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
     /* ==========================================================================
-       DESIGN SYSTEM: ORIENTAL BRUTALISMO MINIMALISTA // PANDA IPTV (ELECTRIC BLUE)
+       DESIGN SYSTEM: ORIENTAL BRUTALISMO MINIMALISTA // STRICT BLUE PALETTE
        ========================================================================== */
     :root {
       --canvas: #0D1216;
       --surface-card: #141A1F;
-      --surface-card-rgba: rgba(20, 26, 31, 0.94);
+      --surface-card-rgba: rgba(20, 26, 31, 0.95);
       --surface-hover: #1C242C;
       --border-hairline: rgba(255, 255, 255, 0.08);
-      --border-hover: rgba(255, 255, 255, 0.2);
+      --border-hover: rgba(255, 255, 255, 0.22);
       --border-active: rgba(10, 132, 255, 0.6);
 
       /* Electric Blue / Destaques */
       --accent-primary: #0A84FF;
       --accent-hover: #0070E0;
-      --accent-glow: rgba(10, 132, 255, 0.22);
+      --accent-glow: rgba(10, 132, 255, 0.25);
       --accent-subtle: rgba(10, 132, 255, 0.08);
       --accent-cyan: #00F0FF;
-      --status-live: #30D158;
+      --status-live: #00E5FF;
 
       /* Textos */
       --text-primary: #DEDFD7;
@@ -67,14 +64,14 @@
       min-height: 100vh;
       position: relative;
       background-image: 
-        radial-gradient(circle at 50% 0%, rgba(10, 132, 255, 0.16) 0%, transparent 65%),
-        linear-gradient(to right, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+        radial-gradient(circle at 50% 0%, rgba(10, 132, 255, 0.18) 0%, transparent 65%),
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
       background-size: 100% 100%, 36px 36px, 36px 36px;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Luz ambiente difusa pontual (estilo Jokenpo) */
+    /* Luz ambiente difusa pontual */
     .ambient-glow {
       position: fixed;
       width: 580px;
@@ -90,7 +87,7 @@
 
     /* Container Central */
     .container {
-      max-width: 1100px;
+      max-width: 1120px;
       margin: 0 auto;
       padding: 0 24px;
       position: relative;
@@ -102,7 +99,7 @@
       border-bottom: 1px solid var(--border-hairline);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      background: rgba(13, 18, 22, 0.82);
+      background: rgba(13, 18, 22, 0.85);
       position: sticky;
       top: 0;
       z-index: 100;
@@ -152,7 +149,7 @@
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .nav-btn {
@@ -163,11 +160,12 @@
       padding: 8px 14px;
       border-radius: var(--radius-sm);
       border: 1px solid transparent;
+      background: transparent;
       transition: var(--transition);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
 
     .nav-btn:hover {
@@ -187,6 +185,24 @@
     .nav-btn.primary:hover {
       background: var(--accent-hover);
       box-shadow: 0 0 28px rgba(10, 132, 255, 0.7);
+    }
+
+    /* Ícones SVG Geométricos Utilitários */
+    .svg-icon {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    .svg-icon.large {
+      width: 24px;
+      height: 24px;
     }
 
     /* Selo Hanko Oriental */
@@ -215,7 +231,17 @@
     .hanko-seal.live {
       border-color: var(--status-live);
       color: var(--status-live);
-      background: rgba(48, 209, 88, 0.08);
+      background: rgba(0, 229, 255, 0.08);
+    }
+
+    /* Ponto de status pulsante */
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--status-live);
+      box-shadow: 0 0 10px var(--status-live);
+      display: inline-block;
     }
 
     /* Tipografia Vertical Estrutural Oriental */
@@ -223,7 +249,7 @@
       writing-mode: vertical-rl;
       text-orientation: upright;
       font-family: var(--font-mono);
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       letter-spacing: 0.3em;
       color: var(--text-muted);
       opacity: 0.35;
@@ -473,7 +499,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.6rem;
       color: var(--accent-primary);
       box-shadow: 0 0 20px rgba(10, 132, 255, 0.15);
     }
@@ -617,6 +642,9 @@
       border-radius: var(--radius-sm);
       cursor: pointer;
       transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       flex-shrink: 0;
     }
 
@@ -672,11 +700,11 @@
     }
 
     /* ==========================================================================
-       BENTO GRID // RECURSOS & CARACTERÍSTICAS
+       RECURSOS DO APLICATIVO // BENTO GRID COMPLETO & ESTRUTURADO
        ========================================================================== */
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 20px;
       margin-bottom: 60px;
     }
@@ -685,36 +713,85 @@
       background: var(--surface-card);
       border: 1px solid var(--border-hairline);
       border-radius: var(--radius-lg);
-      padding: 24px;
+      padding: 26px;
       transition: var(--transition);
       position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .feature-card:hover {
-      border-color: rgba(10, 132, 255, 0.4);
-      transform: translateY(-3px);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+      border-color: rgba(10, 132, 255, 0.5);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(10, 132, 255, 0.15);
     }
 
-    .feature-icon {
-      font-size: 1.4rem;
+    .feature-card.span-2 {
+      grid-column: span 2;
+    }
+
+    .feature-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .feature-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: var(--surface-hover);
+      border: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       color: var(--accent-primary);
-      margin-bottom: 12px;
+    }
+
+    .feature-kanji {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: rgba(222, 223, 215, 0.15);
+      user-select: none;
     }
 
     .feature-card h3 {
       font-family: var(--font-display);
-      font-size: 1.1rem;
+      font-size: 1.25rem;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: -0.3px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      line-height: 1.2;
     }
 
     .feature-card p {
-      font-size: 0.9rem;
+      font-size: 0.92rem;
       color: var(--text-muted);
-      line-height: 1.5;
+      line-height: 1.55;
+      margin-bottom: 20px;
+      flex-grow: 1;
+    }
+
+    .feature-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: auto;
+    }
+
+    .feature-tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--accent-primary);
+      background: rgba(10, 132, 255, 0.08);
+      border: 1px solid rgba(10, 132, 255, 0.3);
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
     }
 
     /* Toast Notification */
@@ -760,6 +837,15 @@
       margin: 0 auto;
     }
 
+    @media (max-width: 900px) {
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+      .feature-card.span-2 {
+        grid-column: span 1;
+      }
+    }
+
     @media (max-width: 768px) {
       .hero {
         padding: 50px 0 35px;
@@ -778,7 +864,7 @@
       }
       .btn-copy {
         width: 100%;
-        text-align: center;
+        justify-content: center;
       }
     }
   </style>
@@ -796,11 +882,21 @@
         <span class="brand-title">PANDA <span>IPTV</span>.</span>
       </a>
       <div class="nav-links">
-        <button class="nav-btn" onclick="activateTab('firetv')">[ 📺 FIRE TV ]</button>
-        <button class="nav-btn" onclick="activateTab('android')">[ 📱 CELULAR ]</button>
-        <button class="nav-btn" onclick="activateTab('linux')">[ 🐧 LINUX ]</button>
+        <button class="nav-btn" onclick="activateTab('firetv')">
+          <svg class="svg-icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+          <span>[ FIRE TV ]</span>
+        </button>
+        <button class="nav-btn" onclick="activateTab('android')">
+          <svg class="svg-icon" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          <span>[ CELULAR ]</span>
+        </button>
+        <button class="nav-btn" onclick="activateTab('linux')">
+          <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          <span>[ LINUX ]</span>
+        </button>
         <a href="https://github.com/satodu/panda-iptv" target="_blank" class="nav-btn primary">
-          <i class="fa-brands fa-github"></i> GITHUB REPO
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          <span>GITHUB REPO</span>
         </a>
       </div>
     </div>
@@ -813,7 +909,7 @@
       <div class="hero-badge-row">
         <span class="hanko-seal">ORIENTAL BRUTALISMO</span>
         <span class="hanko-seal cyan">v0.0.2 STABLE</span>
-        <span class="hanko-seal live">● 100% OPEN SOURCE</span>
+        <span class="hanko-seal live"><span class="status-dot"></span> OPEN SOURCE</span>
       </div>
       <div class="tech-crosses">+ + + [ PANDA STREAM ENGINE ] + + +</div>
 
@@ -826,11 +922,11 @@
 
       <div class="hero-actions">
         <button class="action-btn primary shimmer-btn" onclick="activateTab('firetv')">
-          <i class="fa-solid fa-tv"></i>
+          <svg class="svg-icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
           <span>INSTALAR NA TV (CÓDIGO 9916531)</span>
         </button>
         <a href="https://github.com/satodu/panda-iptv/releases/latest/download/Panda-IPTV.apk" class="action-btn">
-          <i class="fa-solid fa-download"></i>
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>BAIXAR APK DIRETO</span>
         </a>
       </div>
@@ -847,17 +943,17 @@
         <!-- Navegação das Abas -->
         <nav class="tabs-nav" role="tablist">
           <button class="tab-trigger active" id="tab-btn-firetv" onclick="switchTab('firetv')" role="tab">
-            <i class="fa-solid fa-tv"></i>
+            <svg class="svg-icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
             <span>FIRE TV & ANDROID TV</span>
             <span class="tab-tag">[ 9916531 ]</span>
           </button>
           <button class="tab-trigger" id="tab-btn-android" onclick="switchTab('android')" role="tab">
-            <i class="fa-solid fa-mobile-screen"></i>
+            <svg class="svg-icon" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
             <span>CELULAR & TABLET</span>
             <span class="tab-tag">[ APK ]</span>
           </button>
           <button class="tab-trigger" id="tab-btn-linux" onclick="switchTab('linux')" role="tab">
-            <i class="fa-brands fa-linux"></i>
+            <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
             <span>LINUX DESKTOP</span>
             <span class="tab-tag">[ APPIMAGE ]</span>
           </button>
@@ -874,7 +970,7 @@
               <div class="card-top">
                 <div class="card-icon-title">
                   <div class="icon-badge">
-                    <i class="fa-solid fa-tv"></i>
+                    <svg class="svg-icon large" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
                   </div>
                   <div>
                     <h3 class="card-heading">AMAZON FIRE TV & SMART TVS.</h3>
@@ -891,7 +987,8 @@
                   <span class="code-number">9916531</span>
                 </div>
                 <button class="btn-copy" onclick="copyText('9916531', 'Código 9916531 copiado para a área de transferência!')">
-                  <i class="fa-regular fa-copy"></i> COPIAR CÓDIGO
+                  <svg class="svg-icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  <span>COPIAR CÓDIGO</span>
                 </button>
               </div>
 
@@ -917,11 +1014,11 @@
 
               <div class="actions-row">
                 <a href="https://aftv.news/9916531" target="_blank" class="action-btn primary">
-                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                   <span>ABRIR LINK CURTO NO NAVEGADOR</span>
                 </a>
                 <a href="https://github.com/satodu/panda-iptv/releases/latest/download/Panda-IPTV.apk" class="action-btn">
-                  <i class="fa-solid fa-download"></i>
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   <span>DOWNLOAD DIRETO DO APK</span>
                 </a>
               </div>
@@ -936,7 +1033,7 @@
               <div class="card-top">
                 <div class="card-icon-title">
                   <div class="icon-badge">
-                    <i class="fa-solid fa-mobile-screen"></i>
+                    <svg class="svg-icon large" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
                   </div>
                   <div>
                     <h3 class="card-heading">SMARTPHONES & TABLETS ANDROID.</h3>
@@ -968,11 +1065,11 @@
 
               <div class="actions-row">
                 <a href="https://github.com/satodu/panda-iptv/releases/latest/download/Panda-IPTV.apk" class="action-btn primary shimmer-btn">
-                  <i class="fa-solid fa-download"></i>
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   <span>BAIXAR APK (v0.0.2 / LATEST)</span>
                 </a>
                 <a href="https://github.com/satodu/panda-iptv/releases/tag/v0.0.2" target="_blank" class="action-btn">
-                  <i class="fa-solid fa-tag"></i>
+                  <svg class="svg-icon" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
                   <span>VER NOTAS DA RELEASE</span>
                 </a>
               </div>
@@ -987,7 +1084,7 @@
               <div class="card-top">
                 <div class="card-icon-title">
                   <div class="icon-badge">
-                    <i class="fa-brands fa-linux"></i>
+                    <svg class="svg-icon large" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
                   </div>
                   <div>
                     <h3 class="card-heading">LINUX DESKTOP (UNIVERSAL).</h3>
@@ -1003,7 +1100,8 @@
                 <div class="terminal-box">
                   <code>chmod +x Panda-IPTV-*.AppImage && ./Panda-IPTV-*.AppImage</code>
                   <button class="btn-copy" onclick="copyText('chmod +x Panda-IPTV-*.AppImage && ./Panda-IPTV-*.AppImage', 'Comando AppImage copiado!')">
-                    <i class="fa-regular fa-copy"></i> COPIAR
+                    <svg class="svg-icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    <span>COPIAR</span>
                   </button>
                 </div>
               </div>
@@ -1014,18 +1112,19 @@
                 <div class="terminal-box">
                   <code>yay -S panda-iptv-bin</code>
                   <button class="btn-copy" onclick="copyText('yay -S panda-iptv-bin', 'Comando AUR copiado!')">
-                    <i class="fa-regular fa-copy"></i> COPIAR
+                    <svg class="svg-icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    <span>COPIAR</span>
                   </button>
                 </div>
               </div>
 
               <div class="actions-row">
                 <a href="https://github.com/satodu/panda-iptv/releases/download/v0.0.2/Panda-IPTV-0.0.2-x86_64.AppImage" class="action-btn primary">
-                  <i class="fa-solid fa-box-archive"></i>
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
                   <span>BAIXAR APPIMAGE (x86_64)</span>
                 </a>
                 <a href="https://github.com/satodu/panda-iptv/releases/download/v0.0.2/panda-iptv-0.0.2-linux-x64.tar.gz" class="action-btn">
-                  <i class="fa-solid fa-file-zipper"></i>
+                  <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   <span>TARBALL (.TAR.GZ)</span>
                 </a>
               </div>
@@ -1036,37 +1135,125 @@
       </div>
     </section>
 
-    <!-- Recursos do Sistema (Bento Grid) -->
+    <!-- Recursos do Aplicativo (Bento Grid Rico & Completo) -->
     <section class="features-section">
       <div class="section-header">
         <h2>RECURSOS DO APLICATIVO.</h2>
-        <span class="counter">[ ARQUITETURA ]</span>
+        <span class="counter">[ 06 PILARES ARQUITETURAIS ]</span>
       </div>
 
       <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon"><i class="fa-solid fa-bolt"></i></div>
-          <h3>ACELERAÇÃO NATIVA.</h3>
-          <p>Motor de alta velocidade com suporte a decodificação por hardware, baixa latência e sincronismo labial impecável.</p>
+        
+        <!-- Recurso 1: Motor de Reprodução (Span 2) -->
+        <div class="feature-card span-2">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg class="svg-icon large" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <span class="feature-kanji">加速・生</span>
+          </div>
+          <h3>MOTOR DE REPRODUÇÃO EM ALTA FIDELIDADE.</h3>
+          <p>
+            Alimentado por decodificação nativa acelerada por hardware no Linux e no Android. Suporta streams HLS (m3u8), contêineres MKV/MP4 e fluxos TS de alta taxa de bits sem perda de quadros (*zero dropped frames*) e com sincronismo labial perfeito.
+          </p>
+          <div class="feature-tags">
+            <span class="feature-tag">[ HARDWARE ACCELERATION ]</span>
+            <span class="feature-tag">[ HLS / M3U8 / MKV ]</span>
+            <span class="feature-tag">[ ZERO LATENCY ]</span>
+          </div>
         </div>
 
+        <!-- Recurso 2: Integração TMDB -->
         <div class="feature-card">
-          <div class="feature-icon"><i class="fa-solid fa-film"></i></div>
-          <h3>INTEGRAÇÃO TMDB.</h3>
-          <p>Acesse biografia de atores, elenco completo e descubra filmes e séries semelhantes cruzados com sua lista IPTV.</p>
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg class="svg-icon large" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+            </div>
+            <span class="feature-kanji">映画・知</span>
+          </div>
+          <h3>INTEGRAÇÃO TMDB & ELENCO.</h3>
+          <p>
+            Descubra perfis e filmografias de atores em tempo real, além de recomendações inteligentes de títulos semelhantes cruzados diretamente com o catálogo da sua lista IPTV.
+          </p>
+          <div class="feature-tags">
+            <span class="feature-tag">[ TMDB API ]</span>
+            <span class="feature-tag">[ CATÁLOGO CRUZADO ]</span>
+          </div>
         </div>
 
+        <!-- Recurso 3: Continuar Assistindo -->
         <div class="feature-card">
-          <div class="feature-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
-          <h3>CONTINUAR ASSISTINDO.</h3>
-          <p>Histórico inteligente que memoriza o segundo exato onde você parou, com capas técnicas e sincronização de episódios.</p>
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg class="svg-icon large" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <span class="feature-kanji">記憶・時</span>
+          </div>
+          <h3>CONTINUAR ASSISTINDO INTELIGENTE.</h3>
+          <p>
+            Histórico local que grava o segundo exato onde você parou em filmes e episódios de séries, com barra de progresso visual e exclusão automática de títulos concluídos (>93%).
+          </p>
+          <div class="feature-tags">
+            <span class="feature-tag">[ AUTO-RESUME ]</span>
+            <span class="feature-tag">[ PROGRESSO REAL ]</span>
+          </div>
         </div>
 
+        <!-- Recurso 4: Memória de Volume -->
         <div class="feature-card">
-          <div class="feature-icon"><i class="fa-solid fa-arrows-rotate"></i></div>
-          <h3>SELF-UPDATER AUTOMÁTICO.</h3>
-          <p>Notificação de nova versão diretamente na tela inicial com atualização em 1 clique para manter seu app sempre em dia.</p>
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg class="svg-icon large" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            </div>
+            <span class="feature-kanji">音量・保</span>
+          </div>
+          <h3>MEMÓRIA PERSISTENTE DE VOLUME.</h3>
+          <p>
+            O player memoriza o nível exato de áudio preferido pelo usuário, evitando estouros sonoros repentinos na TV ao alternar de canal ao vivo ou carregar novos episódios.
+          </p>
+          <div class="feature-tags">
+            <span class="feature-tag">[ ANTI-BURST ]</span>
+            <span class="feature-tag">[ GANHO PERSISTENTE ]</span>
+          </div>
         </div>
+
+        <!-- Recurso 5: Controle Remoto e Multi-orientação -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg class="svg-icon large" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="6" x2="12" y2="6.01"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+            </div>
+            <span class="feature-kanji">操作・格</span>
+          </div>
+          <h3>CONTROLE REMOTO D-PAD & TOUCH.</h3>
+          <p>
+            Projetado para a experiência de sofá (*10-foot*), com cards Bento que se centralizam e destacam no D-Pad, além de suporte total ao modo vertical (portrait) em smartphones.
+          </p>
+          <div class="feature-tags">
+            <span class="feature-tag">[ 10-FOOT EXPERIENCE ]</span>
+            <span class="feature-tag">[ D-PAD CENTRALIZADO ]</span>
+          </div>
+        </div>
+
+        <!-- Recurso 6: Self-Updater -->
+        <div class="feature-card span-2">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg class="svg-icon large" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            </div>
+            <span class="feature-kanji">更新・全</span>
+          </div>
+          <h3>ATUALIZAÇÃO EM 1 CLIQUE (SELF-UPDATER).</h3>
+          <p>
+            O aplicativo detecta lançamentos no GitHub Releases e exibe um banner de boas-vindas com botão de atualização direta, sem perder seu login, configurações nem histórico assistido.
+          </p>
+          <div class="feature-tags">
+            <span class="feature-tag">[ GITHUB SYNC ]</span>
+            <span class="feature-tag">[ SEM PERDA DE SESSÃO ]</span>
+            <span class="feature-tag">[ OTA DIRETO ]</span>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -1085,7 +1272,7 @@
 
   <!-- Toast Notification -->
   <div id="toast">
-    <i class="fa-solid fa-circle-check" style="color: var(--accent-cyan);"></i>
+    <svg class="svg-icon" viewBox="0 0 24 24" style="color: var(--accent-cyan);"><polyline points="20 6 9 17 4 12"/></svg>
     <span id="toast-msg">Copiado com sucesso!</span>
   </div>
 
@@ -1098,48 +1285,45 @@
     // ==========================================
     document.addEventListener("DOMContentLoaded", () => {
       if (window.gsap) {
-        // Animação inicial de entrada
-        const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-
-        tl.from(".hero-badge-row .hanko-seal", {
+        // Animação de entrada fluida no topo
+        gsap.from(".hero-badge-row .hanko-seal", {
           opacity: 0,
-          y: -15,
-          stagger: 0.1,
-          duration: 0.6
-        })
-        .from(".hero-title", {
+          y: -12,
+          stagger: 0.08,
+          duration: 0.6,
+          ease: "power3.out"
+        });
+
+        gsap.from(".hero-title", {
           opacity: 0,
           y: 20,
-          duration: 0.8
-        }, "-=0.3")
-        .from(".hero-desc", {
+          duration: 0.8,
+          delay: 0.2,
+          ease: "power3.out"
+        });
+
+        gsap.from(".hero-desc", {
           opacity: 0,
           y: 15,
-          duration: 0.6
-        }, "-=0.4")
-        .from(".hero-actions .action-btn", {
+          duration: 0.6,
+          delay: 0.35,
+          ease: "power3.out"
+        });
+
+        gsap.from(".hero-actions .action-btn", {
           opacity: 0,
           scale: 0.95,
-          stagger: 0.15,
-          duration: 0.5
-        }, "-=0.3")
-        .from(".tabs-nav", {
-          opacity: 0,
-          y: 20,
-          duration: 0.6
-        }, "-=0.2")
-        .from(".feature-card", {
-          opacity: 0,
-          y: 20,
-          stagger: 0.1,
-          duration: 0.5
-        }, "-=0.2");
+          stagger: 0.12,
+          duration: 0.5,
+          delay: 0.45,
+          ease: "back.out(1.4)"
+        });
 
-        // Pulso sutil no brilho ambiente
+        // Pulso suave no brilho ambiente
         gsap.to(".ambient-glow", {
-          opacity: 0.8,
+          opacity: 0.85,
           scale: 1.1,
-          duration: 4,
+          duration: 4.5,
           repeat: -1,
           yoyo: true,
           ease: "sine.inOut"
@@ -1166,10 +1350,10 @@
       if (activePane) {
         activePane.classList.add('active');
 
-        // Transição animada suave com GSAP
+        // Transição suave com GSAP
         if (window.gsap) {
           gsap.fromTo(activePane, 
-            { opacity: 0, y: 12 }, 
+            { opacity: 0, y: 14 }, 
             { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }
           );
         }
