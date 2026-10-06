@@ -636,22 +636,37 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                     ),
                   ),
 
-                // HUD de Notificação Rápida (Volume, Seek, Play/Pause)
+                // HUD de Notificação Rápida (Volume, Seek, Play/Pause, Retomada)
+                // Posicionado no topo central para não cobrir o botão central de Play/Pause
                 if (_hudMessage != null)
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.accentPrimary),
-                      ),
-                      child: Text(
-                        _hudMessage!,
-                        style: AppTypography.mono(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.accentPrimary,
+                  Positioned(
+                    top: isNarrow ? 68 : 80,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: IgnorePointer(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.accentPrimary, width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            _hudMessage!,
+                            style: AppTypography.mono(
+                              fontSize: isNarrow ? 13 : 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.accentPrimary,
+                            ),
+                          ),
                         ),
                       ),
                     ),
