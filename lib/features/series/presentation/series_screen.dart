@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/bento_card.dart';
+import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../auth/presentation/auth_provider.dart';
@@ -380,7 +381,10 @@ class _SeriesScreenState extends State<SeriesScreen> {
           itemCount: seriesList.length,
           itemBuilder: (context, index) {
             final item = seriesList[index];
-            return _buildSeriesCard(context, item);
+            return BrutalistEntrance(
+              index: index,
+              child: _buildSeriesCard(context, item),
+            );
           },
         );
       },

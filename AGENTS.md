@@ -31,3 +31,17 @@ Quando você atuar neste repositório, você DEVE seguir estritamente estas dire
   1. Nunca adicione textos de tela como strings literais (hardcoded). Use `context.tr('categoria.chave')`.
   2. Ao adicionar uma nova chave, você **DEVE** adicioná-la simultaneamente em `pt_BR.json`, `en_US.json` e `es_ES.json`.
   3. Mantenha os títulos em **CAIXA-ALTA com PONTO FINAL** em todos os idiomas (ex: `"AO VIVO."`, `"LIVE TV."`, `"EN VIVO."`).
+
+## 4. Releases, Builds & Empacotamento
+- **Versionamento:** A versão oficial do aplicativo é definida em [pubspec.yaml](file:///run/media/panda/panda/Projects/satodu/panda-iptv/pubspec.yaml) (ex: `0.0.1-alpha+1`). Sempre consulte e atualize lá antes de gerar releases.
+- **Builds Linux & AppImage:**
+  - Script automatizado: [scripts/build_release.sh](file:///run/media/panda/panda/Projects/satodu/panda-iptv/scripts/build_release.sh).
+  - Gera os artefatos finais na pasta `dist/`:
+    - `dist/Panda-IPTV-<version>-x86_64.AppImage` (executável portátil universal Linux).
+    - `dist/panda-iptv-<version>-linux-x64.tar.gz` (bundle compactado para distribuição).
+  - AppImage script individual: [packaging/appimage/build_appimage.sh](file:///run/media/panda/panda/Projects/satodu/panda-iptv/packaging/appimage/build_appimage.sh).
+- **Arch User Repository (AUR):**
+  - O template oficial do `PKGBUILD` reside em [packaging/aur/PKGBUILD](file:///run/media/panda/panda/Projects/satodu/panda-iptv/packaging/aur/PKGBUILD) para o pacote `panda-iptv-bin`.
+- **Android:**
+  - Build APK direta: `flutter build apk --release` (ou `--split-per-abi`).
+  - Build Play Store: `flutter build appbundle --release`.

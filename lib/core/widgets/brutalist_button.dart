@@ -3,12 +3,14 @@ import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
 /// Botão Primário no estilo Oriental Brutalismo
-class BrutalistButton extends StatelessWidget {
+/// Suporta controle remoto TV (D-pad), hover e teclado.
+class BrutalistButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool isLoading;
   final IconData? icon;
   final bool isSecondary;
+  final bool autofocus;
 
   const BrutalistButton({
     super.key,
@@ -17,69 +19,139 @@ class BrutalistButton extends StatelessWidget {
     this.isLoading = false,
     this.icon,
     this.isSecondary = false,
+    this.autofocus = false,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final bgColor = isSecondary ? AppColors.surfaceHover : AppColors.accentPrimary;
-    final fgColor = isSecondary ? AppColors.textPrimary : Colors.white;
+  State<BrutalistButton> createState() => _BrutalistButtonState();
+}
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(10),
-      child: Ink(
+class _BrutalistButtonState extends State<BrutalistButton> {
+  bool _isFocused = false;
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = _isFocused || _isHovered;
+    final isInteractive = !widget.isLoading && widget.onPressed != null;
+
+    final bgColor = widget.isSecondary
+        ? (active ? AppColors.surfaceHover : AppColors.surfaceCard)
+        : (active ? const Color(0xFF1E8DFF) : AppColors.accentPrimary);
+
+    final fgColor = widget.isSecondary
+        ? (_isFocused ? AppColors.accentCyan : AppColors.textPrimary)
+        : Colors.white;
+
+    final borderColor = _isFocused
+        ? AppColors.accentCyan
+        : (widget.isSecondary
+            ? (active ? AppColors.borderActive : AppColors.borderHairline)
+            : AppColors.accentPrimary);
+
+    final scale = _isFocused ? 1.04 : (_isHovered ? 1.02 : 1.0);
+
+    return FocusableActionDetector(
+      autofocus: widget.autofocus,
+      enabled: isInteractive,
+      mouseCursor: isInteractive ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onShowFocusHighlight: (focused) {
+        setState(() => _isFocused = focused);
+        if (focused && mounted) {
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+          );
+        }
+      },
+      onShowHoverHighlight: (hovered) => setState(() => _isHovered = hovered),
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            if (isInteractive) {
+              widget.onPressed?.call();
+            }
+            return null;
+          },
+        ),
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.diagonal3Values(scale, scale, 1.0),
+        transformAlignment: Alignment.center,
+        height: 48,
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSecondary ? AppColors.borderHairline : AppColors.accentPrimary,
-            width: 1,
+            color: borderColor,
+            width: _isFocused ? 2.0 : 1.0,
           ),
-          boxShadow: isSecondary
-              ? null
-              : [
+          boxShadow: _isFocused
+              ? [
                   BoxShadow(
-                    color: AppColors.accentPrimary.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 2),
+                    color: AppColors.accentPrimary.withValues(alpha: 0.5),
+                    blurRadius: 18,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 3),
                   ),
-                ],
-        ),
-        child: InkWell(
-          onTap: isLoading ? null : onPressed,
-          borderRadius: BorderRadius.circular(10),
-          splashColor: Colors.white.withValues(alpha: 0.2),
-          child: Container(
-            height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Center(
-              child: isLoading
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(fgColor),
+                  BoxShadow(
+                    color: AppColors.accentCyan.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : (widget.isSecondary
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: AppColors.accentPrimary.withValues(alpha: active ? 0.4 : 0.25),
+                        blurRadius: active ? 16 : 10,
+                        offset: const Offset(0, 2),
                       ),
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (icon != null) ...[
-                          Icon(icon, size: 20, color: fgColor),
-                          const SizedBox(width: 8),
-                        ],
-                        Text(
-                          AppTypography.formatTitle(label),
-                          style: AppTypography.mono(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: fgColor,
-                          ),
+                    ]),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            onTap: isInteractive ? widget.onPressed : null,
+            borderRadius: BorderRadius.circular(10),
+            splashColor: Colors.white.withValues(alpha: 0.2),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Center(
+                child: widget.isLoading
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(fgColor),
                         ),
-                      ],
-                    ),
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (widget.icon != null) ...[
+                            Icon(widget.icon, size: 18, color: fgColor),
+                            const SizedBox(width: 8),
+                          ],
+                          Text(
+                            AppTypography.formatTitle(widget.label),
+                            style: AppTypography.mono(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: fgColor,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
             ),
           ),
         ),
