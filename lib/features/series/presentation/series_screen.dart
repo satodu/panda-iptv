@@ -376,7 +376,7 @@ class _SeriesScreenState extends State<SeriesScreen> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: isNarrow ? 10 : 14,
             mainAxisSpacing: isNarrow ? 10 : 14,
-            childAspectRatio: 0.63,
+            childAspectRatio: isNarrow ? 0.57 : 0.63,
           ),
           itemCount: seriesList.length,
           itemBuilder: (context, index) {
@@ -392,83 +392,87 @@ class _SeriesScreenState extends State<SeriesScreen> {
   }
 
   Widget _buildSeriesCard(BuildContext context, SeriesItem item) {
-    return BentoCard(
-      padding: EdgeInsets.zero,
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => SeriesDetailScreen(item: item),
-          ),
-        );
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                  child: item.cover != null && item.cover!.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: item.cover!,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => Container(
+    return Tooltip(
+      message: item.name,
+      waitDuration: const Duration(milliseconds: 600),
+      child: BentoCard(
+        padding: EdgeInsets.zero,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => SeriesDetailScreen(item: item),
+            ),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                    child: item.cover != null && item.cover!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: item.cover!,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => Container(
+                              color: AppColors.surfaceCard,
+                              child: const Center(
+                                child: Icon(Icons.video_collection_outlined, size: 36, color: AppColors.textMuted),
+                              ),
+                            ),
+                          )
+                        : Container(
                             color: AppColors.surfaceCard,
                             child: const Center(
                               child: Icon(Icons.video_collection_outlined, size: 36, color: AppColors.textMuted),
                             ),
                           ),
-                        )
-                      : Container(
-                          color: AppColors.surfaceCard,
-                          child: const Center(
-                            child: Icon(Icons.video_collection_outlined, size: 36, color: AppColors.textMuted),
-                          ),
+                  ),
+                  if (item.rating > 0)
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: AppColors.accentPrimary.withValues(alpha: 0.5)),
                         ),
-                ),
-                if (item.rating > 0)
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: AppColors.accentPrimary.withValues(alpha: 0.5)),
-                      ),
-                      child: Text(
-                        '★ ${item.rating.toStringAsFixed(1)}',
-                        style: AppTypography.mono(fontSize: 10, color: AppColors.accentPrimary),
+                        child: Text(
+                          '★ ${item.rating.toStringAsFixed(1)}',
+                          style: AppTypography.mono(fontSize: 10, color: AppColors.accentPrimary),
+                        ),
                       ),
                     ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.name.toUpperCase().endsWith('.') ? item.name.toUpperCase() : '${item.name.toUpperCase()}.',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.sectionTitle(fontSize: 11).copyWith(height: 1.2),
                   ),
-              ],
+                  const SizedBox(height: 3),
+                  Text(
+                    '[ SÉRIE // ON DEMAND ]',
+                    style: AppTypography.mono(fontSize: 9, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  item.name.toUpperCase().endsWith('.') ? item.name.toUpperCase() : '${item.name.toUpperCase()}.',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.sectionTitle(fontSize: 11),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '[ SÉRIE // ON DEMAND ]',
-                  style: AppTypography.mono(fontSize: 9, color: AppColors.textMuted),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

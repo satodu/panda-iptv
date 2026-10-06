@@ -469,12 +469,12 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                   Expanded(
                                     child: Text(
                                       ep.title.toUpperCase(),
-                                      maxLines: 1,
+                                      maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: AppTypography.sectionTitle(
                                         fontSize: 13,
                                         color: isWatched ? AppColors.textMuted : AppColors.textPrimary,
-                                      ),
+                                      ).copyWith(height: 1.2),
                                     ),
                                   ),
                                   if (isWatched) ...[
