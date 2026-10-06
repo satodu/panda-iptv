@@ -52,6 +52,7 @@ jobs:
         run: |
           flutter build apk --release --dart-define=TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}
           mkdir -p dist
+          rm -rf dist/*
           cp build/app/outputs/flutter-apk/app-release.apk "dist/Panda-IPTV-${{ steps.get_version.outputs.VERSION }}.apk"
           cp build/app/outputs/flutter-apk/app-release.apk "dist/Panda-IPTV.apk"
 
@@ -75,8 +76,8 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: |
-            dist/Panda-IPTV-*.AppImage
-            dist/Panda-IPTV-*.apk
-            dist/panda-iptv-*-linux-x64.tar.gz
+            dist/Panda-IPTV*.AppImage
+            dist/Panda-IPTV*.apk
+            dist/panda-iptv*-linux-x64.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
