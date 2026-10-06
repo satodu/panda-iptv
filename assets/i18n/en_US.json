@@ -81,7 +81,9 @@
     "muted": "MUTED.",
     "unmuted": "UNMUTED.",
     "playing": "PLAYING.",
-    "paused": "PAUSED."
+    "paused": "PAUSED.",
+    "loading_stream": "+ + + [ LOADING STREAM ] + + +",
+    "resuming": "RESUMING PLAYBACK."
   },
   "settings": {
     "title": "SETTINGS.",

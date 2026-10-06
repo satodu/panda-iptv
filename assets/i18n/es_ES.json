@@ -81,7 +81,9 @@
     "muted": "SILENCIADO.",
     "unmuted": "SONIDO ACTIVO.",
     "playing": "REPRODUCIENDO.",
-    "paused": "PAUSADO."
+    "paused": "PAUSADO.",
+    "loading_stream": "+ + + [ CARGANDO TRANSMISIÓN ] + + +",
+    "resuming": "REANUDANDO REPRODUCCIÓN."
   },
   "settings": {
     "title": "CONFIGURACIÓN.",

@@ -12,6 +12,7 @@ class VodDetail {
   final double rating;
   final String containerExtension;
   final String? youtubeTrailer;
+  final int? tmdbId;
 
   const VodDetail({
     required this.streamId,
@@ -27,6 +28,7 @@ class VodDetail {
     this.rating = 0.0,
     this.containerExtension = 'mp4',
     this.youtubeTrailer,
+    this.tmdbId,
   });
 
   factory VodDetail.fromJson(Map<String, dynamic> json) {
@@ -47,6 +49,12 @@ class VodDetail {
       parsedRating = double.tryParse(rawRating.toString()) ?? 0.0;
     }
 
+    final rawTmdb = info['tmdb_id'] ?? movieData['tmdb_id'] ?? info['tmdb'];
+    int? parsedTmdb;
+    if (rawTmdb != null) {
+      parsedTmdb = int.tryParse(rawTmdb.toString());
+    }
+
     return VodDetail(
       streamId: int.tryParse(movieData['stream_id']?.toString() ?? info['stream_id']?.toString() ?? '0') ?? 0,
       name: movieData['name']?.toString() ?? info['name']?.toString() ?? 'Sem título',
@@ -61,6 +69,7 @@ class VodDetail {
       rating: parsedRating,
       containerExtension: movieData['container_extension']?.toString() ?? info['container_extension']?.toString() ?? 'mp4',
       youtubeTrailer: info['youtube_trailer']?.toString(),
+      tmdbId: parsedTmdb,
     );
   }
 }

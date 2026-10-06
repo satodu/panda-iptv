@@ -3,17 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/storage/favorite_item.dart';
 import '../../../core/storage/favorites_service.dart';
+import '../../../core/storage/watch_history_service.dart';
 import '../../../core/storage/watched_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_button.dart';
+import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/tech_crosses.dart';
+import '../../../core/services/tmdb_service.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../player/presentation/video_player_screen.dart';
 import '../models/vod_detail.dart';
 import '../models/vod_item.dart';
+import 'actor_detail_screen.dart';
 import 'vod_provider.dart';
 
 class VodDetailScreen extends StatefulWidget {
@@ -29,6 +34,10 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
   VodDetail? _detail;
   bool _loading = true;
   bool _isFavorite = false;
+
+  List<TmdbMovie> _similarMovies = [];
+  List<TmdbActor> _cast = [];
+  bool _loadingTmdb = false;
 
   @override
   void initState() {
@@ -74,6 +83,34 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
         _detail = detail;
         _loading = false;
       });
+      _loadTmdbData(detail);
+    }
+  }
+
+  Future<void> _loadTmdbData(VodDetail? detail) async {
+    if (detail == null) return;
+    setState(() => _loadingTmdb = true);
+
+    int? tmdbId = detail.tmdbId;
+    if (tmdbId == null || tmdbId == 0) {
+      tmdbId = await TmdbService.searchMovieId(
+        widget.item.name,
+        year: detail.releaseDate,
+      );
+    }
+
+    if (tmdbId != null && tmdbId > 0 && mounted) {
+      final similar = await TmdbService.getSimilarMovies(tmdbId);
+      final cast = await TmdbService.getMovieCredits(tmdbId);
+      if (mounted) {
+        setState(() {
+          _similarMovies = similar;
+          _cast = cast;
+          _loadingTmdb = false;
+        });
+      }
+    } else if (mounted) {
+      setState(() => _loadingTmdb = false);
     }
   }
 
@@ -85,18 +122,33 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
     final ext = _detail?.containerExtension ?? widget.item.containerExtension;
     final streamUrl = vodProvider.buildStreamUrl(account, widget.item.streamId, ext);
 
+    final mediaId = 'vod_${widget.item.streamId}';
+    final saved = WatchHistoryService.getItem(mediaId);
+    final initialPos = (saved != null && saved.positionMs > 5000) ? saved.positionMs : null;
+
+    final coverCandidates = [
+      _detail?.cover,
+      _detail?.backdrop,
+      widget.item.streamIcon,
+    ];
+    final coverUrl = coverCandidates.firstWhere(
+      (c) => c != null && c.trim().isNotEmpty,
+      orElse: () => null,
+    );
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => VideoPlayerScreen(
           title: widget.item.name,
           subtitle: 'FILMES // VOD',
           streamUrl: streamUrl,
-          mediaId: 'vod_${widget.item.streamId}',
-          cover: _detail?.cover ?? widget.item.streamIcon,
+          mediaId: mediaId,
+          cover: coverUrl,
+          initialPositionMs: initialPos,
           mediaType: 'movie',
         ),
       ),
-    );
+    ).then((_) => WatchHistoryService.loadHistory());
   }
 
   @override
@@ -183,19 +235,28 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                   : SingleChildScrollView(
                       padding: EdgeInsets.all(isNarrow ? 16 : 24),
                       child: isLandscape
-                          ? Row(
+                          ? Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Poster
-                                SizedBox(
-                                  width: 260,
-                                  child: _buildPoster(cover),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Poster
+                                    SizedBox(
+                                      width: 260,
+                                      child: _buildPoster(cover),
+                                    ),
+                                    const SizedBox(width: 32),
+                                    // Informações
+                                    Expanded(
+                                      child: _buildInfoSection(title, rating, plot, isLandscape, isNarrow),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 32),
-                                // Informações
-                                Expanded(
-                                  child: _buildInfoSection(title, rating, plot, isLandscape, isNarrow),
-                                ),
+                                const SizedBox(height: 36),
+                                _buildCastSection(context, isNarrow),
+                                const SizedBox(height: 36),
+                                _buildSimilarMoviesSection(context, isNarrow),
                               ],
                             )
                           : Column(
@@ -215,6 +276,10 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                                   ),
                                 const SizedBox(height: 20),
                                 _buildInfoSection(title, rating, plot, isLandscape, isNarrow),
+                                const SizedBox(height: 32),
+                                _buildCastSection(context, isNarrow),
+                                const SizedBox(height: 32),
+                                _buildSimilarMoviesSection(context, isNarrow),
                               ],
                             ),
                     ),
@@ -398,6 +463,271 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildCastSection(BuildContext context, bool isNarrow) {
+    if (_cast.isEmpty) {
+      if (_loadingTmdb) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
+              ),
+            ),
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Text(
+                  'ELENCO PRINCIPAL.',
+                  style: AppTypography.sectionTitle(fontSize: isNarrow ? 14 : 16),
+                ),
+                const SizedBox(width: 8),
+                const HankoBadge(
+                  text: 'TMDB',
+                  borderColor: AppColors.accentCyan,
+                  textColor: AppColors.accentCyan,
+                ),
+              ],
+            ),
+            const TechCrosses(count: 3, spacing: 6),
+          ],
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 145,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _cast.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final actor = _cast[index];
+              return BrutalistEntrance(
+                index: index,
+                child: BentoCard(
+                  padding: const EdgeInsets.all(8),
+                  borderRadius: 10,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ActorDetailScreen(
+                          actorId: actor.id,
+                          actorName: actor.name,
+                          actorPhoto: actor.profileUrl,
+                        ),
+                      ),
+                    );
+                  },
+                  child: SizedBox(
+                    width: 95,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(30),
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            color: AppColors.surfaceHover,
+                            child: actor.profileUrl != null
+                                ? CachedNetworkImage(
+                                    imageUrl: actor.profileUrl!,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (_, __, ___) => const Icon(
+                                      Icons.person_rounded,
+                                      size: 30,
+                                      color: AppColors.textDisabled,
+                                    ),
+                                  )
+                                : const Icon(Icons.person_rounded, size: 30, color: AppColors.textDisabled),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          actor.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: AppTypography.titleMedium(fontSize: 11),
+                        ),
+                        if (actor.character != null && actor.character!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            actor.character!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: AppTypography.mono(fontSize: 9, color: AppColors.textMuted),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSimilarMoviesSection(BuildContext context, bool isNarrow) {
+    if (_similarMovies.isEmpty) return const SizedBox.shrink();
+
+    final vodProvider = context.read<VodProvider>();
+    final allIptvMovies = vodProvider.filteredMovies;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Text(
+                  'TÍTULOS SEMELHANTES.',
+                  style: AppTypography.sectionTitle(fontSize: isNarrow ? 14 : 16),
+                ),
+                const SizedBox(width: 8),
+                HankoBadge(
+                  text: '[ ${_similarMovies.length} ]',
+                  borderColor: AppColors.accentPrimary,
+                  textColor: AppColors.accentPrimary,
+                ),
+              ],
+            ),
+            const TechCrosses(count: 3, spacing: 6),
+          ],
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 220,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _similarMovies.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final movie = _similarMovies[index];
+              final poster = movie.posterUrl;
+
+              final iptvMatch = allIptvMovies.cast<VodItem?>().firstWhere(
+                (m) => m != null && m.name.toLowerCase().contains(movie.title.toLowerCase()),
+                orElse: () => null,
+              );
+
+              return BrutalistEntrance(
+                index: index,
+                child: BentoCard(
+                  padding: EdgeInsets.zero,
+                  borderRadius: 10,
+                  onTap: () {
+                    if (iptvMatch != null) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => VodDetailScreen(item: iptvMatch),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppColors.surfaceCard,
+                          content: Text(
+                            'Título não disponível na lista atual do seu IPTV.',
+                            style: AppTypography.mono(color: AppColors.accentCyan),
+                          ),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                  child: SizedBox(
+                    width: 125,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ClipRRect(
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                                child: poster != null
+                                    ? CachedNetworkImage(
+                                        imageUrl: poster,
+                                        fit: BoxFit.cover,
+                                        errorWidget: (_, __, ___) => _buildFallbackCover(),
+                                      )
+                                    : _buildFallbackCover(),
+                              ),
+                              if (iptvMatch != null)
+                                const Positioned(
+                                  top: 6,
+                                  left: 6,
+                                  child: HankoBadge(
+                                    text: 'PLAY',
+                                    borderColor: AppColors.statusLive,
+                                    textColor: AppColors.statusLive,
+                                  ),
+                                ),
+                              if (movie.rating > 0)
+                                Positioned(
+                                  bottom: 6,
+                                  right: 6,
+                                  child: HankoBadge(
+                                    text: '★ ${movie.rating.toStringAsFixed(1)}',
+                                    borderColor: AppColors.accentPrimary,
+                                    textColor: AppColors.accentPrimary,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(
+                            movie.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.titleMedium(fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFallbackCover() {
+    return Container(
+      color: AppColors.surfaceCard,
+      child: const Center(
+        child: Icon(Icons.movie_outlined, size: 32, color: AppColors.textDisabled),
+      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/storage/favorite_item.dart';
 import '../../../core/storage/favorites_service.dart';
+import '../../../core/storage/watch_history_service.dart';
 import '../../../core/storage/watched_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -91,17 +92,43 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
 
     final playlist = episodes.map((ep) {
       final url = seriesProvider.buildStreamUrl(account, ep.id, ep.containerExtension);
+      final epCandidates = [
+        ep.image,
+        _detail?.cover,
+        _detail?.backdrop,
+        widget.item.cover,
+      ];
+      final epCover = epCandidates.firstWhere(
+        (c) => c != null && c.trim().isNotEmpty,
+        orElse: () => null,
+      );
+
       return PlaylistItem(
         id: 'series_${widget.item.seriesId}_${ep.id}',
         title: widget.item.name,
         subtitle: 'TEMP $_selectedSeason // EP ${ep.episodeNum} - ${ep.title}',
         streamUrl: url,
-        cover: ep.image ?? _detail?.cover ?? widget.item.cover,
+        cover: epCover,
         mediaType: 'series',
       );
     }).toList();
 
     final currentIndex = episodes.indexWhere((e) => e.id == episode.id);
+
+    final selectedCandidates = [
+      episode.image,
+      _detail?.cover,
+      _detail?.backdrop,
+      widget.item.cover,
+    ];
+    final selectedCover = selectedCandidates.firstWhere(
+      (c) => c != null && c.trim().isNotEmpty,
+      orElse: () => null,
+    );
+
+    final mediaId = 'series_${widget.item.seriesId}_${episode.id}';
+    final saved = WatchHistoryService.getItem(mediaId);
+    final initialPos = (saved != null && saved.positionMs > 5000) ? saved.positionMs : null;
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -109,14 +136,15 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
           title: widget.item.name,
           subtitle: 'TEMP $_selectedSeason // EP ${episode.episodeNum} - ${episode.title}',
           streamUrl: seriesProvider.buildStreamUrl(account, episode.id, episode.containerExtension),
-          mediaId: 'series_${widget.item.seriesId}_${episode.id}',
-          cover: episode.image ?? _detail?.cover ?? widget.item.cover,
+          mediaId: mediaId,
+          cover: selectedCover,
+          initialPositionMs: initialPos,
           mediaType: 'series',
           playlist: playlist.isNotEmpty ? playlist : null,
           initialPlaylistIndex: currentIndex >= 0 ? currentIndex : 0,
         ),
       ),
-    );
+    ).then((_) => WatchHistoryService.loadHistory());
   }
 
   @override

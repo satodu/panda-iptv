@@ -12,6 +12,7 @@ jobs:
   build-release:
     name: Build Release Artifacts (Linux AppImage & Android APK)
     runs-on: ubuntu-22.04
+    environment: BUILD
 
     steps:
       - name: Checkout repository
@@ -49,14 +50,14 @@ jobs:
 
       - name: Build Android APK
         run: |
-          flutter build apk --release
+          flutter build apk --release --dart-define=TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk "dist/Panda-IPTV-${{ steps.get_version.outputs.VERSION }}.apk"
           cp build/app/outputs/flutter-apk/app-release.apk "dist/Panda-IPTV.apk"
 
       - name: Build Linux Desktop Bundle
         run: |
-          flutter build linux --release
+          flutter build linux --release --dart-define=TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}
           cd build/linux/x64/release
           tar -czf "$GITHUB_WORKSPACE/dist/panda-iptv-${{ steps.get_version.outputs.VERSION }}-linux-x64.tar.gz" bundle/
           cd "$GITHUB_WORKSPACE"

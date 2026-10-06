@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/storage/favorite_item.dart';
 import '../../../core/storage/favorites_service.dart';
 import '../../../core/storage/recent_channels_service.dart';
@@ -71,6 +73,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   Duration _duration = Duration.zero;
   bool _isBuffering = true;
   String? _errorMessage;
+
+  Duration? _pendingResumePosition;
+  bool _hasResumed = false;
 
   double _volume = 100.0;
   double _lastVolume = 100.0;
@@ -158,6 +163,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
           }
         });
 
+        _checkAndApplyResume();
+
         // Marca automaticamente como visto se assistiu mais de 90%
         if (_duration.inSeconds > 30 && _currentMediaType != 'live') {
           final ratio = _position.inSeconds / _duration.inSeconds;
@@ -178,11 +185,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     });
 
     _durSub = _player.stream.duration.listen((dur) {
-      if (mounted) setState(() => _duration = dur);
+      if (mounted) {
+        setState(() => _duration = dur);
+        _checkAndApplyResume();
+      }
     });
 
     _playSub = _player.stream.playing.listen((playing) {
-      if (mounted) setState(() => _isPlaying = playing);
+      if (mounted) {
+        setState(() => _isPlaying = playing);
+        if (playing) _checkAndApplyResume();
+      }
     });
 
     _bufSub = _player.stream.buffering.listen((buffering) {
@@ -264,7 +277,43 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       );
     }
   }
+
+  void _checkAndApplyResume() {
+    if (_pendingResumePosition == null || _hasResumed) return;
+    final target = _pendingResumePosition!;
+
+    // Se a posição atual já está próxima do ponto de retomada (mpv aplicou via start param)
+    if (_position >= target - const Duration(seconds: 3)) {
+      _hasResumed = true;
+      _pendingResumePosition = null;
+      _showHud('${context.tr('player.resuming')} [ ${_formatDuration(target)} ]');
+      return;
+    }
+
+    // Se o stream já informou duração ou começou a reproduzir/avançar
+    if (_duration > Duration.zero || _isPlaying || _position > Duration.zero) {
+      _hasResumed = true;
+      _pendingResumePosition = null;
+      final label = context.tr('player.resuming');
+      Future.microtask(() async {
+        if (mounted) {
+          await _player.seek(target);
+          _showHud('$label [ ${_formatDuration(target)} ]');
+        }
+      });
+    }
+  }
+
   Future<void> _initAndPlay({String? streamUrl, int? startPositionMs}) async {
+    final pos = startPositionMs ?? (streamUrl == null ? widget.initialPositionMs : null);
+    if (pos != null && pos > 2000) {
+      _pendingResumePosition = Duration(milliseconds: pos);
+      _hasResumed = false;
+    } else {
+      _pendingResumePosition = null;
+      _hasResumed = true;
+    }
+
     final url = streamUrl ?? _currentStreamUrl;
     try {
       final platform = _player.platform;
@@ -277,6 +326,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     await _player.open(
       Media(
         url,
+        start: _pendingResumePosition,
         httpHeaders: const {
           'User-Agent': 'IPTVSmartersPro/3.1.5 (Linux; Android 12)',
           'Accept': '*/*',
@@ -285,12 +335,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       ),
     );
 
-    final pos = startPositionMs ?? (streamUrl == null ? widget.initialPositionMs : null);
-    if (pos != null && pos > 2000) {
-      Future.delayed(const Duration(milliseconds: 400), () {
-        if (mounted) {
-          _player.seek(Duration(milliseconds: pos));
-          _showHud('RETOMANDO REPRODUÇÃO.');
+    if (_pendingResumePosition != null) {
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (mounted && _pendingResumePosition != null && !_hasResumed) {
+          _checkAndApplyResume();
+        }
+      });
+      Future.delayed(const Duration(milliseconds: 1800), () {
+        if (mounted && _pendingResumePosition != null && !_hasResumed) {
+          _checkAndApplyResume();
         }
       });
     }
@@ -623,8 +676,142 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                   ),
                 ),
 
-                // Indicador de buffering
-                if (_isBuffering && _errorMessage == null && _position == Duration.zero)
+                // Tela de Carregamento Inicial com Capa (Oriental Brutalism)
+                if (_errorMessage == null && _position == Duration.zero)
+                  Positioned.fill(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Fundo com capa escurecida
+                        if (_currentCover != null && _currentCover!.trim().isNotEmpty) ...[
+                          CachedNetworkImage(
+                            imageUrl: _currentCover!,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => const SizedBox(),
+                          ),
+                          Container(
+                            color: Colors.black.withValues(alpha: 0.82),
+                          ),
+                        ] else
+                          Container(
+                            color: AppColors.canvas,
+                          ),
+
+                        // Overlay central com poster e indicador de carregamento
+                        Center(
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_currentCover != null && _currentCover!.trim().isNotEmpty) ...[
+                                    Container(
+                                      width: isNarrow ? 100 : 130,
+                                      height: isNarrow ? 145 : 190,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: AppColors.accentPrimary.withValues(alpha: 0.7),
+                                          width: 1.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.85),
+                                            blurRadius: 24,
+                                            spreadRadius: 4,
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(7),
+                                        child: CachedNetworkImage(
+                                          imageUrl: _currentCover!,
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, __) => Container(
+                                            color: AppColors.surfaceCard,
+                                            child: const Center(
+                                              child: SizedBox(
+                                                width: 24,
+                                                height: 24,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          errorWidget: (_, __, ___) => Container(
+                                            color: AppColors.surfaceCard,
+                                            child: const Icon(
+                                              Icons.movie_outlined,
+                                              color: AppColors.textDisabled,
+                                              size: 32,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                  const SizedBox(
+                                    width: 36,
+                                    height: 36,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 3,
+                                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    formattedTitle,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontFamily: 'JetBrainsMono',
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                  if (_currentSubtitle != null && _currentSubtitle!.trim().isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _currentSubtitle!.trim().toUpperCase(),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontFamily: 'JetBrainsMono',
+                                        fontSize: 11,
+                                        color: AppColors.textMuted,
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    context.tr('player.loading_stream'),
+                                    style: const TextStyle(
+                                      fontFamily: 'JetBrainsMono',
+                                      fontSize: 10,
+                                      color: AppColors.accentPrimary,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Indicador de buffering no meio do vídeo (após primeiro frame)
+                if (_isBuffering && _errorMessage == null && _position > Duration.zero)
                   const Center(
                     child: SizedBox(
                       width: 48,

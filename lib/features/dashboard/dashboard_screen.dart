@@ -614,142 +614,184 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ).then((_) => WatchHistoryService.loadHistory());
       },
       child: SizedBox(
-        width: 280,
+        width: 320,
         height: 180,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Capa de fundo
-              if (hasCover)
+              // Fundo ambiente escurecido com a capa
+              if (hasCover) ...[
                 CachedNetworkImage(
                   imageUrl: item.cover!,
                   fit: BoxFit.cover,
                   errorWidget: (_, __, ___) => _buildFallbackCover(isSeries),
-                )
-              else
+                ),
+                Container(
+                  color: Colors.black.withValues(alpha: 0.88),
+                ),
+              ] else
                 _buildFallbackCover(isSeries),
 
-              // Gradiente brutalista para contraste e legibilidade
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.65),
-                      Colors.black.withValues(alpha: 0.2),
-                      Colors.black.withValues(alpha: 0.92),
-                    ],
-                    stops: const [0.0, 0.4, 1.0],
-                  ),
-                ),
-              ),
-
-              // Conteúdo em camadas
+              // Conteúdo em layout dividido: Poster nítido à esquerda + detalhes à direita
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Linha Superior: Tags e Botão Remover
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Wrap(
-                          spacing: 6,
+                    // Capa vertical em destaque (Oriental Brutalism)
+                    Container(
+                      width: 95,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.accentPrimary.withValues(alpha: 0.5),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7),
+                        child: Stack(
+                          fit: StackFit.expand,
                           children: [
-                            HankoBadge(
-                              text: isSeries ? 'SÉRIE' : 'FILME',
-                              borderColor: isSeries ? AppColors.accentCyan : AppColors.accentPrimary,
-                              textColor: isSeries ? AppColors.accentCyan : AppColors.accentPrimary,
-                            ),
-                            if (item.remainingMinutes > 0)
-                              HankoBadge(
-                                text: '${item.remainingMinutes}M RESTANTES',
-                                borderColor: AppColors.borderHairline,
-                                textColor: AppColors.textPrimary,
+                            if (hasCover)
+                              CachedNetworkImage(
+                                imageUrl: item.cover!,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => _buildFallbackCover(isSeries),
+                              )
+                            else
+                              _buildFallbackCover(isSeries),
+                            // Indicador discreto de play sobre o poster
+                            Positioned(
+                              bottom: 6,
+                              right: 6,
+                              child: Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentPrimary.withValues(alpha: 0.95),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.play_arrow_rounded,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
                               ),
+                            ),
                           ],
                         ),
-                        InkWell(
-                          onTap: () => WatchHistoryService.removeItem(item.id),
-                          borderRadius: BorderRadius.circular(14),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceCard.withValues(alpha: 0.8),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.borderHairline),
-                            ),
-                            child: const Icon(
-                              Icons.close_rounded,
-                              size: 14,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-
-                    // Linha Inferior: Play Icon + Informações + Barra de Progresso
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: AppColors.accentPrimary.withValues(alpha: 0.9),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.play_arrow_rounded,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(width: 12),
+                    // Painel com Informações e Progresso
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Linha Superior: Tags e Botão Remover
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: 4,
+                                runSpacing: 4,
                                 children: [
-                                  Text(
-                                    item.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTypography.titleMedium(fontSize: 13, color: AppColors.textPrimary),
+                                  HankoBadge(
+                                    text: isSeries ? 'SÉRIE' : 'FILME',
+                                    borderColor: isSeries ? AppColors.accentCyan : AppColors.accentPrimary,
+                                    textColor: isSeries ? AppColors.accentCyan : AppColors.accentPrimary,
                                   ),
-                                  if (item.subtitle != null && item.subtitle!.isNotEmpty) ...[
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      item.subtitle!,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTypography.mono(fontSize: 10, color: AppColors.accentCyan),
+                                  if (item.remainingMinutes > 0)
+                                    HankoBadge(
+                                      text: '${item.remainingMinutes}M',
+                                      borderColor: AppColors.borderHairline,
+                                      textColor: AppColors.textPrimary,
                                     ),
-                                  ],
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        // Barra de Progresso em Azul Elétrico
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(2),
-                          child: LinearProgressIndicator(
-                            value: item.progress,
-                            minHeight: 3.5,
-                            backgroundColor: Colors.white.withValues(alpha: 0.15),
-                            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
+                              InkWell(
+                                onTap: () => WatchHistoryService.removeItem(item.id),
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceCard.withValues(alpha: 0.8),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: AppColors.borderHairline),
+                                  ),
+                                  child: const Icon(
+                                    Icons.close_rounded,
+                                    size: 14,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+
+                          // Título e Subtítulo
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.title.toUpperCase().endsWith('.')
+                                    ? item.title.toUpperCase()
+                                    : '${item.title.toUpperCase()}.',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.titleMedium(fontSize: 12, color: AppColors.textPrimary),
+                              ),
+                              if (item.subtitle != null && item.subtitle!.trim().isNotEmpty) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  item.subtitle!.trim().toUpperCase(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.mono(fontSize: 10, color: AppColors.accentCyan),
+                                ),
+                              ],
+                            ],
+                          ),
+
+                          // Barra de Progresso em Azul Elétrico
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '[ ${(item.progress * 100).toInt()}% ]',
+                                    style: AppTypography.mono(fontSize: 9, color: AppColors.textMuted),
+                                  ),
+                                  const TechCrosses(count: 2, spacing: 3),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: LinearProgressIndicator(
+                                  value: item.progress,
+                                  minHeight: 3.5,
+                                  backgroundColor: Colors.white.withValues(alpha: 0.15),
+                                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

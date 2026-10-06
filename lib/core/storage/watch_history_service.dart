@@ -67,6 +67,14 @@ class WatchHistoryService {
     return deduplicated;
   }
 
+  /// Obtém o item salvo para um determinado ID (se existir)
+  static WatchHistoryItem? getItem(String id) {
+    for (final item in historyNotifier.value) {
+      if (item.id == id) return item;
+    }
+    return null;
+  }
+
   /// Salva ou atualiza o progresso de um item
   /// Para séries: substitui qualquer episódio anterior pelo episódio assistido mais recente
   static Future<void> saveProgress({
@@ -88,6 +96,15 @@ class WatchHistoryService {
     final isSeries = type == 'series';
     final targetSeriesKey = isSeries ? _seriesKey(id, title) : null;
 
+    // Se o novo cover for nulo ou vazio, preserva a capa salva anteriormente caso exista
+    String? finalCover = (cover != null && cover.trim().isNotEmpty) ? cover.trim() : null;
+    if (finalCover == null) {
+      final existing = items.where((e) => e.id == id).firstOrNull;
+      if (existing?.cover != null && existing!.cover!.trim().isNotEmpty) {
+        finalCover = existing.cover;
+      }
+    }
+
     // Se assistiu mais de 93% do vídeo, considera finalizado e remove
     if (durationMs > 0 && (positionMs / durationMs) >= 0.93) {
       items.removeWhere((item) {
@@ -108,7 +125,7 @@ class WatchHistoryService {
       title: title,
       subtitle: subtitle,
       streamUrl: streamUrl,
-      cover: cover,
+      cover: finalCover,
       positionMs: positionMs,
       durationMs: durationMs,
       updatedAt: DateTime.now(),

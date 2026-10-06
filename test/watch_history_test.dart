@@ -131,4 +131,40 @@ void main() {
     history = await WatchHistoryService.loadHistory();
     expect(history.isEmpty, isTrue);
   });
+
+  test('WatchHistoryService.getItem returns saved item and preserves existing cover', () async {
+    await WatchHistoryService.saveProgress(
+      id: 'vod_cover_test',
+      title: 'Matrix',
+      streamUrl: 'http://test/matrix.mp4',
+      cover: 'http://test/matrix.jpg',
+      positionMs: 25000,
+      durationMs: 7200000,
+      type: 'movie',
+    );
+
+    // getItem test
+    final item = WatchHistoryService.getItem('vod_cover_test');
+    expect(item, isNotNull);
+    expect(item!.cover, equals('http://test/matrix.jpg'));
+    expect(item.positionMs, equals(25000));
+
+    expect(WatchHistoryService.getItem('non_existent'), isNull);
+
+    // Save progress again with empty/null cover - should preserve the original cover
+    await WatchHistoryService.saveProgress(
+      id: 'vod_cover_test',
+      title: 'Matrix',
+      streamUrl: 'http://test/matrix.mp4',
+      cover: null,
+      positionMs: 35000,
+      durationMs: 7200000,
+      type: 'movie',
+    );
+
+    final updated = WatchHistoryService.getItem('vod_cover_test');
+    expect(updated, isNotNull);
+    expect(updated!.cover, equals('http://test/matrix.jpg'));
+    expect(updated.positionMs, equals(35000));
+  });
 }
