@@ -79,4 +79,56 @@ void main() {
     expect(history[1].title, equals('Interestelar'));
     expect(history[2].title, equals('Breaking Bad'));
   });
+
+  test('WatchHistoryService ignores short playback (<10s) and removes finished (>93%)', () async {
+    // 1. Playback under 10 seconds is ignored
+    await WatchHistoryService.saveProgress(
+      id: 'vod_short',
+      title: 'Short Movie',
+      streamUrl: 'http://test/short.mp4',
+      positionMs: 8000,
+      durationMs: 7200000,
+      type: 'movie',
+    );
+    var history = await WatchHistoryService.loadHistory();
+    expect(history.isEmpty, isTrue);
+
+    // 2. Playback over 10 seconds is recorded
+    await WatchHistoryService.saveProgress(
+      id: 'vod_short',
+      title: 'Short Movie',
+      streamUrl: 'http://test/short.mp4',
+      positionMs: 15000,
+      durationMs: 7200000,
+      type: 'movie',
+    );
+    history = await WatchHistoryService.loadHistory();
+    expect(history.length, equals(1));
+    expect(history.first.positionMs, equals(15000));
+
+    // 3. Playback updated upon pause or seek to 50%
+    await WatchHistoryService.saveProgress(
+      id: 'vod_short',
+      title: 'Short Movie',
+      streamUrl: 'http://test/short.mp4',
+      positionMs: 3600000,
+      durationMs: 7200000,
+      type: 'movie',
+    );
+    history = await WatchHistoryService.loadHistory();
+    expect(history.length, equals(1));
+    expect(history.first.positionMs, equals(3600000));
+
+    // 4. Playback >= 93% (finished) removes it from Continue Watching
+    await WatchHistoryService.saveProgress(
+      id: 'vod_short',
+      title: 'Short Movie',
+      streamUrl: 'http://test/short.mp4',
+      positionMs: 6800000, // ~94.4%
+      durationMs: 7200000,
+      type: 'movie',
+    );
+    history = await WatchHistoryService.loadHistory();
+    expect(history.isEmpty, isTrue);
+  });
 }

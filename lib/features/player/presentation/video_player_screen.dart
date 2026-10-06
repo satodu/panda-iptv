@@ -43,7 +43,7 @@ class VideoPlayerScreen extends StatefulWidget {
   State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
 }
 
-class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
+class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindingObserver {
   late final Player _player;
   late final VideoController _controller;
 
@@ -223,6 +223,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     _initAndPlay();
     _startHideTimer();
 
+    WidgetsBinding.instance.addObserver(this);
+
     _saveProgressTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (mounted && _isPlaying) {
         _saveCurrentProgress();
@@ -230,10 +232,25 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     });
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _saveCurrentProgress();
+    }
+  }
+
   void _saveCurrentProgress() {
     if (_currentMediaType == 'live') return;
-    final pos = _position.inMilliseconds;
-    final dur = _duration.inMilliseconds;
+    // Pega a posição mais recente do player caso disponível ou do estado _position
+    final currentPos = _player.state.position > Duration.zero
+        ? _player.state.position
+        : _position;
+    final currentDur = _player.state.duration > Duration.zero
+        ? _player.state.duration
+        : _duration;
+
+    final pos = currentPos.inMilliseconds;
+    final dur = currentDur.inMilliseconds;
     if (pos > 5000 && dur > 0) {
       WatchHistoryService.saveProgress(
         id: _currentMediaId ?? _currentStreamUrl,
@@ -428,6 +445,40 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     });
   }
 
+  void _togglePlayPause() {
+    if (_isPlaying) {
+      _saveCurrentProgress();
+      _player.pause();
+      _showHud('PAUSADO.');
+    } else {
+      _player.play();
+      _showHud('REPRODUZINDO.');
+    }
+    _startHideTimer();
+  }
+
+  void _pausePlayback() {
+    _saveCurrentProgress();
+    _player.pause();
+    _showHud('PAUSADO.');
+    _startHideTimer();
+  }
+
+  void _playPlayback() {
+    _player.play();
+    _showHud('REPRODUZINDO.');
+    _startHideTimer();
+  }
+
+  void _seekTo(Duration target) {
+    final clampedMs = target.inMilliseconds.clamp(0, _duration.inMilliseconds > 0 ? _duration.inMilliseconds : 0);
+    final finalDuration = Duration(milliseconds: clampedMs);
+    _player.seek(finalDuration);
+    _position = finalDuration;
+    _saveCurrentProgress();
+    _startHideTimer();
+  }
+
   String _formatDuration(Duration d) {
     final hours = d.inHours;
     final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
@@ -453,6 +504,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     ]);
 
     _cancelNextCountdown();
+    WidgetsBinding.instance.removeObserver(this);
     _saveProgressTimer?.cancel();
     _saveCurrentProgress();
     _hideTimer?.cancel();
@@ -476,79 +528,77 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     final isNarrow = MediaQuery.of(context).size.width < 600;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Focus(
-        autofocus: true,
-        onKeyEvent: (node, event) {
-          if (event is KeyDownEvent) {
-            final key = event.logicalKey;
-            if (key == LogicalKeyboardKey.space ||
-                key == LogicalKeyboardKey.select ||
-                key == LogicalKeyboardKey.enter ||
-                key == LogicalKeyboardKey.numpadEnter ||
-                key == LogicalKeyboardKey.gameButtonA ||
-                key == LogicalKeyboardKey.mediaPlayPause) {
-              _player.playOrPause();
-              _showHud(_isPlaying ? 'PAUSADO.' : 'REPRODUZINDO.');
-              _startHideTimer();
-              return KeyEventResult.handled;
-            } else if (key == LogicalKeyboardKey.mediaPlay) {
-              _player.play();
-              _showHud('REPRODUZINDO.');
-              _startHideTimer();
-              return KeyEventResult.handled;
-            } else if (key == LogicalKeyboardKey.mediaPause) {
-              _player.pause();
-              _showHud('PAUSADO.');
-              _startHideTimer();
-              return KeyEventResult.handled;
-            } else if (key == LogicalKeyboardKey.arrowRight ||
-                key == LogicalKeyboardKey.mediaFastForward) {
-              _player.seek(_position + const Duration(seconds: 10));
-              _showHud('+10s');
-              _startHideTimer();
-              return KeyEventResult.handled;
-            } else if (key == LogicalKeyboardKey.arrowLeft ||
-                key == LogicalKeyboardKey.mediaRewind) {
-              _player.seek(_position - const Duration(seconds: 10));
-              _showHud('-10s');
-              _startHideTimer();
-              return KeyEventResult.handled;
-            } else if (key == LogicalKeyboardKey.keyN ||
-                key == LogicalKeyboardKey.mediaTrackNext) {
-              if (hasNextEpisode) {
-                _playNextEpisode();
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        _saveCurrentProgress();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Focus(
+          autofocus: true,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent) {
+              final key = event.logicalKey;
+              if (key == LogicalKeyboardKey.space ||
+                  key == LogicalKeyboardKey.select ||
+                  key == LogicalKeyboardKey.enter ||
+                  key == LogicalKeyboardKey.numpadEnter ||
+                  key == LogicalKeyboardKey.gameButtonA ||
+                  key == LogicalKeyboardKey.mediaPlayPause) {
+                _togglePlayPause();
+                return KeyEventResult.handled;
+              } else if (key == LogicalKeyboardKey.mediaPlay) {
+                _playPlayback();
+                return KeyEventResult.handled;
+              } else if (key == LogicalKeyboardKey.mediaPause) {
+                _pausePlayback();
+                return KeyEventResult.handled;
+              } else if (key == LogicalKeyboardKey.arrowRight ||
+                  key == LogicalKeyboardKey.mediaFastForward) {
+                _seekTo(_position + const Duration(seconds: 10));
+                _showHud('+10s');
+                return KeyEventResult.handled;
+              } else if (key == LogicalKeyboardKey.arrowLeft ||
+                  key == LogicalKeyboardKey.mediaRewind) {
+                _seekTo(_position - const Duration(seconds: 10));
+                _showHud('-10s');
+                return KeyEventResult.handled;
+              } else if (key == LogicalKeyboardKey.keyN ||
+                  key == LogicalKeyboardKey.mediaTrackNext) {
+                if (hasNextEpisode) {
+                  _playNextEpisode();
+                  return KeyEventResult.handled;
+                }
+              } else if (key == LogicalKeyboardKey.keyP ||
+                  key == LogicalKeyboardKey.mediaTrackPrevious) {
+                if (hasPreviousEpisode) {
+                  _playPreviousEpisode();
+                  return KeyEventResult.handled;
+                }
+              } else if (key == LogicalKeyboardKey.arrowUp) {
+                _setVolume(_volume + 5);
+                return KeyEventResult.handled;
+              } else if (key == LogicalKeyboardKey.arrowDown) {
+                _setVolume(_volume - 5);
+                return KeyEventResult.handled;
+              } else if (key == LogicalKeyboardKey.keyM) {
+                _toggleMute();
+                return KeyEventResult.handled;
+              } else if (key == LogicalKeyboardKey.keyD) {
+                _toggleHwdec();
+                return KeyEventResult.handled;
+              } else if (key == LogicalKeyboardKey.escape ||
+                  key == LogicalKeyboardKey.backspace ||
+                  key == LogicalKeyboardKey.goBack) {
+                _saveCurrentProgress();
+                Navigator.of(context).pop();
                 return KeyEventResult.handled;
               }
-            } else if (key == LogicalKeyboardKey.keyP ||
-                key == LogicalKeyboardKey.mediaTrackPrevious) {
-              if (hasPreviousEpisode) {
-                _playPreviousEpisode();
-                return KeyEventResult.handled;
-              }
-            } else if (key == LogicalKeyboardKey.arrowUp) {
-              _setVolume(_volume + 5);
-              return KeyEventResult.handled;
-            } else if (key == LogicalKeyboardKey.arrowDown) {
-              _setVolume(_volume - 5);
-              return KeyEventResult.handled;
-            } else if (key == LogicalKeyboardKey.keyM) {
-              _toggleMute();
-              return KeyEventResult.handled;
-            } else if (key == LogicalKeyboardKey.keyD) {
-              _toggleHwdec();
-              return KeyEventResult.handled;
-            } else if (key == LogicalKeyboardKey.escape ||
-                key == LogicalKeyboardKey.backspace ||
-                key == LogicalKeyboardKey.goBack) {
-              Navigator.of(context).pop();
-              return KeyEventResult.handled;
             }
-          }
-          return KeyEventResult.ignored;
-        },
-        child: Listener(
+            return KeyEventResult.ignored;
+          },
+          child: Listener(
           onPointerSignal: (pointerSignal) {
             if (pointerSignal is PointerScrollEvent) {
               if (pointerSignal.scrollDelta.dy < 0) {
@@ -811,9 +861,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                   color: AppColors.textPrimary,
                                   icon: const Icon(Icons.replay_10_rounded),
                                   onPressed: () {
-                                    _player.seek(_position - const Duration(seconds: 10));
+                                    _seekTo(_position - const Duration(seconds: 10));
                                     _showHud('-10s');
-                                    _startHideTimer();
                                   },
                                 ),
                                 const SizedBox(width: 24),
@@ -827,10 +876,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                   iconSize: 42,
                                   color: Colors.white,
                                   icon: Icon(_isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                                  onPressed: () {
-                                    _player.playOrPause();
-                                    _startHideTimer();
-                                  },
+                                  onPressed: _togglePlayPause,
                                 ),
                               ),
                               if (_currentMediaType != 'live') ...[
@@ -840,9 +886,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                   color: AppColors.textPrimary,
                                   icon: const Icon(Icons.forward_10_rounded),
                                   onPressed: () {
-                                    _player.seek(_position + const Duration(seconds: 10));
+                                    _seekTo(_position + const Duration(seconds: 10));
                                     _showHud('+10s');
-                                    _startHideTimer();
                                   },
                                 ),
                               ],
@@ -885,6 +930,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                                       onChanged: (val) {
                                         _startHideTimer();
                                         _player.seek(Duration(milliseconds: val.toInt()));
+                                      },
+                                      onChangeEnd: (val) {
+                                        _seekTo(Duration(milliseconds: val.toInt()));
                                       },
                                     ),
                                   ),
@@ -995,6 +1043,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 
