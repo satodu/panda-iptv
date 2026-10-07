@@ -15,7 +15,11 @@
     "password": "SENHA",
     "remember_me": "LEMBRAR ACESSO",
     "login_button": "CONECTAR // ENTRAR.",
-    "empty_fields_error": "Preencha servidor, usuário e senha."
+    "empty_fields_error": "Preencha servidor, usuário e senha.",
+    "update_available": "ATUALIZAR APP // v{version}.",
+    "check_update": "VERIFICAR ATUALIZAÇÃO.",
+    "app_up_to_date": "APP ATUALIZADO // v{version}.",
+    "downloading_update": "BAIXANDO // {progress}%."
   },
   "dashboard": {
     "hub_badge": "CENTRAL DE MÍDIA // HUB",

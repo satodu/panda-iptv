@@ -15,7 +15,11 @@
     "password": "PASSWORD",
     "remember_me": "REMEMBER ACCESS",
     "login_button": "CONNECT // SIGN IN.",
-    "empty_fields_error": "Please enter server, username and password."
+    "empty_fields_error": "Please enter server, username and password.",
+    "update_available": "UPDATE APP // v{version}.",
+    "check_update": "CHECK FOR UPDATES.",
+    "app_up_to_date": "APP UP TO DATE // v{version}.",
+    "downloading_update": "DOWNLOADING // {progress}%."
   },
   "dashboard": {
     "hub_badge": "MEDIA HUB // CORE",

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import '../../../core/localization/app_localizations.dart';
+import '../../../core/services/update_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_toast.dart';
@@ -20,12 +24,26 @@ class _LoginScreenState extends State<LoginScreen> {
   final _serverController = TextEditingController(text: 'http://');
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  final _serverFocusNode = FocusNode(debugLabel: 'login_server');
+  final _usernameFocusNode = FocusNode(debugLabel: 'login_username');
+  final _passwordFocusNode = FocusNode(debugLabel: 'login_password');
+  final _rememberFocusNode = FocusNode(debugLabel: 'login_remember');
+  final _updateFocusNode = FocusNode(debugLabel: 'login_update');
+
   bool _obscurePassword = true;
   bool _rememberMe = true;
+
+  UpdateInfo? _updateInfo;
+  bool _isCheckingUpdate = false;
+  bool _isDownloadingUpdate = false;
+  double _downloadProgress = 0.0;
+  String _currentAppVersion = '0.0.5';
 
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final info = await context.read<AuthProvider>().getLastSessionInfo();
       if (info != null && mounted) {
@@ -44,6 +62,13 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         });
       }
+
+      try {
+        final pkg = await PackageInfo.fromPlatform();
+        if (mounted) setState(() => _currentAppVersion = pkg.version);
+      } catch (_) {}
+
+      _checkForUpdates(silent: true);
     });
   }
 
@@ -52,7 +77,76 @@ class _LoginScreenState extends State<LoginScreen> {
     _serverController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+
+    _serverFocusNode.dispose();
+    _usernameFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _rememberFocusNode.dispose();
+    _updateFocusNode.dispose();
+
     super.dispose();
+  }
+
+  void _checkForUpdates({bool silent = false}) async {
+    if (_isCheckingUpdate || _isDownloadingUpdate) return;
+    if (!silent) setState(() => _isCheckingUpdate = true);
+
+    try {
+      final info = await UpdateService.checkForUpdate();
+      if (mounted) {
+        if (info != null && info.hasUpdate) {
+          setState(() {
+            _updateInfo = info;
+            _isCheckingUpdate = false;
+          });
+          if (!silent) {
+            AppToast.info(context, 'NOVA ATUALIZAÇÃO DISPONÍVEL (v${info.latestVersion}).');
+          }
+        } else {
+          setState(() {
+            _isCheckingUpdate = false;
+          });
+          if (!silent) {
+            AppToast.success(context, 'O APP JÁ ESTÁ NA VERSÃO MAIS RECENTE (v$_currentAppVersion).');
+          }
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isCheckingUpdate = false);
+        if (!silent) {
+          AppToast.error(context, 'FALHA AO VERIFICAR ATUALIZAÇÕES.');
+        }
+      }
+    }
+  }
+
+  void _startUpdate() {
+    if (_updateInfo == null || _isDownloadingUpdate) return;
+
+    setState(() {
+      _isDownloadingUpdate = true;
+      _downloadProgress = 0.0;
+    });
+
+    UpdateService.downloadAndInstall(
+      updateInfo: _updateInfo!,
+      onProgress: (progress) {
+        if (mounted) setState(() => _downloadProgress = progress);
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() => _isDownloadingUpdate = false);
+          AppToast.error(context, error);
+        }
+      },
+      onReadyToInstall: () {
+        if (mounted) {
+          setState(() => _isDownloadingUpdate = false);
+          AppToast.success(context, 'INSTALADOR PRONTO // ABRINDO...');
+        }
+      },
+    );
   }
 
   void _submit() {
@@ -61,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final pass = _passwordController.text.trim();
 
     if (server.isEmpty || user.isEmpty || pass.isEmpty) {
-      AppToast.error(context, 'PREENCHA SERVIDOR, USUÁRIO E SENHA.');
+      AppToast.error(context, context.tr('auth.empty_fields_error').toUpperCase());
       return;
     }
 
@@ -81,85 +175,265 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: AppColors.canvas,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isLandscape ? 920 : 460,
+        child: FocusTraversalGroup(
+          policy: OrderedTraversalPolicy(),
+          child: Stack(
+            children: [
+              // Botão de Atualização Independente no Canto Superior Direito (acessível pelo D-Pad)
+              Positioned(
+                top: 12,
+                right: 16,
+                child: FocusTraversalOrder(
+                  order: const NumericFocusOrder(0),
+                  child: _buildUpdateAction(),
+                ),
               ),
-              child: Column(
+
+              // Conteúdo Central com scroll apenas se a viewport for muito baixa
+              Center(
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isLandscape ? 24 : 18,
+                    vertical: isLandscape ? 12 : 20,
+                  ),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: isLandscape ? 880 : 440,
+                    ),
+                    child: isLandscape && screenWidth > 680
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                flex: 4,
+                                child: _buildBrandingPanel(isLandscape: true),
+                              ),
+                              const SizedBox(width: 28),
+                              Expanded(
+                                flex: 5,
+                                child: _buildFormCard(isLandscape: true),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildBrandingPanel(isLandscape: false),
+                              const SizedBox(height: 18),
+                              _buildFormCard(isLandscape: false),
+                              const SizedBox(height: 16),
+                              _buildDisclaimerText(isCompact: true),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpdateAction() {
+    if (_isDownloadingUpdate) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceCard,
+          border: Border.all(color: AppColors.accentPrimary, width: 1.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.accentPrimary,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              context.tr('auth.downloading_update', args: {'progress': '${(_downloadProgress * 100).toInt()}'}),
+              style: AppTypography.mono(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: AppColors.accentCyan,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_updateInfo != null && _updateInfo!.hasUpdate) {
+      return AnimatedBuilder(
+        animation: _updateFocusNode,
+        builder: (context, _) {
+          final isFocused = _updateFocusNode.hasFocus;
+
+          return Focus(
+            focusNode: _updateFocusNode,
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent) {
+                final key = event.logicalKey;
+                if (key == LogicalKeyboardKey.select ||
+                    key == LogicalKeyboardKey.enter ||
+                    key == LogicalKeyboardKey.numpadEnter ||
+                    key == LogicalKeyboardKey.gameButtonA) {
+                  _startUpdate();
+                  return KeyEventResult.handled;
+                }
+              }
+              return KeyEventResult.ignored;
+            },
+            child: InkWell(
+              onTap: _startUpdate,
+              borderRadius: BorderRadius.circular(8),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isFocused ? AppColors.accentCyan : AppColors.surfaceCard,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isFocused ? Colors.white : AppColors.accentCyan,
+                    width: isFocused ? 2.0 : 1.2,
+                  ),
+                  boxShadow: isFocused
+                      ? [
+                          BoxShadow(
+                            color: AppColors.accentCyan.withValues(alpha: 0.5),
+                            blurRadius: 14,
+                            spreadRadius: 2,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.system_update_rounded,
+                      size: 16,
+                      color: isFocused ? Colors.black : AppColors.accentCyan,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      context.tr('auth.update_available', args: {'version': _updateInfo!.latestVersion}),
+                      style: AppTypography.mono(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isFocused ? Colors.black : AppColors.accentCyan,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return AnimatedBuilder(
+      animation: _updateFocusNode,
+      builder: (context, _) {
+        final isFocused = _updateFocusNode.hasFocus;
+
+        return Focus(
+          focusNode: _updateFocusNode,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent) {
+              final key = event.logicalKey;
+              if (key == LogicalKeyboardKey.select ||
+                  key == LogicalKeyboardKey.enter ||
+                  key == LogicalKeyboardKey.numpadEnter ||
+                  key == LogicalKeyboardKey.gameButtonA) {
+                _checkForUpdates(silent: false);
+                return KeyEventResult.handled;
+              }
+            }
+            return KeyEventResult.ignored;
+          },
+          child: InkWell(
+            onTap: _isCheckingUpdate ? null : () => _checkForUpdates(silent: false),
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: isFocused ? AppColors.surfaceHover : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isFocused ? AppColors.accentCyan : AppColors.borderHairline,
+                  width: isFocused ? 1.5 : 1.0,
+                ),
+              ),
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  isLandscape && screenWidth > 720
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(child: _buildBrandingPanel()),
-                            const SizedBox(width: 32),
-                            Expanded(child: _buildFormCard()),
-                          ],
+                  _isCheckingUpdate
+                      ? const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.accentCyan,
+                          ),
                         )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildBrandingPanel(isCompact: true),
-                            const SizedBox(height: 24),
-                            _buildFormCard(),
-                          ],
+                      : Icon(
+                          Icons.sync_rounded,
+                          size: 14,
+                          color: isFocused ? AppColors.accentCyan : AppColors.textMuted,
                         ),
-                  const SizedBox(height: 24),
-                  _buildDisclaimerText(),
+                  const SizedBox(width: 6),
+                  Text(
+                    _isCheckingUpdate ? 'VERIFICANDO...' : context.tr('auth.check_update'),
+                    style: AppTypography.mono(
+                      fontSize: 10,
+                      color: isFocused ? AppColors.accentCyan : AppColors.textMuted,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildDisclaimerText() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Text(
-        '[ AVISO LEGAL: O PANDA IPTV É EXCLUSIVAMENTE UM REPRODUTOR DE MÍDIA. '
-        'NÃO HOSPEDA, NÃO FORNECE E NÃO DISTRIBUI NENHUM CONTEÚDO OU LISTA. ]',
-        textAlign: TextAlign.center,
-        style: AppTypography.mono(
-          fontSize: 10,
-          color: AppColors.textMuted.withValues(alpha: 0.6),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBrandingPanel({bool isCompact = false}) {
+  Widget _buildBrandingPanel({required bool isLandscape}) {
     return Column(
-      crossAxisAlignment: isCompact ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      crossAxisAlignment: isLandscape ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(14),
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(color: AppColors.borderHairline),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Image.asset(
               'assets/images/logo.png',
-              width: isCompact ? 72 : 96,
-              height: isCompact ? 72 : 96,
+              width: isLandscape ? 64 : 76,
+              height: isLandscape ? 64 : 76,
               fit: BoxFit.cover,
             ),
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 10,
-              height: 10,
+              width: 8,
+              height: 8,
               decoration: const BoxDecoration(
                 color: AppColors.accentPrimary,
                 shape: BoxShape.circle,
@@ -169,93 +443,122 @@ class _LoginScreenState extends State<LoginScreen> {
             const HankoBadge(text: 'XTREAM // V2.0', borderColor: AppColors.accentCyan),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         Text(
           'PANDA IPTV.',
-          textAlign: isCompact ? TextAlign.center : TextAlign.start,
-          style: AppTypography.displayLarge(),
+          textAlign: isLandscape ? TextAlign.start : TextAlign.center,
+          style: isLandscape ? AppTypography.sectionTitle(fontSize: 22) : AppTypography.displayLarge(),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
           'SISTEMA DE TRANSMISSÃO E MÍDIA.',
-          textAlign: isCompact ? TextAlign.center : TextAlign.start,
-          style: AppTypography.mono(fontSize: 12, color: AppColors.textMuted),
+          textAlign: isLandscape ? TextAlign.start : TextAlign.center,
+          style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
         ),
-        const SizedBox(height: 20),
-        const TechCrosses(count: 6, spacing: 10),
-        if (!isCompact) ...[
-          const SizedBox(height: 32),
-          Text(
-            'パンダ // 放送メディア',
-            style: AppTypography.orientalAccent(fontSize: 13),
-          ),
+        const SizedBox(height: 12),
+        const TechCrosses(count: 5, spacing: 8),
+        if (isLandscape) ...[
+          const SizedBox(height: 20),
+          _buildDisclaimerText(isCompact: false),
         ],
       ],
     );
   }
 
-  Widget _buildFormCard() {
+  Widget _buildDisclaimerText({required bool isCompact}) {
+    return Text(
+      '[ AVISO LEGAL: O PANDA IPTV É EXCLUSIVAMENTE UM REPRODUTOR DE MÍDIA. '
+      'NÃO HOSPEDA, NÃO FORNECE E NÃO DISTRIBUI NENHUM CONTEÚDO OU LISTA. ]',
+      textAlign: isCompact ? TextAlign.center : TextAlign.start,
+      style: AppTypography.mono(
+        fontSize: 9,
+        color: AppColors.textMuted.withValues(alpha: 0.55),
+      ),
+    );
+  }
+
+  Widget _buildFormCard({required bool isLandscape}) {
     final auth = context.watch<AuthProvider>();
 
     return BentoCard(
-      padding: const EdgeInsets.all(28),
+      padding: EdgeInsets.symmetric(
+        horizontal: 22,
+        vertical: isLandscape ? 16 : 22,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'AUTENTICAÇÃO.',
-                style: AppTypography.sectionTitle(),
+                context.tr('auth.title'),
+                style: AppTypography.sectionTitle(fontSize: 14),
               ),
               const TechCrosses(count: 3, opacity: 0.3),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 2),
           Text(
             'Insira as credenciais do seu provedor.',
-            style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
+            style: AppTypography.mono(fontSize: 10, color: AppColors.textMuted),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
 
-          // Campo: Servidor
-          Text('SERVIDOR / PORTA:', style: AppTypography.mono(fontSize: 11)),
-          const SizedBox(height: 6),
-          TextField(
-            controller: _serverController,
-            style: AppTypography.mono(fontSize: 13, color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+          // 1. Campo Servidor
+          FocusTraversalOrder(
+            order: const NumericFocusOrder(1),
+            child: _buildInputField(
+              label: '${context.tr('auth.server')}:',
+              controller: _serverController,
+              focusNode: _serverFocusNode,
               hintText: 'http://dns-do-provedor.xyz:8080',
-              prefixIcon: Icon(Icons.dns_outlined, size: 18, color: AppColors.textMuted),
+              prefixIcon: Icons.dns_outlined,
+              keyboardType: TextInputType.url,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) {
+                _usernameFocusNode.requestFocus();
+                SystemChannels.textInput.invokeMethod('TextInput.show');
+              },
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
 
-          // Campo: Usuário
-          Text('USUÁRIO:', style: AppTypography.mono(fontSize: 11)),
-          const SizedBox(height: 6),
-          TextField(
-            controller: _usernameController,
-            style: AppTypography.mono(fontSize: 13, color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+          // 2. Campo Usuário
+          FocusTraversalOrder(
+            order: const NumericFocusOrder(2),
+            child: _buildInputField(
+              label: '${context.tr('auth.username')}:',
+              controller: _usernameController,
+              focusNode: _usernameFocusNode,
               hintText: 'Seu usuário',
-              prefixIcon: Icon(Icons.person_outline, size: 18, color: AppColors.textMuted),
+              prefixIcon: Icons.person_outline,
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) {
+                _passwordFocusNode.requestFocus();
+                SystemChannels.textInput.invokeMethod('TextInput.show');
+              },
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
 
-          // Campo: Senha
-          Text('SENHA:', style: AppTypography.mono(fontSize: 11)),
-          const SizedBox(height: 6),
-          TextField(
-            controller: _passwordController,
-            obscureText: _obscurePassword,
-            style: AppTypography.mono(fontSize: 13, color: AppColors.textPrimary),
-            decoration: InputDecoration(
+          // 3. Campo Senha
+          FocusTraversalOrder(
+            order: const NumericFocusOrder(3),
+            child: _buildInputField(
+              label: '${context.tr('auth.password')}:',
+              controller: _passwordController,
+              focusNode: _passwordFocusNode,
               hintText: '••••••••',
-              prefixIcon: const Icon(Icons.lock_outline, size: 18, color: AppColors.textMuted),
+              prefixIcon: Icons.lock_outline,
+              obscureText: _obscurePassword,
+              keyboardType: TextInputType.visiblePassword,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
               suffixIcon: IconButton(
+                focusNode: FocusNode(skipTraversal: true),
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                   size: 18,
@@ -267,22 +570,22 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
 
           if (auth.errorMessage != null) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: AppColors.statusError.withValues(alpha: 0.1),
                 border: Border.all(color: AppColors.statusError.withValues(alpha: 0.4)),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline, size: 16, color: AppColors.statusError),
+                  const Icon(Icons.error_outline, size: 14, color: AppColors.statusError),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       auth.errorMessage!,
-                      style: AppTypography.mono(fontSize: 11, color: AppColors.statusError),
+                      style: AppTypography.mono(fontSize: 10, color: AppColors.statusError),
                     ),
                   ),
                 ],
@@ -290,19 +593,181 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ],
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 10),
 
-          // Lembrar credenciais
-          InkWell(
+          // 4. Lembrar credenciais
+          FocusTraversalOrder(
+            order: const NumericFocusOrder(4),
+            child: _buildRememberMeCheckbox(),
+          ),
+
+          const SizedBox(height: 14),
+
+          // 5. Botão Conectar
+          FocusTraversalOrder(
+            order: const NumericFocusOrder(5),
+            child: BrutalistButton(
+              label: context.tr('auth.login_button'),
+              icon: Icons.login_rounded,
+              isLoading: auth.status == AuthStatus.authenticating,
+              onPressed: _submit,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    required String hintText,
+    required IconData prefixIcon,
+    bool obscureText = false,
+    TextInputType? keyboardType,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onSubmitted,
+    Widget? suffixIcon,
+  }) {
+    return AnimatedBuilder(
+      animation: focusNode,
+      builder: (context, _) {
+        final isFocused = focusNode.hasFocus;
+
+        return Focus(
+          focusNode: focusNode,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent) {
+              final key = event.logicalKey;
+              // Ao pressionar Select/Enter do controle remoto da TV, abre o teclado virtual
+              if (key == LogicalKeyboardKey.select ||
+                  key == LogicalKeyboardKey.enter ||
+                  key == LogicalKeyboardKey.numpadEnter ||
+                  key == LogicalKeyboardKey.gameButtonA) {
+                SystemChannels.textInput.invokeMethod('TextInput.show');
+                return KeyEventResult.ignored;
+              }
+            }
+            return KeyEventResult.ignored;
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    label,
+                    style: AppTypography.mono(
+                      fontSize: 10,
+                      fontWeight: isFocused ? FontWeight.bold : FontWeight.normal,
+                      color: isFocused ? AppColors.accentCyan : AppColors.textPrimary,
+                    ),
+                  ),
+                  if (isFocused)
+                    Text(
+                      '[ OK: DIGITAR ]',
+                      style: AppTypography.mono(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.accentCyan,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  color: isFocused ? AppColors.surfaceHover : AppColors.surfaceCard,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isFocused ? AppColors.accentPrimary : AppColors.borderHairline,
+                    width: isFocused ? 2.0 : 1.0,
+                  ),
+                  boxShadow: isFocused
+                      ? [
+                          BoxShadow(
+                            color: AppColors.accentPrimary.withValues(alpha: 0.35),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: TextField(
+                  controller: controller,
+                  obscureText: obscureText,
+                  keyboardType: keyboardType,
+                  textInputAction: textInputAction,
+                  onSubmitted: onSubmitted,
+                  onTap: () {
+                    SystemChannels.textInput.invokeMethod('TextInput.show');
+                  },
+                  style: AppTypography.mono(fontSize: 12, color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: hintText,
+                    hintStyle: AppTypography.mono(fontSize: 12, color: AppColors.textMuted.withValues(alpha: 0.5)),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                    prefixIcon: Icon(
+                      prefixIcon,
+                      size: 16,
+                      color: isFocused ? AppColors.accentPrimary : AppColors.textMuted,
+                    ),
+                    suffixIcon: suffixIcon,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRememberMeCheckbox() {
+    return AnimatedBuilder(
+      animation: _rememberFocusNode,
+      builder: (context, _) {
+        final isFocused = _rememberFocusNode.hasFocus;
+
+        return Focus(
+          focusNode: _rememberFocusNode,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent) {
+              final key = event.logicalKey;
+              if (key == LogicalKeyboardKey.select ||
+                  key == LogicalKeyboardKey.enter ||
+                  key == LogicalKeyboardKey.numpadEnter ||
+                  key == LogicalKeyboardKey.space ||
+                  key == LogicalKeyboardKey.gameButtonA) {
+                setState(() => _rememberMe = !_rememberMe);
+                return KeyEventResult.handled;
+              }
+            }
+            return KeyEventResult.ignored;
+          },
+          child: InkWell(
             onTap: () => setState(() => _rememberMe = !_rememberMe),
             borderRadius: BorderRadius.circular(6),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                border: isFocused ? Border.all(color: AppColors.accentCyan, width: 1.5) : null,
+                color: isFocused ? AppColors.surfaceHover : Colors.transparent,
+              ),
               child: Row(
                 children: [
                   SizedBox(
-                    width: 22,
-                    height: 22,
+                    width: 18,
+                    height: 18,
                     child: Checkbox(
                       value: _rememberMe,
                       activeColor: AppColors.accentPrimary,
@@ -312,25 +777,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       onChanged: (val) => setState(() => _rememberMe = val ?? true),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Text(
-                    'LEMBRAR DADOS DE ACESSO.',
-                    style: AppTypography.mono(fontSize: 11, color: AppColors.textPrimary),
+                    context.tr('auth.remember_me'),
+                    style: AppTypography.mono(
+                      fontSize: 10,
+                      color: isFocused ? AppColors.accentCyan : AppColors.textPrimary,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-
-          const SizedBox(height: 20),
-          BrutalistButton(
-            label: 'CONECTAR AO SERVIDOR.',
-            icon: Icons.login_rounded,
-            isLoading: auth.status == AuthStatus.authenticating,
-            onPressed: _submit,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

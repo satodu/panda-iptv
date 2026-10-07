@@ -12,6 +12,7 @@ class BrutalistButton extends StatefulWidget {
   final IconData? icon;
   final bool isSecondary;
   final bool autofocus;
+  final bool autoScrollOnFocus;
 
   const BrutalistButton({
     super.key,
@@ -21,6 +22,7 @@ class BrutalistButton extends StatefulWidget {
     this.icon,
     this.isSecondary = false,
     this.autofocus = false,
+    this.autoScrollOnFocus = false,
   });
 
   @override
@@ -58,7 +60,7 @@ class _BrutalistButtonState extends State<BrutalistButton> {
       mouseCursor: isInteractive ? SystemMouseCursors.click : SystemMouseCursors.basic,
       onShowFocusHighlight: (focused) {
         setState(() => _isFocused = focused);
-        if (focused && mounted) {
+        if (focused && mounted && widget.autoScrollOnFocus) {
           Scrollable.ensureVisible(
             context,
             alignment: 0.5,
