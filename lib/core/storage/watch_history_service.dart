@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'full_watch_history_service.dart';
 import 'watch_history_item.dart';
+import 'watched_service.dart';
 
 class WatchHistoryService {
   static const String _storageKey = 'panda_watch_history_v1';
@@ -115,8 +117,24 @@ class WatchHistoryService {
       }
     }
 
-    // Se assistiu mais de 93% do vídeo, considera finalizado e remove
+    final newItem = WatchHistoryItem(
+      id: id,
+      title: title,
+      subtitle: subtitle,
+      streamUrl: streamUrl,
+      cover: finalCover,
+      positionMs: positionMs,
+      durationMs: durationMs,
+      updatedAt: DateTime.now(),
+      type: type,
+    );
+
+    // Registra sempre no Histórico Completo de visualizações
+    await FullWatchHistoryService.recordItem(newItem);
+
+    // Se assistiu mais de 93% do vídeo, considera finalizado, marca como visto e remove de Continuar Assistindo
     if (durationMs > 0 && (positionMs / durationMs) >= 0.93) {
+      await WatchedService.markAsWatched(id);
       items.removeWhere((item) {
         if (item.id == id) return true;
         if (isSeries && item.type == 'series' && _seriesKey(item.id, item.title) == targetSeriesKey) {
@@ -129,18 +147,6 @@ class WatchHistoryService {
       historyNotifier.value = List.unmodifiable(items);
       return;
     }
-
-    final newItem = WatchHistoryItem(
-      id: id,
-      title: title,
-      subtitle: subtitle,
-      streamUrl: streamUrl,
-      cover: finalCover,
-      positionMs: positionMs,
-      durationMs: durationMs,
-      updatedAt: DateTime.now(),
-      type: type,
-    );
 
     // Remove versão anterior se já existia:
     // Para séries, remove qualquer outro episódio da mesma série (garante que apenas o último visto permaneça)

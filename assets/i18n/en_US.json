@@ -136,5 +136,27 @@
     "fav_removed": "CHANNEL REMOVED FROM FAVORITES.",
     "favorite_tooltip": "Favorite Channel",
     "unfavorite_tooltip": "Remove from Favorites"
+  },
+  "history": {
+    "title": "WATCH HISTORY.",
+    "subtitle": "Recently watched movies and series.",
+    "badge": "MOVIES & SERIES",
+    "tooltip": "Watch History",
+    "clear_all": "CLEAR ALL.",
+    "clear_confirm_title": "CLEAR HISTORY.",
+    "clear_confirm_desc": "Are you sure you want to delete all watch history?",
+    "confirm_delete": "CONFIRM.",
+    "empty": "NO WATCH HISTORY.",
+    "empty_desc": "Movies and series you watch will appear here.",
+    "tab_all": "ALL",
+    "tab_movies": "MOVIES",
+    "tab_series": "SERIES",
+    "watched_badge": "WATCHED",
+    "in_progress_badge": "IN PROGRESS",
+    "resume_button": "RESUME.",
+    "watch_button": "PLAY.",
+    "view_series_button": "VIEW SERIES.",
+    "delete_button": "REMOVE.",
+    "item_deleted": "ITEM REMOVED FROM HISTORY."
   }
 }

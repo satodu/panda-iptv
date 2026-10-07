@@ -136,5 +136,27 @@
     "fav_removed": "CANAL ELIMINADO DE FAVORITOS.",
     "favorite_tooltip": "Favorito Canal",
     "unfavorite_tooltip": "Eliminar de Favoritos"
+  },
+  "history": {
+    "title": "HISTORIAL.",
+    "subtitle": "Películas y series vistas recientemente.",
+    "badge": "PELÍCULAS Y SERIES",
+    "tooltip": "Historial de Medios",
+    "clear_all": "BORRAR TODO.",
+    "clear_confirm_title": "BORRAR HISTORIAL.",
+    "clear_confirm_desc": "¿Estás seguro de que deseas borrar todo el historial?",
+    "confirm_delete": "CONFIRMAR.",
+    "empty": "SIN HISTORIAL.",
+    "empty_desc": "Las películas y series que veas aparecerán aquí.",
+    "tab_all": "TODOS",
+    "tab_movies": "PELÍCULAS",
+    "tab_series": "SERIES",
+    "watched_badge": "VISTO",
+    "in_progress_badge": "EN CURSO",
+    "resume_button": "CONTINUAR.",
+    "watch_button": "REPRODUCIR.",
+    "view_series_button": "VER SERIE.",
+    "delete_button": "ELIMINAR.",
+    "item_deleted": "ELEMENTO ELIMINADO DEL HISTORIAL."
   }
 }

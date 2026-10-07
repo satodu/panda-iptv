@@ -32,6 +32,37 @@ class WatchHistoryItem {
     return (remainingMs / 60000).ceil();
   }
 
+  int? get seriesId {
+    if (type == 'series') {
+      final parts = id.split('_');
+      if (parts.length >= 2) {
+        return int.tryParse(parts[1]);
+      }
+    }
+    return null;
+  }
+
+  int? get episodeId {
+    if (type == 'series') {
+      final parts = id.split('_');
+      if (parts.length >= 3) {
+        return int.tryParse(parts[2]);
+      }
+    }
+    return null;
+  }
+
+  int? get vodStreamId {
+    if (type == 'movie') {
+      final parts = id.split('_');
+      if (parts.length >= 2) {
+        return int.tryParse(parts[1]);
+      }
+      return int.tryParse(id);
+    }
+    return null;
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

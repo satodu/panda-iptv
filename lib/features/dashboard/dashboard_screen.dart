@@ -8,6 +8,8 @@ import '../../core/storage/recent_channel_item.dart';
 import '../../core/storage/recent_channels_service.dart';
 import '../../core/storage/watch_history_item.dart';
 import '../../core/storage/watch_history_service.dart';
+import '../../core/storage/full_watch_history_service.dart';
+import '../../core/storage/watched_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/bento_card.dart';
@@ -17,6 +19,7 @@ import '../../core/widgets/hanko_badge.dart';
 import '../../core/widgets/tech_crosses.dart';
 import '../auth/presentation/auth_provider.dart';
 import '../favorites/presentation/favorites_screen.dart';
+import '../history/presentation/watch_history_screen.dart';
 import '../live/presentation/live_screen.dart';
 import '../player/presentation/video_player_screen.dart';
 import '../series/presentation/series_screen.dart';
@@ -40,6 +43,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     WatchHistoryService.loadHistory();
+    FullWatchHistoryService.loadHistory();
+    WatchedService.loadWatched();
     RecentChannelsService.loadChannels();
     FavoritesService.loadFavorites();
     _checkForUpdates();
@@ -143,11 +148,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _buildHeroBanner(context, isNarrow),
                     const SizedBox(height: 24),
 
-                    // Continuar Assistindo (se houver histórico)
+                    // Continuar Assistindo (se houver histórico e não estiver concluído/visto)
                     ValueListenableBuilder<List<WatchHistoryItem>>(
                       valueListenable: WatchHistoryService.historyNotifier,
                       builder: (context, historyItems, _) {
-                        return _buildContinueWatchingSection(context, historyItems);
+                        return ValueListenableBuilder<Set<String>>(
+                          valueListenable: WatchedService.watchedNotifier,
+                          builder: (context, watchedSet, _) {
+                            final continueItems = historyItems.where((item) {
+                              final isWatched = watchedSet.contains(item.id);
+                              final isFinished = item.durationMs > 0 &&
+                                  (item.positionMs / item.durationMs) >= 0.93;
+                              return !isWatched && !isFinished;
+                            }).toList();
+                            return _buildContinueWatchingSection(context, continueItems);
+                          },
+                        );
                       },
                     ),
 
@@ -243,21 +259,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 8),
           ],
 
+          // Botão Histórico (Filmes e Séries)
+          _FocusableTopBarIconButton(
+            tooltip: context.tr('history.tooltip'),
+            icon: Icons.history_rounded,
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const WatchHistoryScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 6),
+
           // Botão Configurações
-          IconButton(
+          _FocusableTopBarIconButton(
             tooltip: 'Configurações',
-            icon: const Icon(Icons.settings_outlined, size: 20, color: AppColors.textPrimary),
+            icon: Icons.settings_outlined,
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
             },
           ),
+          const SizedBox(width: 6),
 
           // Botão Desconectar
-          IconButton(
-            tooltip: 'Desconectar',
-            icon: const Icon(Icons.power_settings_new_rounded, size: 20, color: AppColors.textMuted),
+          _FocusableTopBarIconButton(
+            tooltip: context.tr('dashboard.logout_tooltip'),
+            icon: Icons.power_settings_new_rounded,
+            color: AppColors.textMuted,
             onPressed: () => auth.logout(),
           ),
         ],
@@ -1134,3 +1164,79 @@ class _BentoItem {
     required this.onTap,
   });
 }
+
+class _FocusableTopBarIconButton extends StatefulWidget {
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+  final Color? color;
+
+  const _FocusableTopBarIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+    this.color,
+  });
+
+  @override
+  State<_FocusableTopBarIconButton> createState() => _FocusableTopBarIconButtonState();
+}
+
+class _FocusableTopBarIconButtonState extends State<_FocusableTopBarIconButton> {
+  bool _isFocused = false;
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = _isFocused || _isHovered;
+    final scale = _isFocused ? 1.15 : (_isHovered ? 1.05 : 1.0);
+
+    return FocusableActionDetector(
+      onShowFocusHighlight: (f) => setState(() => _isFocused = f),
+      onShowHoverHighlight: (h) => setState(() => _isHovered = h),
+      mouseCursor: SystemMouseCursors.click,
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onPressed(),
+        ),
+      },
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        child: Tooltip(
+          message: widget.tooltip,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            transform: Matrix4.diagonal3Values(scale, scale, 1.0),
+            transformAlignment: Alignment.center,
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: active ? AppColors.surfaceHover : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _isFocused ? AppColors.accentCyan : Colors.transparent,
+                width: 1.5,
+              ),
+              boxShadow: _isFocused
+                  ? [
+                      BoxShadow(
+                        color: AppColors.accentCyan.withValues(alpha: 0.45),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Icon(
+              widget.icon,
+              size: 20,
+              color: _isFocused
+                  ? AppColors.accentCyan
+                  : (widget.color ?? (active ? AppColors.accentPrimary : AppColors.textPrimary)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

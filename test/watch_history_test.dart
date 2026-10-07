@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:panda_iptv/core/storage/full_watch_history_service.dart';
 import 'package:panda_iptv/core/storage/watch_history_service.dart';
+import 'package:panda_iptv/core/storage/watched_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -8,6 +10,8 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     await WatchHistoryService.clearHistory();
+    await FullWatchHistoryService.clearHistory();
+    await WatchedService.clearWatched();
   });
 
   test('Series episodes are replaced by the most recent episode watched', () async {
@@ -166,5 +170,68 @@ void main() {
     expect(updated, isNotNull);
     expect(updated!.cover, equals('http://test/matrix.jpg'));
     expect(updated.positionMs, equals(35000));
+  });
+
+  test('Marking as watched removes item from Continue Watching', () async {
+    await WatchHistoryService.saveProgress(
+      id: 'vod_test_123',
+      title: 'Gladiador',
+      streamUrl: 'http://test/gladiator.mp4',
+      positionMs: 30000,
+      durationMs: 7200000,
+      type: 'movie',
+    );
+
+    var continueList = await WatchHistoryService.loadHistory();
+    expect(continueList.length, equals(1));
+
+    // Marca como visto via WatchedService
+    await WatchedService.markAsWatched('vod_test_123');
+
+    continueList = await WatchHistoryService.loadHistory();
+    // Deve ter sido removido imediatamente de Continuar Assistindo
+    expect(continueList.isEmpty, isTrue);
+  });
+
+  test('FullWatchHistoryService preserves all watched items and supports deletion', () async {
+    // Salva filme e série
+    await WatchHistoryService.saveProgress(
+      id: 'vod_1',
+      title: 'Duna 2',
+      streamUrl: 'http://test/dune.mp4',
+      positionMs: 40000,
+      durationMs: 7200000,
+      type: 'movie',
+    );
+    await WatchHistoryService.saveProgress(
+      id: 'series_5_1',
+      title: 'Succession',
+      subtitle: 'TEMP 1 // EP 1',
+      streamUrl: 'http://test/succ.mp4',
+      positionMs: 50000,
+      durationMs: 3600000,
+      type: 'series',
+    );
+
+    var fullHistory = await FullWatchHistoryService.loadHistory();
+    expect(fullHistory.length, equals(2));
+
+    // Marca o filme como visto (que o remove de Continuar Assistindo)
+    await WatchedService.markAsWatched('vod_1');
+
+    // Mas o histórico completo AINDA mantém o filme!
+    fullHistory = await FullWatchHistoryService.loadHistory();
+    expect(fullHistory.length, equals(2));
+
+    // Exclui item específico do histórico completo
+    await FullWatchHistoryService.removeItem('vod_1');
+    fullHistory = await FullWatchHistoryService.loadHistory();
+    expect(fullHistory.length, equals(1));
+    expect(fullHistory.first.title, equals('Succession'));
+
+    // Limpa todo o histórico
+    await FullWatchHistoryService.clearHistory();
+    fullHistory = await FullWatchHistoryService.loadHistory();
+    expect(fullHistory.isEmpty, isTrue);
   });
 }

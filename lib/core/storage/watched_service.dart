@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'watch_history_service.dart';
 
 /// Serviço de persistência para mídias e episódios já assistidos (Vistos)
 class WatchedService {
@@ -36,6 +37,8 @@ class WatchedService {
     if (set.add(id)) {
       await prefs.setStringList(_storageKey, set.toList());
       watchedNotifier.value = Set.unmodifiable(set);
+      // Remove imediatamente da fila de Continuar Assistindo
+      await WatchHistoryService.removeItem(id);
     }
   }
 
@@ -62,6 +65,8 @@ class WatchedService {
     } else {
       set.add(id);
       isNowWatched = true;
+      // Remove imediatamente da fila de Continuar Assistindo
+      await WatchHistoryService.removeItem(id);
     }
     await prefs.setStringList(_storageKey, set.toList());
     watchedNotifier.value = Set.unmodifiable(set);
