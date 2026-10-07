@@ -1,8 +1,8 @@
 # Maintainer: pandasato <sato.du@gmail.com>
 pkgname=panda-iptv-bin
 _pkgname=panda-iptv
-pkgver=0.0.8
-pkgrel=2
+pkgver=0.0.9
+pkgrel=1
 pkgdesc="Oriental Brutalist IPTV Player for Linux Desktop (MPV Accelerated)"
 arch=('x86_64')
 url="https://github.com/satodu/panda-iptv"
