@@ -39,6 +39,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
   List<TmdbMovie> _similarMovies = [];
   List<TmdbActor> _cast = [];
   bool _loadingTmdb = false;
+  String? _movieDuration;
 
   @override
   void initState() {
@@ -82,6 +83,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
     if (mounted) {
       setState(() {
         _detail = detail;
+        _movieDuration = detail?.duration;
         _loading = false;
       });
       _loadTmdbData(detail);
@@ -103,6 +105,17 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
     if (tmdbId != null && tmdbId > 0 && mounted) {
       final similar = await TmdbService.getSimilarMovies(tmdbId);
       final cast = await TmdbService.getMovieCredits(tmdbId);
+
+      // Se a duração do provedor for nula ou inválida, busca do TMDB
+      if (_movieDuration == null || _movieDuration!.isEmpty) {
+        final runtime = await TmdbService.getMovieRuntime(tmdbId);
+        if (runtime != null && runtime > 0) {
+          final h = runtime ~/ 60;
+          final m = runtime % 60;
+          _movieDuration = h > 0 ? '${h}h ${m}m' : '${m}m';
+        }
+      }
+
       if (mounted) {
         setState(() {
           _similarMovies = similar;
@@ -350,8 +363,12 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                     borderColor: AppColors.accentPrimary,
                     textColor: AppColors.accentPrimary,
                   ),
-                if (_detail?.duration != null)
-                  HankoBadge(text: _detail!.duration!),
+                if (_movieDuration != null &&
+                    _movieDuration!.isNotEmpty &&
+                    _movieDuration != '0' &&
+                    _movieDuration != '00:00:00' &&
+                    _movieDuration != '0m')
+                  HankoBadge(text: _movieDuration!),
                 if (_detail?.releaseDate != null && _detail!.releaseDate!.isNotEmpty)
                   HankoBadge(text: _detail!.releaseDate!),
                 const HankoBadge(text: '1080P HD', borderColor: AppColors.accentCyan, textColor: AppColors.accentCyan),

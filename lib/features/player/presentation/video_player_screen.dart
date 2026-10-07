@@ -88,6 +88,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   double _lastVolume = 100.0;
   String _hwdecMode = 'no';
 
+  bool _isSilencedForResume = false;
+  double _volumeToRestore = 100.0;
+  BoxFit _videoFit = BoxFit.contain;
+
   StreamSubscription? _posSub;
   StreamSubscription? _durSub;
   StreamSubscription? _playSub;
@@ -222,7 +226,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     });
 
     _volSub = _player.stream.volume.listen((vol) {
-      if (mounted) setState(() => _volume = vol.clamp(0.0, 100.0));
+      if (mounted && !_isSilencedForResume) {
+        setState(() => _volume = vol.clamp(0.0, 100.0));
+      }
     });
 
     _errSub = _player.stream.error.listen((err) {
@@ -303,8 +309,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       try {
         await _player.seek(target);
         if (mounted) {
-          _player.setVolume(_volume);
+          _isSilencedForResume = false;
+          _player.setVolume(_volumeToRestore);
           setState(() {
+            _volume = _volumeToRestore;
             _hasResumed = true;
             _pendingResumePosition = null;
             _position = target;
@@ -315,8 +323,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       } catch (e) {
         debugPrint('[RESUME SEEK ERROR] $e');
         if (mounted) {
-          _player.setVolume(_volume);
+          _isSilencedForResume = false;
+          _player.setVolume(_volumeToRestore);
           setState(() {
+            _volume = _volumeToRestore;
             _hasResumed = true;
             _pendingResumePosition = null;
           });
@@ -333,6 +343,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       _pendingResumePosition = Duration(milliseconds: pos);
       _hasResumed = false;
       _isSeekingToResume = false;
+      _volumeToRestore = _volume > 0 ? _volume : (_lastVolume > 0 ? _lastVolume : 100.0);
+      _isSilencedForResume = true;
       // Silencia momentaneamente o volume para evitar tocar som do início antes de posicionar no ponto de retomada
       try {
         _player.setVolume(0);
@@ -341,14 +353,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       // Timeout de segurança: se após 6 segundos não conseguir dar seek, retoma normal para não travar
       Timer(const Duration(seconds: 6), () {
         if (mounted && !_hasResumed) {
+          _isSilencedForResume = false;
+          _player.setVolume(_volumeToRestore);
           setState(() {
+            _volume = _volumeToRestore;
             _hasResumed = true;
             _pendingResumePosition = null;
           });
-          _player.setVolume(_volume);
         }
       });
     } else {
+      _isSilencedForResume = false;
       _pendingResumePosition = null;
       _hasResumed = true;
       _isSeekingToResume = false;
@@ -521,10 +536,30 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     }
   }
 
+  void _toggleVideoFit() {
+    setState(() {
+      if (_videoFit == BoxFit.contain) {
+        _videoFit = BoxFit.cover;
+        _showHud('TELA: EXPANDIDO / ZOOM (SEM BORDAS)');
+      } else if (_videoFit == BoxFit.cover) {
+        _videoFit = BoxFit.fill;
+        _showHud('TELA: ESTICADO TOTAL');
+      } else {
+        _videoFit = BoxFit.contain;
+        _showHud('TELA: ORIGINAL (16:9)');
+      }
+      _showControls = true;
+    });
+    _startHideTimer();
+  }
+
   void _setVolume(double newVol) {
     final clamped = newVol.clamp(0.0, 100.0);
     _player.setVolume(clamped);
-    setState(() => _volume = clamped);
+    setState(() {
+      _volume = clamped;
+      _showControls = true;
+    });
     if (clamped > 0) {
       _lastVolume = clamped;
       _lastSavedVolume = clamped;
@@ -538,7 +573,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (_volume > 0) {
       _lastVolume = _volume;
       _player.setVolume(0);
-      setState(() => _volume = 0);
+      setState(() {
+        _volume = 0;
+        _showControls = true;
+      });
       _showHud(context.tr('player.muted'));
     } else {
       final restore = _lastVolume > 0 ? _lastVolume : 80.0;
@@ -564,6 +602,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       _player.play();
       _showHud('REPRODUZINDO.');
     }
+    setState(() => _showControls = true);
     _startHideTimer();
   }
 
@@ -571,12 +610,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _saveCurrentProgress();
     _player.pause();
     _showHud('PAUSADO.');
+    setState(() => _showControls = true);
     _startHideTimer();
   }
 
   void _playPlayback() {
     _player.play();
     _showHud('REPRODUZINDO.');
+    setState(() => _showControls = true);
     _startHideTimer();
   }
 
@@ -586,6 +627,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _player.seek(finalDuration);
     _position = finalDuration;
     _saveCurrentProgress();
+    setState(() => _showControls = true);
     _startHideTimer();
   }
 
@@ -656,7 +698,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                   key == LogicalKeyboardKey.numpadEnter ||
                   key == LogicalKeyboardKey.gameButtonA ||
                   key == LogicalKeyboardKey.mediaPlayPause) {
-                _togglePlayPause();
+                if (!_showControls) {
+                  setState(() => _showControls = true);
+                  _startHideTimer();
+                } else {
+                  _togglePlayPause();
+                }
                 return KeyEventResult.handled;
               } else if (key == LogicalKeyboardKey.mediaPlay) {
                 _playPlayback();
@@ -666,13 +713,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 return KeyEventResult.handled;
               } else if (key == LogicalKeyboardKey.arrowRight ||
                   key == LogicalKeyboardKey.mediaFastForward) {
-                _seekTo(_position + const Duration(seconds: 10));
-                _showHud('+10s');
+                final newPos = _position + const Duration(seconds: 10);
+                _seekTo(newPos);
+                _showHud('+10s [ ${_formatDuration(newPos)} ]');
                 return KeyEventResult.handled;
               } else if (key == LogicalKeyboardKey.arrowLeft ||
                   key == LogicalKeyboardKey.mediaRewind) {
-                _seekTo(_position - const Duration(seconds: 10));
-                _showHud('-10s');
+                final newPos = _position > const Duration(seconds: 10)
+                    ? _position - const Duration(seconds: 10)
+                    : Duration.zero;
+                _seekTo(newPos);
+                _showHud('-10s [ ${_formatDuration(newPos)} ]');
+                return KeyEventResult.handled;
+              } else if (key == LogicalKeyboardKey.keyA ||
+                  key == LogicalKeyboardKey.keyF) {
+                _toggleVideoFit();
                 return KeyEventResult.handled;
               } else if (key == LogicalKeyboardKey.keyN ||
                   key == LogicalKeyboardKey.mediaTrackNext) {
@@ -729,7 +784,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                     controller: _controller,
                     controls: NoVideoControls,
                     fill: Colors.black,
-                    fit: BoxFit.contain,
+                    fit: _videoFit,
                   ),
                 ),
 
@@ -1267,6 +1322,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                                         Text(
                                           '${_volume.toInt()}%',
                                           style: AppTypography.mono(fontSize: isNarrow ? 10 : 11, color: AppColors.textMuted),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        // Botão de Ajuste de Tela (Eliminar Bordas Laterais / Notch)
+                                        IconButton(
+                                          tooltip: 'Ajuste de Tela (A): Original / Zoom / Esticado',
+                                          icon: Icon(
+                                            _videoFit == BoxFit.cover
+                                                ? Icons.fullscreen_rounded
+                                                : (_videoFit == BoxFit.fill
+                                                    ? Icons.fit_screen_rounded
+                                                    : Icons.aspect_ratio_rounded),
+                                            size: 20,
+                                            color: _videoFit != BoxFit.contain ? AppColors.accentCyan : AppColors.textPrimary,
+                                          ),
+                                          onPressed: _toggleVideoFit,
                                         ),
                                       ],
                                     ),

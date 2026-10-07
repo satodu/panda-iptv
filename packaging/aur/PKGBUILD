@@ -1,7 +1,7 @@
 # Maintainer: retro_panda <https://ko-fi.com/retro_panda>
 pkgname=panda-iptv-bin
 _pkgname=panda-iptv
-pkgver=0.0.7
+pkgver=0.0.8
 pkgrel=1
 pkgdesc="Oriental Brutalist IPTV Player for Linux Desktop (MPV Accelerated)"
 arch=('x86_64')
@@ -10,7 +10,7 @@ license=('custom')
 depends=('mpv' 'gtk3' 'glibc')
 provides=('panda-iptv')
 conflicts=('panda-iptv')
-source=("https://github.com/satodu/panda-iptv/releases/download/v0.0.6/panda-iptv-linux-x64.tar.gz"
+source=("https://github.com/satodu/panda-iptv/releases/download/v0.0.8/panda-iptv-linux-x64.tar.gz"
         "panda-iptv.desktop")
 sha256sums=('SKIP'
             'SKIP')

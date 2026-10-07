@@ -134,6 +134,28 @@ class TmdbService {
     return null;
   }
 
+  /// Busca a duração oficial em minutos de um filme no TMDB
+  static Future<int?> getMovieRuntime(int movieId) async {
+    if (!hasKey) return null;
+    try {
+      final uri = Uri.parse('$_baseUrl/movie/$movieId').replace(queryParameters: {
+        'api_key': apiKey,
+        'language': 'pt-BR',
+      });
+      final res = await http.get(uri).timeout(const Duration(seconds: 6));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final runtime = data['runtime'] as int?;
+        if (runtime != null && runtime > 0) {
+          return runtime;
+        }
+      }
+    } catch (e) {
+      debugPrint('[TMDB RUNTIME ERROR] $e');
+    }
+    return null;
+  }
+
   /// Busca o ID da série no TMDB a partir do título e ano
   static Future<int?> searchTvId(String title, {String? year}) async {
     if (!hasKey) return null;

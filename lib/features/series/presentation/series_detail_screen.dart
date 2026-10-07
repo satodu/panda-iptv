@@ -246,10 +246,10 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 SizedBox(
-                                  width: 240,
+                                  width: 140,
                                   child: _buildPoster(cover),
                                 ),
-                                const SizedBox(width: 32),
+                                const SizedBox(width: 20),
                                 Expanded(
                                   child: _buildInfoSection(title, rating, plot, isNarrow),
                                 ),
@@ -271,16 +271,16 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                       ),
                                     ),
                                   ),
-                                const SizedBox(height: 20),
+                                const SizedBox(height: 16),
                                 _buildInfoSection(title, rating, plot, isNarrow),
                               ],
                             ),
 
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 16),
 
                           // Tabs de Conteúdo: Episódios vs Títulos Semelhantes
                           _buildTabsHeader(isNarrow),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
 
                           if (_activeTab == 0)
                             _buildSeasonsAndEpisodes()
@@ -344,44 +344,48 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
         const SizedBox(height: 14),
         Text(
           title,
-          style: AppTypography.displayLarge().copyWith(fontSize: isNarrow ? 22 : 28),
+          style: AppTypography.displayLarge().copyWith(fontSize: isNarrow ? 18 : 22),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
 
         if (_detail?.genre != null && _detail!.genre!.isNotEmpty) ...[
           Text(
             _detail!.genre!.toUpperCase(),
-            style: AppTypography.mono(fontSize: 12, color: AppColors.accentCyan),
+            style: AppTypography.mono(fontSize: 11, color: AppColors.accentCyan),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
         ],
 
         Text(
           plot,
-          style: AppTypography.body(color: AppColors.textPrimary).copyWith(height: 1.5),
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: AppTypography.body(color: AppColors.textPrimary).copyWith(fontSize: 12, height: 1.4),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
 
         if (_detail?.cast != null && _detail!.cast!.isNotEmpty) ...[
           Text(
             'ELENCO: ${_detail!.cast}',
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTypography.mono(fontSize: 12, color: AppColors.textMuted),
+            style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
         ],
         OutlinedButton.icon(
           onPressed: _toggleFavorite,
           icon: Icon(
             _isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
             color: _isFavorite ? AppColors.statusLive : AppColors.textPrimary,
-            size: 18,
+            size: 16,
           ),
           label: Text(
             _isFavorite ? 'SALVO NOS FAVORITOS.' : 'ADICIONAR AOS FAVORITOS.',
             style: AppTypography.mono(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
               color: _isFavorite ? AppColors.statusLive : AppColors.textPrimary,
             ),
@@ -391,7 +395,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
               color: _isFavorite ? AppColors.statusLive : AppColors.borderHairline,
               width: 1,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
@@ -444,28 +448,12 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
               final season = _detail!.seasonNumbers[index];
               final isSelected = season == _selectedSeason;
 
-              return InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () {
+              return _FocusableSeasonChip(
+                season: season,
+                isSelected: isSelected,
+                onSelected: () {
                   setState(() => _selectedSeason = season);
                 },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.accentPrimary : AppColors.surfaceCard,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSelected ? AppColors.accentPrimary : AppColors.borderHairline,
-                    ),
-                  ),
-                  child: Text(
-                    'TEMPORADA $season',
-                    style: AppTypography.mono(
-                      fontSize: 11,
-                      color: isSelected ? Colors.white : AppColors.textPrimary,
-                    ),
-                  ),
-                ),
               );
             },
           ),
@@ -552,11 +540,16 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                   ],
                                 ],
                               ),
-                              if (ep.duration != null) ...[
+                              if (ep.duration != null &&
+                                  ep.duration!.isNotEmpty &&
+                                  ep.duration != '0' &&
+                                  ep.duration != '00:00:00' &&
+                                  ep.duration != '0:00' &&
+                                  ep.duration != '0m') ...[
                                 const SizedBox(height: 2),
                                 Text(
                                   '[ DURAÇÃO: ${ep.duration} ]',
-                                  style: AppTypography.mono(fontSize: 10, color: AppColors.textMuted),
+                                  style: AppTypography.mono(fontSize: 10, color: AppColors.accentCyan),
                                 ),
                               ],
                             ],
@@ -645,42 +638,12 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
     required VoidCallback onTap,
     bool isFullWidth = false,
   }) {
-    return InkWell(
+    return _FocusableTabButton(
+      title: title,
+      badge: badge,
+      isSelected: isSelected,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: isFullWidth ? double.infinity : null,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.accentPrimary.withValues(alpha: 0.15) : AppColors.surfaceCard,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? AppColors.accentPrimary : AppColors.borderHairline,
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
-          mainAxisAlignment: isFullWidth ? MainAxisAlignment.spaceBetween : MainAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: AppTypography.mono(
-                fontSize: 12,
-                color: isSelected ? AppColors.textPrimary : AppColors.textMuted,
-              ).copyWith(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500),
-            ),
-            if (badge != null) ...[
-              const SizedBox(width: 8),
-              HankoBadge(
-                text: badge,
-                borderColor: isSelected ? AppColors.accentPrimary : AppColors.borderHairline,
-                textColor: isSelected ? AppColors.accentPrimary : AppColors.textMuted,
-              ),
-            ],
-          ],
-        ),
-      ),
+      isFullWidth: isFullWidth,
     );
   }
 
@@ -1022,3 +985,193 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
     );
   }
 }
+
+class _FocusableSeasonChip extends StatefulWidget {
+  final String season;
+  final bool isSelected;
+  final VoidCallback onSelected;
+
+  const _FocusableSeasonChip({
+    required this.season,
+    required this.isSelected,
+    required this.onSelected,
+  });
+
+  @override
+  State<_FocusableSeasonChip> createState() => _FocusableSeasonChipState();
+}
+
+class _FocusableSeasonChipState extends State<_FocusableSeasonChip> {
+  bool _isFocused = false;
+  bool _isHovered = false;
+
+  void _onFocusChanged(bool focused) {
+    setState(() => _isFocused = focused);
+    if (focused && mounted) {
+      Scrollable.ensureVisible(
+        context,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = _isFocused ? 1.05 : (_isHovered ? 1.02 : 1.0);
+
+    return FocusableActionDetector(
+      onShowFocusHighlight: _onFocusChanged,
+      onShowHoverHighlight: (h) => setState(() => _isHovered = h),
+      mouseCursor: SystemMouseCursors.click,
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onSelected(),
+        ),
+      },
+      child: GestureDetector(
+        onTap: widget.onSelected,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          transform: Matrix4.diagonal3Values(scale, scale, 1.0),
+          transformAlignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: widget.isSelected
+                ? AppColors.accentPrimary
+                : (_isFocused ? AppColors.surfaceHover : AppColors.surfaceCard),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _isFocused
+                  ? AppColors.accentCyan
+                  : (widget.isSelected ? AppColors.accentPrimary : AppColors.borderHairline),
+              width: _isFocused ? 2.0 : 1.0,
+            ),
+            boxShadow: _isFocused
+                ? [
+                    BoxShadow(
+                      color: AppColors.accentCyan.withValues(alpha: 0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Text(
+            'TEMP ${widget.season}',
+            style: AppTypography.mono(
+              fontSize: 12,
+              color: widget.isSelected
+                  ? Colors.white
+                  : (_isFocused ? AppColors.accentCyan : AppColors.textPrimary),
+            ).copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FocusableTabButton extends StatefulWidget {
+  final String title;
+  final String? badge;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final bool isFullWidth;
+
+  const _FocusableTabButton({
+    required this.title,
+    this.badge,
+    required this.isSelected,
+    required this.onTap,
+    this.isFullWidth = false,
+  });
+
+  @override
+  State<_FocusableTabButton> createState() => _FocusableTabButtonState();
+}
+
+class _FocusableTabButtonState extends State<_FocusableTabButton> {
+  bool _isFocused = false;
+  bool _isHovered = false;
+
+  void _onFocusChanged(bool focused) {
+    setState(() => _isFocused = focused);
+    if (focused && mounted) {
+      Scrollable.ensureVisible(
+        context,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusableActionDetector(
+      onShowFocusHighlight: _onFocusChanged,
+      onShowHoverHighlight: (h) => setState(() => _isHovered = h),
+      mouseCursor: SystemMouseCursors.click,
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTap(),
+        ),
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: widget.isFullWidth ? double.infinity : null,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: widget.isSelected
+                ? AppColors.accentPrimary.withValues(alpha: 0.15)
+                : (_isFocused || _isHovered ? AppColors.surfaceHover : AppColors.surfaceCard),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _isFocused
+                  ? AppColors.accentCyan
+                  : (widget.isSelected ? AppColors.accentPrimary : AppColors.borderHairline),
+              width: _isFocused ? 2.0 : (widget.isSelected ? 1.5 : 1.0),
+            ),
+            boxShadow: _isFocused
+                ? [
+                    BoxShadow(
+                      color: AppColors.accentCyan.withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: widget.isFullWidth ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisAlignment: widget.isFullWidth ? MainAxisAlignment.spaceBetween : MainAxisAlignment.start,
+            children: [
+              Text(
+                widget.title,
+                style: AppTypography.mono(
+                  fontSize: 12,
+                  color: _isFocused
+                      ? AppColors.accentCyan
+                      : (widget.isSelected ? AppColors.textPrimary : AppColors.textMuted),
+                ).copyWith(fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.w500),
+              ),
+              if (widget.badge != null) ...[
+                const SizedBox(width: 8),
+                HankoBadge(
+                  text: widget.badge!,
+                  borderColor: widget.isSelected ? AppColors.accentPrimary : AppColors.borderHairline,
+                  textColor: widget.isSelected ? AppColors.accentPrimary : AppColors.textMuted,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

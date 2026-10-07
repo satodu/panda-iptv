@@ -55,6 +55,29 @@ class VodDetail {
       parsedTmdb = int.tryParse(rawTmdb.toString());
     }
 
+    String? cleanDuration;
+    final rawDurationSecs = info['duration_secs'] ?? movieData['duration_secs'];
+    if (rawDurationSecs != null) {
+      final secs = (rawDurationSecs as num).toInt();
+      if (secs > 60) {
+        final m = secs ~/ 60;
+        final h = m ~/ 60;
+        final remM = m % 60;
+        cleanDuration = h > 0 ? '${h}h ${remM}m' : '${m}m';
+      }
+    }
+    if (cleanDuration == null) {
+      final rawDur = info['duration']?.toString() ?? movieData['duration']?.toString();
+      if (rawDur != null &&
+          rawDur.trim().isNotEmpty &&
+          rawDur != '0' &&
+          rawDur != '00:00:00' &&
+          rawDur != '0:00' &&
+          rawDur != '0m') {
+        cleanDuration = rawDur.trim();
+      }
+    }
+
     return VodDetail(
       streamId: int.tryParse(movieData['stream_id']?.toString() ?? info['stream_id']?.toString() ?? '0') ?? 0,
       name: movieData['name']?.toString() ?? info['name']?.toString() ?? 'Sem título',
@@ -65,7 +88,7 @@ class VodDetail {
       cast: info['actors']?.toString() ?? info['cast']?.toString(),
       genre: info['genre']?.toString(),
       releaseDate: info['releasedate']?.toString() ?? info['release_date']?.toString(),
-      duration: info['duration']?.toString() ?? (info['duration_secs'] != null ? '${(info['duration_secs'] as num) ~/ 60}m' : null),
+      duration: cleanDuration,
       rating: parsedRating,
       containerExtension: movieData['container_extension']?.toString() ?? info['container_extension']?.toString() ?? 'mp4',
       youtubeTrailer: info['youtube_trailer']?.toString(),

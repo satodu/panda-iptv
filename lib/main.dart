@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:media_kit/media_kit.dart';
@@ -13,6 +14,19 @@ import 'features/dashboard/dashboard_screen.dart';
 import 'features/live/presentation/live_provider.dart';
 import 'features/series/presentation/series_provider.dart';
 import 'features/vod/presentation/vod_provider.dart';
+
+/// Permite arrastar listas horizontais e sliders com o mouse no PC/Linux Desktop
+class AppScrollBehavior extends MaterialScrollBehavior {
+  const AppScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
+}
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +52,7 @@ class PandaIptvApp extends StatelessWidget {
           return MaterialApp(
             title: 'Panda IPTV',
             debugShowCheckedModeBanner: false,
+            scrollBehavior: const AppScrollBehavior(),
             theme: AppTheme.darkTheme,
             locale: localeProv.locale,
             supportedLocales: AppLocalizations.supportedLocales,
