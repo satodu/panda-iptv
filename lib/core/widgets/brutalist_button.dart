@@ -13,6 +13,7 @@ class BrutalistButton extends StatefulWidget {
   final bool isSecondary;
   final bool autofocus;
   final bool autoScrollOnFocus;
+  final FocusNode? focusNode;
 
   const BrutalistButton({
     super.key,
@@ -23,6 +24,7 @@ class BrutalistButton extends StatefulWidget {
     this.isSecondary = false,
     this.autofocus = false,
     this.autoScrollOnFocus = false,
+    this.focusNode,
   });
 
   @override
@@ -55,6 +57,7 @@ class _BrutalistButtonState extends State<BrutalistButton> {
     final scale = _isFocused ? 1.04 : (_isHovered ? 1.02 : 1.0);
 
     return FocusableActionDetector(
+      focusNode: widget.focusNode,
       autofocus: widget.autofocus,
       enabled: isInteractive,
       mouseCursor: isInteractive ? SystemMouseCursors.click : SystemMouseCursors.basic,

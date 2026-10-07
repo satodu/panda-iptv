@@ -33,8 +33,8 @@ O Panda IPTV suporta nativamente o modo vertical (portrait) com interface adapta
 
 * **Download Direto do APK:**  
   👉 [Panda-IPTV.apk (Versão Mais Recente)](https://github.com/satodu/panda-iptv/releases/latest/download/Panda-IPTV.apk)
-* **Download da Versão v0.0.6:**  
-  👉 [Panda-IPTV-0.0.6.apk](https://github.com/satodu/panda-iptv/releases/download/v0.0.6/Panda-IPTV-0.0.6.apk)
+* **Download da Versão v0.0.7:**  
+  👉 [Panda-IPTV-0.0.7.apk](https://github.com/satodu/panda-iptv/releases/download/v0.0.7/Panda-IPTV-0.0.7.apk)
 
 ### Passo a Passo:
 1. Baixe o APK pelo link acima no seu smartphone ou tablet.
@@ -50,7 +50,7 @@ O aplicativo roda com aceleração nativa via `libmpv` e renderizador Impeller:
 
 ### Opção A: AppImage Portátil Universal (Recomendado)
 Baixe o arquivo na release:
-* 👉 [Panda-IPTV-0.0.6-x86_64.AppImage](https://github.com/satodu/panda-iptv/releases/download/v0.0.6/Panda-IPTV-0.0.6-x86_64.AppImage)
+* 👉 [Panda-IPTV-0.0.7-x86_64.AppImage](https://github.com/satodu/panda-iptv/releases/download/v0.0.7/Panda-IPTV-0.0.7-x86_64.AppImage)
 
 Execute no terminal:
 ```bash
@@ -67,7 +67,7 @@ chmod +x Panda-IPTV-*.AppImage
 ### Opção B: Tarball Portátil (.tar.gz)
 Sem necessidade de FUSE:
 ```bash
-tar -xzf panda-iptv-0.0.6-linux-x64.tar.gz
+tar -xzf panda-iptv-0.0.7-linux-x64.tar.gz
 ./bundle/panda_iptv
 ```
 
