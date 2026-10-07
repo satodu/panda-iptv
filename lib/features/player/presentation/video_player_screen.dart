@@ -252,7 +252,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
     _errSub = _player.stream.error.listen((err) {
       debugPrint('[PANDA MPV ERROR] $err');
+      final errLower = err.toLowerCase();
+      // Ignora avisos informativos / não fatais de demuxer e seek do MPV (especialmente em transmissões ao vivo)
+      if (errLower.contains('force-seekable') ||
+          errLower.contains('cannot seek') ||
+          errLower.contains('demuxer-seekable-cache') ||
+          errLower.contains('seekable')) {
+        return;
+      }
       if (mounted) {
+        if (_isPlaying) {
+          return;
+        }
         setState(() => _errorMessage = 'Erro ao carregar transmissão: $err');
       }
     });
@@ -318,6 +329,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   Future<void> _checkAndApplyResume() async {
+    if (_currentMediaType == 'live') return;
     if (_pendingResumePosition == null || _hasResumed || _isSeekingToResume) return;
 
     // Aguarda o player reportar duração válida e começar a reproduzir/emitir posição (> 0)
@@ -357,7 +369,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   Future<void> _initAndPlay({String? streamUrl, int? startPositionMs}) async {
-    final pos = startPositionMs ?? (streamUrl == null ? widget.initialPositionMs : null);
+    final pos = _currentMediaType == 'live'
+        ? null
+        : (startPositionMs ?? (streamUrl == null ? widget.initialPositionMs : null));
     if (pos != null && pos > 3000) {
       _pendingResumePosition = Duration(milliseconds: pos);
       _hasResumed = false;
@@ -395,7 +409,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         await platform.setProperty('hwdec', _hwdecMode);
         await platform.setProperty('user-agent', 'IPTVSmartersPro/3.1.5 (Linux; Android 12)');
         await platform.setProperty('cache', 'yes');
-        await platform.setProperty('demuxer-seekable-cache', 'yes');
+        await platform.setProperty('force-seekable', 'yes');
+        if (_currentMediaType == 'live') {
+          await platform.setProperty('demuxer-seekable-cache', 'no');
+        } else {
+          await platform.setProperty('demuxer-seekable-cache', 'yes');
+        }
         await platform.setProperty('demuxer-max-bytes', '67108864'); // 64 MB
         await platform.setProperty('demuxer-max-back-bytes', '33554432'); // 32 MB
         await platform.setProperty('hr-seek', 'yes');
@@ -567,6 +586,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   void _handleDoubleTapSeek({required bool isForward}) {
+    if (_currentMediaType == 'live') return;
     _doubleTapTimer?.cancel();
     final delta = isForward ? 10 : -10;
     if (isForward && _doubleTapSeekAccumulated < 0) {
@@ -598,6 +618,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   void _startHoldSeek(bool isForward) {
+    if (_currentMediaType == 'live') return;
     _holdSeekTimer?.cancel();
     _holdSeekTickTimer?.cancel();
     _isHoldingSeek = false;
@@ -720,6 +741,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
           key == LogicalKeyboardKey.mediaRewind;
 
       if (isSeekKey) {
+        if (_currentMediaType == 'live') {
+          return KeyEventResult.ignored;
+        }
         final isMediaSeek = key == LogicalKeyboardKey.mediaFastForward || key == LogicalKeyboardKey.mediaRewind;
         final isNavigatingButtons = _showControls && !_sliderFocusNode.hasFocus && !isMediaSeek;
 
@@ -847,6 +871,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   void _seekTo(Duration target) {
+    if (_currentMediaType == 'live') return;
     final clampedMs = target.inMilliseconds.clamp(0, _duration.inMilliseconds > 0 ? _duration.inMilliseconds : 0);
     final finalDuration = Duration(milliseconds: clampedMs);
     _player.seek(finalDuration);
