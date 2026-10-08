@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/storage/favorite_item.dart';
 import '../../../core/storage/favorites_service.dart';
+import '../../../core/storage/watch_history_item.dart';
 import '../../../core/storage/watch_history_service.dart';
+import '../../../core/storage/full_watch_history_service.dart';
 import '../../../core/storage/watched_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -44,9 +46,18 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
   @override
   void initState() {
     super.initState();
+    WatchHistoryService.loadHistory();
+    FullWatchHistoryService.loadHistory();
     WatchedService.loadWatched();
     _loadDetail();
     _checkFavorite();
+  }
+
+  WatchHistoryItem? _getSavedMovieHistory() {
+    final mediaId = 'vod_${widget.item.streamId}';
+    final active = WatchHistoryService.getItem(mediaId);
+    if (active != null) return active;
+    return FullWatchHistoryService.getItem(mediaId);
   }
 
   void _checkFavorite() async {
@@ -128,7 +139,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
     }
   }
 
-  void _playMovie() {
+  void _playMovie({bool fromStart = false}) {
     final account = context.read<AuthProvider>().currentAccount;
     if (account == null) return;
 
@@ -137,8 +148,8 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
     final streamUrl = vodProvider.buildStreamUrl(account, widget.item.streamId, ext);
 
     final mediaId = 'vod_${widget.item.streamId}';
-    final saved = WatchHistoryService.getItem(mediaId);
-    final initialPos = (saved != null && saved.positionMs > 5000) ? saved.positionMs : null;
+    final saved = _getSavedMovieHistory();
+    final initialPos = (!fromStart && saved != null && saved.positionMs > 5000) ? saved.positionMs : null;
 
     bool isValidImg(String? s) {
       if (s == null) return false;
@@ -168,7 +179,11 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
           mediaType: 'movie',
         ),
       ),
-    ).then((_) => WatchHistoryService.loadHistory());
+    ).then((_) {
+      WatchHistoryService.loadHistory();
+      FullWatchHistoryService.loadHistory();
+      WatchedService.loadWatched();
+    });
   }
 
   @override
@@ -413,80 +428,206 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
               const SizedBox(height: 16),
             ],
 
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 10,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                SizedBox(
-                  width: isLandscape ? 220 : double.infinity,
-                  child: BrutalistButton(
-                    label: 'ASSISTIR AGORA.',
-                    icon: Icons.play_arrow_rounded,
-                    onPressed: _playMovie,
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    WatchedService.toggleWatched(mediaId);
-                    if (!isWatched) {
-                      AppToast.success(context, 'MARCADO COMO VISTO.');
-                    } else {
-                      AppToast.info(context, 'DESMARCADO COMO VISTO.');
+            // Banner Continuar Assistindo (se houver filme em andamento)
+            ValueListenableBuilder<List<WatchHistoryItem>>(
+              valueListenable: WatchHistoryService.historyNotifier,
+              builder: (context, _, __) {
+                return ValueListenableBuilder<List<WatchHistoryItem>>(
+                  valueListenable: FullWatchHistoryService.historyNotifier,
+                  builder: (context, _, __) {
+                    final savedItem = _getSavedMovieHistory();
+                    if (savedItem == null) return const SizedBox.shrink();
+                    final isWatched = WatchedService.isWatchedSync(mediaId);
+                    if (isWatched || savedItem.progress <= 0 || savedItem.positionMs <= 5000) {
+                      return const SizedBox.shrink();
                     }
+
+                    return _buildContinueWatchingBanner(savedItem, isNarrow);
                   },
-                  icon: Icon(
-                    isWatched ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
-                    color: isWatched ? AppColors.statusLive : AppColors.textPrimary,
-                    size: 18,
-                  ),
-                  label: Text(
-                    isWatched ? 'VISTO.' : 'MARCAR COMO VISTO.',
-                    style: AppTypography.mono(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isWatched ? AppColors.statusLive : AppColors.textPrimary,
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+            ValueListenableBuilder<List<WatchHistoryItem>>(
+              valueListenable: WatchHistoryService.historyNotifier,
+              builder: (context, _, __) {
+                final savedItem = _getSavedMovieHistory();
+                final isInProgress = savedItem != null &&
+                    !isWatched &&
+                    savedItem.progress > 0 &&
+                    savedItem.positionMs > 5000;
+
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: isLandscape ? 220 : double.infinity,
+                      child: BrutalistButton(
+                        label: isInProgress ? 'CONTINUAR FILME.' : 'ASSISTIR AGORA.',
+                        icon: Icons.play_arrow_rounded,
+                        onPressed: () => _playMovie(fromStart: false),
+                      ),
                     ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(
-                      color: isWatched ? AppColors.statusLive : AppColors.borderHairline,
-                      width: 1,
+                    if (isInProgress)
+                      OutlinedButton.icon(
+                        onPressed: () => _playMovie(fromStart: true),
+                        icon: const Icon(Icons.replay_rounded, size: 18, color: AppColors.textPrimary),
+                        label: Text(
+                          'DO INÍCIO.',
+                          style: AppTypography.mono(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.borderHairline, width: 1),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        WatchedService.toggleWatched(mediaId);
+                        if (!isWatched) {
+                          AppToast.success(context, 'MARCADO COMO VISTO.');
+                        } else {
+                          AppToast.info(context, 'DESMARCADO COMO VISTO.');
+                        }
+                      },
+                      icon: Icon(
+                        isWatched ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
+                        color: isWatched ? AppColors.statusLive : AppColors.textPrimary,
+                        size: 18,
+                      ),
+                      label: Text(
+                        isWatched ? 'VISTO.' : 'MARCAR COMO VISTO.',
+                        style: AppTypography.mono(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isWatched ? AppColors.statusLive : AppColors.textPrimary,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: isWatched ? AppColors.statusLive : AppColors.borderHairline,
+                          width: 1,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _toggleFavorite,
-                  icon: Icon(
-                    _isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
-                    color: _isFavorite ? AppColors.statusLive : AppColors.textPrimary,
-                    size: 18,
-                  ),
-                  label: Text(
-                    _isFavorite ? 'SALVO NOS FAVORITOS.' : 'FAVORITAR.',
-                    style: AppTypography.mono(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: _isFavorite ? AppColors.statusLive : AppColors.textPrimary,
+                    OutlinedButton.icon(
+                      onPressed: _toggleFavorite,
+                      icon: Icon(
+                        _isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+                        color: _isFavorite ? AppColors.statusLive : AppColors.textPrimary,
+                        size: 18,
+                      ),
+                      label: Text(
+                        _isFavorite ? 'SALVO NOS FAVORITOS.' : 'FAVORITAR.',
+                        style: AppTypography.mono(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _isFavorite ? AppColors.statusLive : AppColors.textPrimary,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: _isFavorite ? AppColors.statusLive : AppColors.borderHairline,
+                          width: 1,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(
-                      color: _isFavorite ? AppColors.statusLive : AppColors.borderHairline,
-                      width: 1,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildContinueWatchingBanner(WatchHistoryItem savedItem, bool isNarrow) {
+    final remainingText = savedItem.remainingMinutes > 0 ? '${savedItem.remainingMinutes}M RESTANTES' : null;
+    final progressPercent = (savedItem.progress * 100).toInt();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: BentoCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        borderRadius: 10,
+        backgroundColor: AppColors.surfaceHover,
+        onTap: () => _playMovie(fromStart: false),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.accentPrimary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.accentPrimary.withValues(alpha: 0.4),
+                  width: 1,
+                ),
+              ),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                color: AppColors.accentPrimary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (remainingText != null)
+                        Text(
+                          remainingText,
+                          style: AppTypography.mono(fontSize: 10, color: AppColors.textMuted),
+                        )
+                      else
+                        const SizedBox.shrink(),
+                      Text(
+                        '[ $progressPercent% ]',
+                        style: AppTypography.mono(fontSize: 10, color: AppColors.accentCyan),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'CONTINUAR DE ONDE PAROU.',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.sectionTitle(fontSize: isNarrow ? 12 : 13).copyWith(height: 1.25),
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: savedItem.progress,
+                      minHeight: 3,
+                      backgroundColor: AppColors.surfaceCard,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
