@@ -517,13 +517,7 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
     return BentoCard(
       padding: const EdgeInsets.all(12),
       borderRadius: 12,
-      onTap: () {
-        if (isSeries) {
-          _onOpenSeriesDetails(item);
-        } else {
-          _onPlayItem(item);
-        }
-      },
+      onTap: () => _onPlayItem(item),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

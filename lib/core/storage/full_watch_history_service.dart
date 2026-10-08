@@ -58,6 +58,14 @@ class FullWatchHistoryService {
     return items;
   }
 
+  /// Obtém um item específico do histórico completo pelo ID
+  static WatchHistoryItem? getItem(String id) {
+    for (final item in historyNotifier.value) {
+      if (item.id == id) return item;
+    }
+    return null;
+  }
+
   /// Registra ou atualiza um item no histórico completo
   static Future<void> recordItem(WatchHistoryItem item) async {
     final prefs = await SharedPreferences.getInstance();

@@ -5,7 +5,9 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../core/services/tmdb_service.dart';
 import '../../../core/storage/favorite_item.dart';
 import '../../../core/storage/favorites_service.dart';
+import '../../../core/storage/watch_history_item.dart';
 import '../../../core/storage/watch_history_service.dart';
+import '../../../core/storage/full_watch_history_service.dart';
 import '../../../core/storage/watched_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -44,9 +46,11 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
   @override
   void initState() {
     super.initState();
+    WatchHistoryService.loadHistory();
+    FullWatchHistoryService.loadHistory();
+    WatchedService.loadWatched();
     _loadDetail();
     _checkFavorite();
-    WatchedService.loadWatched();
   }
 
   void _checkFavorite() async {
@@ -75,6 +79,51 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
     }
   }
 
+  WatchHistoryItem? _getSavedSeriesHistory() {
+    final active = WatchHistoryService.historyNotifier.value
+        .where((h) => h.type == 'series' && h.seriesId == widget.item.seriesId)
+        .firstOrNull;
+    if (active != null) return active;
+    return FullWatchHistoryService.historyNotifier.value
+        .where((h) => h.type == 'series' && h.seriesId == widget.item.seriesId)
+        .firstOrNull;
+  }
+
+  void _resumeSavedHistory(WatchHistoryItem savedItem) {
+    if (_detail != null && savedItem.episodeId != null) {
+      final targetEpId = savedItem.episodeId.toString();
+      for (final entry in _detail!.episodesBySeason.entries) {
+        final ep = entry.value.where((e) => e.id == targetEpId).firstOrNull;
+        if (ep != null) {
+          setState(() => _selectedSeason = entry.key);
+          _playEpisode(ep);
+          return;
+        }
+      }
+    }
+
+    final account = context.read<AuthProvider>().currentAccount;
+    if (account == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VideoPlayerScreen(
+          title: widget.item.name,
+          subtitle: savedItem.subtitle,
+          streamUrl: savedItem.streamUrl,
+          mediaId: savedItem.id,
+          cover: savedItem.cover ?? widget.item.cover,
+          initialPositionMs: savedItem.positionMs > 5000 ? savedItem.positionMs : null,
+          mediaType: 'series',
+        ),
+      ),
+    ).then((_) {
+      WatchHistoryService.loadHistory();
+      FullWatchHistoryService.loadHistory();
+      WatchedService.loadWatched();
+    });
+  }
+
   Future<void> _loadDetail() async {
     final account = context.read<AuthProvider>().currentAccount;
     if (account == null) return;
@@ -85,7 +134,18 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
         _detail = detail;
         _loading = false;
         if (detail != null && detail.seasonNumbers.isNotEmpty) {
-          _selectedSeason = detail.seasonNumbers.first;
+          String? initialSeason;
+          final savedItem = _getSavedSeriesHistory();
+          if (savedItem != null && savedItem.episodeId != null) {
+            final targetEpId = savedItem.episodeId.toString();
+            for (final entry in detail.episodesBySeason.entries) {
+              if (entry.value.any((ep) => ep.id == targetEpId)) {
+                initialSeason = entry.key;
+                break;
+              }
+            }
+          }
+          _selectedSeason = initialSeason ?? detail.seasonNumbers.first;
         }
       });
       _loadTmdbData(detail);
@@ -158,7 +218,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
     );
 
     final mediaId = 'series_${widget.item.seriesId}_${episode.id}';
-    final saved = WatchHistoryService.getItem(mediaId);
+    final saved = WatchHistoryService.getItem(mediaId) ?? FullWatchHistoryService.getItem(mediaId);
     final initialPos = (saved != null && saved.positionMs > 5000) ? saved.positionMs : null;
 
     Navigator.of(context).push(
@@ -175,7 +235,11 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
           initialPlaylistIndex: currentIndex >= 0 ? currentIndex : 0,
         ),
       ),
-    ).then((_) => WatchHistoryService.loadHistory());
+    ).then((_) {
+      WatchHistoryService.loadHistory();
+      FullWatchHistoryService.loadHistory();
+      WatchedService.loadWatched();
+    });
   }
 
   @override
@@ -399,7 +463,110 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
+
+        // Banner Continuar Assistindo (se houver episódio em andamento)
+        ValueListenableBuilder<List<WatchHistoryItem>>(
+          valueListenable: WatchHistoryService.historyNotifier,
+          builder: (context, _, __) {
+            return ValueListenableBuilder<List<WatchHistoryItem>>(
+              valueListenable: FullWatchHistoryService.historyNotifier,
+              builder: (context, _, __) {
+                final savedItem = _getSavedSeriesHistory();
+                if (savedItem == null) return const SizedBox.shrink();
+                final isWatched = WatchedService.isWatchedSync(savedItem.id);
+                if (isWatched) return const SizedBox.shrink();
+
+                return _buildContinueWatchingBanner(savedItem, isNarrow);
+              },
+            );
+          },
+        ),
       ],
+    );
+  }
+
+  Widget _buildContinueWatchingBanner(WatchHistoryItem savedItem, bool isNarrow) {
+    final remainingText = savedItem.remainingMinutes > 0 ? '${savedItem.remainingMinutes}M RESTANTES' : null;
+    final progressPercent = (savedItem.progress * 100).toInt();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: BentoCard(
+        padding: const EdgeInsets.all(12),
+        borderRadius: 10,
+        backgroundColor: AppColors.surfaceHover,
+        onTap: () => _resumeSavedHistory(savedItem),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.accentPrimary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.accentPrimary.withValues(alpha: 0.4),
+                  width: 1,
+                ),
+              ),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                color: AppColors.accentPrimary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      HankoBadge(
+                        text: context.tr('series.continue_watching'),
+                        borderColor: AppColors.accentPrimary,
+                        textColor: AppColors.accentPrimary,
+                      ),
+                      if (remainingText != null) ...[
+                        const SizedBox(width: 6),
+                        HankoBadge(
+                          text: remainingText,
+                          borderColor: AppColors.borderHairline,
+                          textColor: AppColors.textMuted,
+                        ),
+                      ],
+                      const Spacer(),
+                      Text(
+                        '[ $progressPercent% ]',
+                        style: AppTypography.mono(fontSize: 10, color: AppColors.accentCyan),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    savedItem.subtitle != null && savedItem.subtitle!.isNotEmpty
+                        ? savedItem.subtitle!.toUpperCase()
+                        : savedItem.title.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.sectionTitle(fontSize: isNarrow ? 12 : 13),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: savedItem.progress,
+                      minHeight: 3,
+                      backgroundColor: AppColors.surfaceCard,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -483,6 +650,9 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                 valueListenable: WatchedService.watchedNotifier,
                 builder: (context, watchedSet, _) {
                   final isWatched = watchedSet.contains(epMediaId);
+                  final savedEp = WatchHistoryService.getItem(epMediaId) ??
+                      FullWatchHistoryService.getItem(epMediaId);
+                  final isInProgress = !isWatched && savedEp != null && savedEp.progress > 0;
 
                   return BentoCard(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -496,12 +666,16 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                           decoration: BoxDecoration(
                             color: isWatched
                                 ? AppColors.statusLive.withValues(alpha: 0.15)
-                                : AppColors.surfaceHover,
+                                : (isInProgress
+                                    ? AppColors.accentPrimary.withValues(alpha: 0.15)
+                                    : AppColors.surfaceHover),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
                               color: isWatched
                                   ? AppColors.statusLive.withValues(alpha: 0.5)
-                                  : AppColors.borderHairline,
+                                  : (isInProgress
+                                      ? AppColors.accentPrimary.withValues(alpha: 0.6)
+                                      : AppColors.borderHairline),
                             ),
                           ),
                           child: Text(
@@ -537,6 +711,13 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                       borderColor: AppColors.statusLive,
                                       textColor: AppColors.statusLive,
                                     ),
+                                  ] else if (isInProgress) ...[
+                                    const SizedBox(width: 8),
+                                    HankoBadge(
+                                      text: '${(savedEp.progress * 100).toInt()}%',
+                                      borderColor: AppColors.accentCyan,
+                                      textColor: AppColors.accentCyan,
+                                    ),
                                   ],
                                 ],
                               ),
@@ -550,6 +731,18 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                 Text(
                                   '[ DURAÇÃO: ${ep.duration} ]',
                                   style: AppTypography.mono(fontSize: 10, color: AppColors.accentCyan),
+                                ),
+                              ],
+                              if (isInProgress) ...[
+                                const SizedBox(height: 4),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: LinearProgressIndicator(
+                                    value: savedEp.progress,
+                                    minHeight: 2,
+                                    backgroundColor: AppColors.surfaceCard,
+                                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentPrimary),
+                                  ),
                                 ),
                               ],
                             ],

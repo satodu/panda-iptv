@@ -32,6 +32,10 @@ import '../vod/presentation/vod_provider.dart';
 import '../series/presentation/series_provider.dart';
 import '../live/presentation/live_provider.dart';
 
+class _ExitIntent extends Intent {
+  const _ExitIntent();
+}
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -123,56 +127,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Future<bool> _showExitConfirmationDialog() async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: AppColors.surfaceCard,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: AppColors.borderHairline),
-          ),
-          title: Row(
-            children: [
-              const Icon(Icons.exit_to_app_rounded, color: AppColors.accentPrimary, size: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  context.tr('dashboard.exit_title'),
-                  style: AppTypography.sectionTitle(fontSize: 16),
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            context.tr('dashboard.exit_message'),
-            style: AppTypography.mono(fontSize: 13, color: AppColors.textPrimary),
-          ),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          actions: [
-            BrutalistButton(
-              label: context.tr('dashboard.exit_cancel'),
-              isSecondary: true,
-              autofocus: true,
-              onPressed: () => Navigator.of(ctx).pop(false),
-            ),
-            const SizedBox(width: 8),
-            BrutalistButton(
-              label: context.tr('dashboard.exit_confirm'),
-              onPressed: () => Navigator.of(ctx).pop(true),
-            ),
-          ],
-        );
-      },
-    );
+  bool _isExitDialogOpen = false;
 
-    if (result == true) {
-      await SystemNavigator.pop();
-      return true;
+  Future<bool> _showExitConfirmationDialog() async {
+    if (_isExitDialogOpen) return false;
+    _isExitDialogOpen = true;
+
+    try {
+      final result = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) {
+          return PopScope(
+            canPop: true,
+            child: AlertDialog(
+              backgroundColor: AppColors.surfaceCard,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: AppColors.borderHairline),
+              ),
+              title: Row(
+                children: [
+                  const Icon(Icons.exit_to_app_rounded, color: AppColors.accentPrimary, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      context.tr('dashboard.exit_title'),
+                      style: AppTypography.sectionTitle(fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+              content: Text(
+                context.tr('dashboard.exit_message'),
+                style: AppTypography.mono(fontSize: 13, color: AppColors.textPrimary),
+              ),
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              actions: [
+                BrutalistButton(
+                  label: context.tr('dashboard.exit_cancel'),
+                  isSecondary: true,
+                  autofocus: true,
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                ),
+                const SizedBox(width: 8),
+                BrutalistButton(
+                  label: context.tr('dashboard.exit_confirm'),
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (result == true) {
+        await SystemNavigator.pop();
+        return true;
+      }
+      return false;
+    } finally {
+      _isExitDialogOpen = false;
     }
-    return false;
   }
 
   @override
@@ -183,21 +199,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     final isNarrow = MediaQuery.of(context).size.width < 600;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        _showExitConfirmationDialog();
+    return Shortcuts(
+      shortcuts: <ShortcutActivator, Intent>{
+        LogicalKeySet(LogicalKeyboardKey.escape): const _ExitIntent(),
       },
-      child: Focus(
-        onKeyEvent: (node, event) {
-          if (event is KeyDownEvent &&
-              (event.logicalKey == LogicalKeyboardKey.escape ||
-               event.logicalKey == LogicalKeyboardKey.goBack)) {
-            _showExitConfirmationDialog();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _ExitIntent: CallbackAction<_ExitIntent>(
+            onInvoke: (intent) => _showExitConfirmationDialog(),
+          ),
+        },
+        child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          _showExitConfirmationDialog();
         },
         child: Scaffold(
       backgroundColor: AppColors.canvas,
@@ -280,6 +296,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
+    ),
     ),
     ),
     );

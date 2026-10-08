@@ -234,4 +234,22 @@ void main() {
     fullHistory = await FullWatchHistoryService.loadHistory();
     expect(fullHistory.isEmpty, isTrue);
   });
+
+  test('FullWatchHistoryService.getItem retrieves correct item and series attributes', () async {
+    await WatchHistoryService.saveProgress(
+      id: 'series_42_7',
+      title: 'Dark',
+      subtitle: 'TEMP 2 // EP 3',
+      streamUrl: 'http://test/dark.mp4',
+      positionMs: 120000,
+      durationMs: 3600000,
+      type: 'series',
+    );
+
+    final item = FullWatchHistoryService.getItem('series_42_7');
+    expect(item, isNotNull);
+    expect(item!.seriesId, equals(42));
+    expect(item.episodeId, equals(7));
+    expect(item.positionMs, equals(120000));
+  });
 }

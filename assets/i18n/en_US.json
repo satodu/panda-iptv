@@ -82,7 +82,8 @@
     "episodes_tab": "EPISODES.",
     "similar_tab": "SIMILAR TITLES.",
     "similar_title": "RECOMMENDED SERIES.",
-    "no_similar": "NO SIMILAR SERIES FOUND ON TMDB."
+    "no_similar": "NO SIMILAR SERIES FOUND ON TMDB.",
+    "continue_watching": "CONTINUE WATCHING."
   },
   "player": {
     "decoder_sw": "SW DECODER [SAFE]",
