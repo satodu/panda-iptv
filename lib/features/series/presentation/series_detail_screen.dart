@@ -488,11 +488,14 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
   Widget _buildContinueWatchingBanner(WatchHistoryItem savedItem, bool isNarrow) {
     final remainingText = savedItem.remainingMinutes > 0 ? '${savedItem.remainingMinutes}M RESTANTES' : null;
     final progressPercent = (savedItem.progress * 100).toInt();
+    final displayText = (savedItem.subtitle != null && savedItem.subtitle!.isNotEmpty)
+        ? savedItem.subtitle!.toUpperCase()
+        : savedItem.title.toUpperCase();
 
     return Padding(
       padding: const EdgeInsets.only(top: 14),
       child: BentoCard(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         borderRadius: 10,
         backgroundColor: AppColors.surfaceHover,
         onTap: () => _resumeSavedHistory(savedItem),
@@ -521,37 +524,29 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      HankoBadge(
-                        text: context.tr('series.continue_watching'),
-                        borderColor: AppColors.accentPrimary,
-                        textColor: AppColors.accentPrimary,
-                      ),
-                      if (remainingText != null) ...[
-                        const SizedBox(width: 6),
-                        HankoBadge(
-                          text: remainingText,
-                          borderColor: AppColors.borderHairline,
-                          textColor: AppColors.textMuted,
-                        ),
-                      ],
-                      const Spacer(),
+                      if (remainingText != null)
+                        Text(
+                          remainingText,
+                          style: AppTypography.mono(fontSize: 10, color: AppColors.textMuted),
+                        )
+                      else
+                        const SizedBox.shrink(),
                       Text(
                         '[ $progressPercent% ]',
                         style: AppTypography.mono(fontSize: 10, color: AppColors.accentCyan),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 5),
                   Text(
-                    savedItem.subtitle != null && savedItem.subtitle!.isNotEmpty
-                        ? savedItem.subtitle!.toUpperCase()
-                        : savedItem.title.toUpperCase(),
-                    maxLines: 1,
+                    displayText,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTypography.sectionTitle(fontSize: isNarrow ? 12 : 13),
+                    style: AppTypography.sectionTitle(fontSize: isNarrow ? 12 : 13).copyWith(height: 1.25),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(2),
                     child: LinearProgressIndicator(
