@@ -187,6 +187,20 @@
       box-shadow: 0 0 28px rgba(10, 132, 255, 0.7);
     }
 
+    .nav-btn.kofi-nav {
+      color: #FF5E5B;
+      border-color: rgba(255, 94, 91, 0.35);
+      background: rgba(255, 94, 91, 0.08);
+      font-weight: 700;
+    }
+
+    .nav-btn.kofi-nav:hover {
+      background: rgba(255, 94, 91, 0.2);
+      border-color: #FF5E5B;
+      color: #fff;
+      box-shadow: 0 0 20px rgba(255, 94, 91, 0.45);
+    }
+
     /* Ícones SVG Geométricos Utilitários */
     .svg-icon {
       width: 18px;
@@ -830,6 +844,94 @@
       margin-bottom: 12px;
     }
 
+    /* Ko-fi Apoio Card */
+    .kofi-support-box {
+      background: var(--surface-card);
+      border: 1px solid rgba(255, 94, 91, 0.35);
+      border-radius: var(--radius-lg);
+      padding: 30px 34px;
+      margin-bottom: 45px;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 24px rgba(255, 94, 91, 0.12);
+      backdrop-filter: blur(16px);
+    }
+
+    .kofi-support-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: #FF5E5B;
+      box-shadow: 0 0 14px #FF5E5B;
+    }
+
+    .kofi-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+
+    .kofi-info {
+      max-width: 660px;
+    }
+
+    .kofi-info h3 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin: 10px 0 6px;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .kofi-info p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .hanko-seal.kofi-seal {
+      border-color: #FF5E5B;
+      color: #FF5E5B;
+      background: rgba(255, 94, 91, 0.1);
+    }
+
+    .action-btn.kofi-btn {
+      background: #FF5E5B;
+      color: #fff;
+      border-color: #FF5E5B;
+      box-shadow: 0 0 24px rgba(255, 94, 91, 0.45);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .action-btn.kofi-btn:hover {
+      background: #e64c49;
+      box-shadow: 0 0 35px rgba(255, 94, 91, 0.8);
+      transform: translateY(-2px);
+    }
+
+    .action-btn.kofi-hero {
+      color: #FF5E5B;
+      border-color: rgba(255, 94, 91, 0.45);
+      background: rgba(255, 94, 91, 0.08);
+      font-weight: 700;
+    }
+
+    .action-btn.kofi-hero:hover {
+      background: rgba(255, 94, 91, 0.22);
+      border-color: #FF5E5B;
+      color: #fff;
+      box-shadow: 0 0 24px rgba(255, 94, 91, 0.45);
+      transform: translateY(-2px);
+    }
+
     .footer-disclaimer {
       font-size: 0.8rem;
       color: var(--text-ghost);
@@ -1120,6 +1222,10 @@
           <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
           <span>GITHUB REPO</span>
         </a>
+        <a href="https://ko-fi.com/retro_panda" target="_blank" rel="noopener" class="nav-btn kofi-nav">
+          <svg class="svg-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M23.881 8.948c-.024-.627-.149-1.229-.374-1.794-.226-.565-.558-1.077-.996-1.536s-.971-.832-1.6-1.121c-.629-.289-1.332-.444-2.11-.465L3.89 4.013c-.878 0-1.65.312-2.316.936-.666.624-1.01 1.401-1.034 2.331l-.54 8.729c-.024.385.068.749.276 1.092.208.343.498.618.87.825l.899.497c1.08.597 2.278.908 3.594.933h8.775c1.316-.025 2.514-.336 3.594-.933l.899-.497c.372-.207.662-.482.87-.825.208-.343.3-.707.276-1.092l-.123-1.989c.754-.047 1.455-.246 2.103-.597.648-.351 1.206-.819 1.674-1.404.468-.585.819-1.258 1.053-2.019.234-.761.351-1.57.351-2.427zm-5.074 4.092c-.22.257-.487.458-.801.603-.314.145-.662.226-1.044.243l-.195-3.155c.382.017.73.098 1.044.243.314.145.581.346.801.603.22.257.382.553.486.888.104.335.156.696.156 1.083 0 .387-.052.748-.156 1.083-.104.335-.266.631-.486.888z"/></svg>
+          <span>[ KO-FI ☕ ]</span>
+        </a>
       </div>
     </div>
   </header>
@@ -1130,7 +1236,7 @@
     <section class="hero">
       <div class="hero-badge-row">
         <span class="hanko-seal">ORIENTAL BRUTALISMO</span>
-        <span class="hanko-seal cyan">v0.1.1 STABLE</span>
+        <span class="hanko-seal cyan">v0.1.8 STABLE</span>
         <span class="hanko-seal live"><span class="status-dot"></span> OPEN SOURCE</span>
       </div>
       <div class="tech-crosses">+ + + [ PANDA STREAM ENGINE ] + + +</div>
@@ -1150,6 +1256,9 @@
         <a href="https://github.com/satodu/panda-iptv/releases/latest/download/Panda-IPTV.apk" class="action-btn">
           <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>BAIXAR APK DIRETO</span>
+        </a>
+        <a href="https://ko-fi.com/retro_panda" target="_blank" rel="noopener" class="action-btn kofi-hero">
+          <span>☕ APOIE NO KO-FI</span>
         </a>
       </div>
     </section>
@@ -1288,9 +1397,9 @@
               <div class="actions-row">
                 <a href="https://github.com/satodu/panda-iptv/releases/latest/download/Panda-IPTV.apk" class="action-btn primary shimmer-btn">
                   <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  <span>BAIXAR APK (v0.1.1 / LATEST)</span>
+                  <span>BAIXAR APK (ÚLTIMA VERSÃO)</span>
                 </a>
-                <a href="https://github.com/satodu/panda-iptv/releases/tag/v0.1.1" target="_blank" class="action-btn">
+                <a href="https://github.com/satodu/panda-iptv/releases/latest" target="_blank" class="action-btn">
                   <svg class="svg-icon" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
                   <span>VER NOTAS DA RELEASE</span>
                 </a>
@@ -1341,11 +1450,11 @@
               </div>
 
               <div class="actions-row">
-                <a href="https://github.com/satodu/panda-iptv/releases/download/v0.1.1/Panda-IPTV-0.1.1-x86_64.AppImage" class="action-btn primary">
+                <a href="https://github.com/satodu/panda-iptv/releases/latest" class="action-btn primary" target="_blank">
                   <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-                  <span>BAIXAR APPIMAGE (x86_64)</span>
+                  <span>BAIXAR APPIMAGE (ÚLTIMA RELEASE)</span>
                 </a>
-                <a href="https://github.com/satodu/panda-iptv/releases/download/v0.1.1/panda-iptv-0.1.1-linux-x64.tar.gz" class="action-btn">
+                <a href="https://github.com/satodu/panda-iptv/releases/latest" class="action-btn" target="_blank">
                   <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   <span>TARBALL (.TAR.GZ)</span>
                 </a>
@@ -1484,6 +1593,22 @@
   <!-- Rodapé -->
   <footer>
     <div class="container">
+      <!-- Card de Apoio Ko-fi -->
+      <div class="kofi-support-box">
+        <div class="kofi-flex">
+          <div class="kofi-info">
+            <span class="hanko-seal kofi-seal">APOIE O PROJETO // OPEN SOURCE</span>
+            <h3>GOSTOU DO PANDA IPTV? PAGUE UM CAFÉ NO KO-FI.</h3>
+            <p>
+              O Panda IPTV é 100% gratuito, sem anúncios e com código aberto. Doações voluntárias ajudam diretamente nos custos de desenvolvimento, testes em aparelhos de TV (Firestick, Android TV, TV Box) e aceleram novas atualizações!
+            </p>
+          </div>
+          <a href="https://ko-fi.com/retro_panda" target="_blank" rel="noopener" class="action-btn kofi-btn shimmer-btn">
+            <span>☕ DOAR NO KO-FI (@RETRO_PANDA)</span>
+          </a>
+        </div>
+      </div>
+
       <div class="tech-crosses">+ + + [ PANDA IPTV // SATODU ] + + +</div>
       <div class="footer-text">Desenvolvido com Flutter • Oriental Brutalismo Minimalista • Licença MIT</div>
       <p class="footer-disclaimer">
