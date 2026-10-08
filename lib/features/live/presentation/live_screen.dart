@@ -14,6 +14,7 @@ import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../../core/widgets/quick_filter_bar.dart';
+import '../../../core/widgets/focusable_category_chip.dart';
 import '../../../core/widgets/content_filter_modal.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../player/models/playlist_item.dart';
@@ -383,31 +384,14 @@ class _LiveScreenState extends State<LiveScreen> {
 
           final label = isAll ? context.tr('common.all') : live.categories[index - 1].categoryName.toUpperCase();
 
-          return InkWell(
-            borderRadius: BorderRadius.circular(8),
+          return FocusableCategoryChip(
+            label: label,
+            isSelected: isSelected,
             onTap: () {
               if (account != null) {
                 live.selectCategory(account, isAll ? 'all' : live.categories[index - 1].categoryId);
               }
             },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.accentPrimary : AppColors.surfaceCard,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isSelected ? AppColors.accentPrimary : AppColors.borderHairline,
-                ),
-              ),
-              child: Text(
-                label,
-                style: AppTypography.mono(
-                  fontSize: 11,
-                  color: isSelected ? Colors.white : AppColors.textPrimary,
-                ),
-              ),
-            ),
           );
         },
       ),

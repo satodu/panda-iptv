@@ -2476,6 +2476,14 @@ class _PlayerFocusButtonState extends State<_PlayerFocusButton> {
   void _onFocusChange() {
     if (mounted) {
       setState(() => _isFocused = _node.hasFocus);
+      if (_node.hasFocus) {
+        Scrollable.ensureVisible(
+          context,
+          alignment: 0.5,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+        );
+      }
       if (_node.hasFocus && widget.onFocused != null) {
         widget.onFocused!();
       }
@@ -2514,6 +2522,7 @@ class _PlayerFocusButtonState extends State<_PlayerFocusButton> {
         return KeyEventResult.ignored;
       },
       child: InkWell(
+        canRequestFocus: false,
         onTap: widget.onPressed,
         borderRadius: br,
         child: AnimatedContainer(

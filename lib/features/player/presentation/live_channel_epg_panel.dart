@@ -133,8 +133,7 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
       autofocus: true,
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.escape ||
-              event.logicalKey == LogicalKeyboardKey.goBack) {
+          if (event.logicalKey == LogicalKeyboardKey.escape) {
             if (!isDesktopOrTv && _mobileStep > 0) {
               setState(() => _mobileStep--);
               return KeyEventResult.handled;
@@ -204,6 +203,13 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
             style: IconButton.styleFrom(
               backgroundColor: AppColors.surfaceHover,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ).copyWith(
+              side: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.focused)) {
+                  return const BorderSide(color: AppColors.accentCyan, width: 2.0);
+                }
+                return const BorderSide(color: Colors.transparent);
+              }),
             ),
           ),
         ],
@@ -344,63 +350,11 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 4),
-                        child: Focus(
-                          onKeyEvent: (node, event) {
-                            if (event is KeyDownEvent) {
-                              if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
-                                  event.logicalKey == LogicalKeyboardKey.select ||
-                                  event.logicalKey == LogicalKeyboardKey.enter) {
-                                _onCategoryPicked(catId, live, isMobile: isMobile);
-                                return KeyEventResult.handled;
-                              }
-                            }
-                            return KeyEventResult.ignored;
-                          },
-                          child: InkWell(
-                            onTap: () => _onCategoryPicked(catId, live, isMobile: isMobile),
-                            borderRadius: BorderRadius.circular(8),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 140),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.accentPrimary.withValues(alpha: 0.16)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isSelected ? AppColors.accentPrimary : Colors.transparent,
-                                  width: 1.2,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isAll ? Icons.grid_view_rounded : Icons.folder_open_rounded,
-                                    size: 16,
-                                    color: isSelected ? AppColors.accentPrimary : AppColors.textMuted,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      catName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTypography.body(
-                                        color: isSelected ? Colors.white : AppColors.textPrimary,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                  if (isSelected)
-                                    const Icon(
-                                      Icons.chevron_right_rounded,
-                                      size: 16,
-                                      color: AppColors.accentCyan,
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
+                        child: _CategoryTile(
+                          title: catName,
+                          isSelected: isSelected,
+                          isAll: isAll,
+                          onSelect: () => _onCategoryPicked(catId, live, isMobile: isMobile),
                         ),
                       );
                     },
@@ -540,158 +494,20 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 4),
-                            child: Focus(
-                              onKeyEvent: (node, event) {
-                                if (event is KeyDownEvent) {
-                                  // Seta para a Direita abre o EPG do canal
-                                  if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                                    _setPreviewChannel(channel);
-                                    if (isMobile) {
-                                      setState(() => _mobileStep = 2);
-                                    }
-                                    return KeyEventResult.handled;
-                                  }
-                                  // Enter / OK sintoniza o canal imediatamente
-                                  if (event.logicalKey == LogicalKeyboardKey.select ||
-                                      event.logicalKey == LogicalKeyboardKey.enter) {
-                                    _tuneChannel(channel);
-                                    return KeyEventResult.handled;
-                                  }
-                                  // Seta para a Esquerda volta para a lista de categorias
-                                  if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-                                    if (isMobile) {
-                                      setState(() => _mobileStep = 0);
-                                      return KeyEventResult.handled;
-                                    }
-                                  }
+                            child: _LiveChannelTile(
+                              channel: channel,
+                              isCurrentlyPlaying: isCurrentlyPlaying,
+                              isPreviewing: isPreviewing,
+                              onTune: () => _tuneChannel(channel),
+                              onPreview: () {
+                                _setPreviewChannel(channel);
+                                if (isMobile) {
+                                  setState(() => _mobileStep = 2);
                                 }
-                                return KeyEventResult.ignored;
                               },
-                              child: InkWell(
-                                onTap: () {
-                                  _setPreviewChannel(channel);
-                                  _tuneChannel(channel);
-                                },
-                                onDoubleTap: () => _tuneChannel(channel),
-                                borderRadius: BorderRadius.circular(8),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 140),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: isPreviewing
-                                        ? AppColors.surfaceHover
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: isCurrentlyPlaying
-                                          ? AppColors.statusLive
-                                          : (isPreviewing
-                                              ? AppColors.accentPrimary
-                                              : Colors.transparent),
-                                      width: isCurrentlyPlaying ? 1.5 : 1.0,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      // Logo do canal ou Fallback
-                                      Container(
-                                        width: 38,
-                                        height: 38,
-                                        padding: const EdgeInsets.all(3),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.surfaceCard,
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: AppColors.borderHairline),
-                                        ),
-                                        child: channel.streamIcon != null &&
-                                                channel.streamIcon!.isNotEmpty
-                                            ? CachedNetworkImage(
-                                                imageUrl: channel.streamIcon!,
-                                                fit: BoxFit.contain,
-                                                errorWidget: (_, __, ___) => const Icon(
-                                                  Icons.live_tv_rounded,
-                                                  size: 16,
-                                                  color: AppColors.textMuted,
-                                                ),
-                                              )
-                                            : const Icon(
-                                                Icons.live_tv_rounded,
-                                                size: 16,
-                                                color: AppColors.textMuted,
-                                              ),
-                                      ),
-                                      const SizedBox(width: 10),
-
-                                      // Informações do canal
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  channel.formattedNumber,
-                                                  style: AppTypography.mono(
-                                                    fontSize: 10,
-                                                    color: AppColors.accentCyan,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 6),
-                                                if (isCurrentlyPlaying)
-                                                  const HankoBadge(
-                                                    text: 'NO AR',
-                                                    borderColor: AppColors.statusLive,
-                                                    textColor: AppColors.statusLive,
-                                                  ),
-                                                if (channel.hasEpg) ...[
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '[ EPG ]',
-                                                    style: AppTypography.mono(
-                                                      fontSize: 9,
-                                                      color: AppColors.textMuted,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              channel.name,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: AppTypography.body(
-                                                color: isCurrentlyPlaying
-                                                    ? AppColors.statusLive
-                                                    : AppColors.textPrimary,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      // Botão lateral para abrir EPG (no mobile ou desktop)
-                                      IconButton(
-                                        tooltip: 'Ver Programação (EPG)',
-                                        icon: const Icon(
-                                          Icons.event_note_rounded,
-                                          size: 18,
-                                          color: AppColors.accentCyan,
-                                        ),
-                                        onPressed: () {
-                                          _setPreviewChannel(channel);
-                                          if (isMobile) {
-                                            setState(() => _mobileStep = 2);
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                              onBackToCategories: isMobile
+                                  ? () => setState(() => _mobileStep = 0)
+                                  : null,
                             ),
                           );
                         },
@@ -816,6 +632,13 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ).copyWith(
+                      side: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.focused)) {
+                          return const BorderSide(color: AppColors.accentCyan, width: 2.0);
+                        }
+                        return null;
+                      }),
                     ),
                     icon: const Icon(Icons.play_arrow_rounded, size: 18),
                     label: Text(
@@ -1063,6 +886,327 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
           }),
         ],
       ],
+    );
+  }
+}
+
+class _CategoryTile extends StatefulWidget {
+  final String title;
+  final bool isSelected;
+  final bool isAll;
+  final VoidCallback onSelect;
+
+  const _CategoryTile({
+    required this.title,
+    required this.isSelected,
+    required this.isAll,
+    required this.onSelect,
+  });
+
+  @override
+  State<_CategoryTile> createState() => _CategoryTileState();
+}
+
+class _CategoryTileState extends State<_CategoryTile> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusableActionDetector(
+      onFocusChange: (f) {
+        setState(() => _isFocused = f);
+        if (f) {
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 150),
+          );
+        }
+      },
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onSelect(),
+        ),
+      },
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowRight): ActivateIntent(),
+      },
+      child: InkWell(
+        canRequestFocus: false,
+        onTap: widget.onSelect,
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: _isFocused
+                ? AppColors.surfaceHover
+                : (widget.isSelected
+                    ? AppColors.accentPrimary.withValues(alpha: 0.16)
+                    : Colors.transparent),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _isFocused
+                  ? AppColors.accentCyan
+                  : (widget.isSelected ? AppColors.accentPrimary : Colors.transparent),
+              width: _isFocused ? 1.6 : 1.2,
+            ),
+            boxShadow: _isFocused
+                ? [
+                    BoxShadow(
+                      color: AppColors.accentCyan.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 1),
+                    )
+                  ]
+                : null,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                widget.isAll ? Icons.grid_view_rounded : Icons.folder_open_rounded,
+                size: 16,
+                color: _isFocused
+                    ? AppColors.accentCyan
+                    : (widget.isSelected ? AppColors.accentPrimary : AppColors.textMuted),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  widget.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.body(
+                    color: _isFocused || widget.isSelected ? Colors.white : AppColors.textPrimary,
+                    fontSize: 12,
+                  ).copyWith(
+                    fontWeight: _isFocused || widget.isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ),
+              if (_isFocused || widget.isSelected)
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 16,
+                  color: _isFocused ? AppColors.accentCyan : AppColors.accentPrimary,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveChannelTile extends StatefulWidget {
+  final LiveStreamItem channel;
+  final bool isCurrentlyPlaying;
+  final bool isPreviewing;
+  final VoidCallback onTune;
+  final VoidCallback onPreview;
+  final VoidCallback? onBackToCategories;
+
+  const _LiveChannelTile({
+    required this.channel,
+    required this.isCurrentlyPlaying,
+    required this.isPreviewing,
+    required this.onTune,
+    required this.onPreview,
+    this.onBackToCategories,
+  });
+
+  @override
+  State<_LiveChannelTile> createState() => _LiveChannelTileState();
+}
+
+class _LiveChannelTileState extends State<_LiveChannelTile> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusableActionDetector(
+      onFocusChange: (f) {
+        setState(() => _isFocused = f);
+        if (f) {
+          widget.onPreview();
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 150),
+          );
+        }
+      },
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onTune(),
+        ),
+      },
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+      },
+      child: Focus(
+        canRequestFocus: false,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+              widget.onPreview();
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowLeft && widget.onBackToCategories != null) {
+              widget.onBackToCategories!();
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: InkWell(
+          canRequestFocus: false,
+          onTap: () {
+            widget.onPreview();
+            widget.onTune();
+          },
+          onDoubleTap: widget.onTune,
+          borderRadius: BorderRadius.circular(8),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: _isFocused
+                  ? AppColors.surfaceHover
+                  : (widget.isPreviewing
+                      ? AppColors.surfaceHover.withValues(alpha: 0.5)
+                      : Colors.transparent),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _isFocused
+                    ? AppColors.accentCyan
+                    : (widget.isCurrentlyPlaying
+                        ? AppColors.statusLive
+                        : (widget.isPreviewing
+                            ? AppColors.accentPrimary
+                            : Colors.transparent)),
+                width: _isFocused ? 1.6 : (widget.isCurrentlyPlaying ? 1.5 : 1.0),
+              ),
+              boxShadow: _isFocused
+                  ? [
+                      BoxShadow(
+                        color: AppColors.accentCyan.withValues(alpha: 0.35),
+                        blurRadius: 8,
+                        offset: const Offset(0, 1),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                // Logo do canal ou Fallback
+                Container(
+                  width: 38,
+                  height: 38,
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceCard,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _isFocused
+                          ? AppColors.accentCyan.withValues(alpha: 0.5)
+                          : AppColors.borderHairline,
+                    ),
+                  ),
+                  child: widget.channel.streamIcon != null &&
+                          widget.channel.streamIcon!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: widget.channel.streamIcon!,
+                          fit: BoxFit.contain,
+                          errorWidget: (_, __, ___) => const Icon(
+                            Icons.live_tv_rounded,
+                            size: 16,
+                            color: AppColors.textMuted,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.live_tv_rounded,
+                          size: 16,
+                          color: AppColors.textMuted,
+                        ),
+                ),
+                const SizedBox(width: 10),
+
+                // Informações do canal
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            widget.channel.formattedNumber,
+                            style: AppTypography.mono(
+                              fontSize: 10,
+                              color: AppColors.accentCyan,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          if (widget.isCurrentlyPlaying)
+                            const HankoBadge(
+                              text: 'NO AR',
+                              borderColor: AppColors.statusLive,
+                              textColor: AppColors.statusLive,
+                            ),
+                          if (widget.channel.hasEpg) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '[ EPG ]',
+                              style: AppTypography.mono(
+                                fontSize: 9,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.channel.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.body(
+                          color: widget.isCurrentlyPlaying
+                              ? AppColors.statusLive
+                              : (_isFocused ? Colors.white : AppColors.textPrimary),
+                          fontSize: 12,
+                        ).copyWith(
+                          fontWeight: _isFocused ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Botão lateral para abrir EPG (não concorre no foco de travessia do D-pad)
+                Focus(
+                  canRequestFocus: false,
+                  descendantsAreFocusable: false,
+                  child: IconButton(
+                    tooltip: 'Ver Programação (EPG)',
+                    icon: const Icon(
+                      Icons.event_note_rounded,
+                      size: 18,
+                      color: AppColors.accentCyan,
+                    ),
+                    onPressed: widget.onPreview,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
