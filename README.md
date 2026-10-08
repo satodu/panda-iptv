@@ -15,7 +15,12 @@
   <img src="https://img.shields.io/badge/Android-%233DDC84.svg?style=for-the-badge&logo=android&logoColor=white" alt="Android" />
   <img src="https://img.shields.io/badge/Player-libmpv-0A84FF?style=for-the-badge" alt="libmpv" />
   <img src="https://img.shields.io/badge/Design-Oriental_Brutalism-0D1216?style=for-the-badge&labelColor=0A84FF" alt="Oriental Brutalism" />
+  <a href="https://satodu.github.io/panda-iptv/" target="_blank"><img src="https://img.shields.io/badge/Official_Website-satodu.github.io%2Fpanda--iptv-0A84FF?style=for-the-badge&logo=github&logoColor=white" alt="Official Website" /></a>
   <a href="https://ko-fi.com/retro_panda" target="_blank"><img src="https://img.shields.io/badge/Ko--fi-Support_the_Project-%23FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi" /></a>
+</p>
+
+<p align="center">
+  🌐 <b>Official Download & Installation Guide:</b> <a href="https://satodu.github.io/panda-iptv/"><b>https://satodu.github.io/panda-iptv/</b></a>
 </p>
 
 ---
@@ -149,6 +154,10 @@ flutter run
 ---
 
 ## RELEASES & PACKAGING.
+
+### Official Download & Installation Page (Web):
+For visual installation guides, direct APK downloads, Linux AppImage/tarball links, and TV Box / Firestick setup instructions, visit the official landing page:  
+👉 **[satodu.github.io/panda-iptv](https://satodu.github.io/panda-iptv/)**
 
 ### CI/CD Automated Releases (GitHub Actions):
 Whenever you push a version tag (e.g. `v0.0.1`, `v1.0.0`), a GitHub Action workflow automatically builds the Linux AppImage, `.tar.gz`, and Android APK, then publishes them directly as downloadable assets on GitHub Releases:
