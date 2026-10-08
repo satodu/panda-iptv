@@ -150,6 +150,7 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
             BrutalistButton(
               label: context.tr('common.cancel'),
               isSecondary: true,
+              autofocus: true,
               onPressed: () => Navigator.of(ctx).pop(false),
             ),
             const SizedBox(width: 8),
@@ -585,6 +586,7 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
                         Material(
                           color: Colors.transparent,
                           child: InkWell(
+                            canRequestFocus: false,
                             borderRadius: BorderRadius.circular(6),
                             onTap: () => _onDeleteItem(item),
                             child: Padding(

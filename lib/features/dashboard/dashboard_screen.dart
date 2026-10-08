@@ -134,17 +134,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _isExitDialogOpen = true;
 
     try {
+      final openedAt = DateTime.now();
       final result = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (ctx) {
           return PopScope(
-            canPop: true,
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              // Protege contra KeyUp e repetição do botão de voltar físico no controle remoto:
+              if (DateTime.now().difference(openedAt).inMilliseconds < 600) {
+                return;
+              }
+              Navigator.of(ctx).pop(false);
+            },
             child: AlertDialog(
               backgroundColor: AppColors.surfaceCard,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppColors.borderHairline),
+                side: const BorderSide(color: AppColors.accentPrimary, width: 1.5),
               ),
               title: Row(
                 children: [
@@ -465,23 +474,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       runSpacing: 8,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        ElevatedButton.icon(
+                        BrutalistButton(
+                          label: 'ATUALIZAR PARA v${_updateInfo!.latestVersion}.',
+                          icon: Icons.system_update_rounded,
+                          autoScrollOnFocus: true,
                           onPressed: _startUpdate,
-                          icon: const Icon(Icons.system_update_rounded, size: 16),
-                          label: Text(
-                            'ATUALIZAR PARA v${_updateInfo!.latestVersion}.',
-                            style: AppTypography.mono(
-                              fontSize: isNarrow ? 10 : 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accentPrimary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
                         ),
                         const HankoBadge(
                           text: '[ NOVA VERSÃO DISPONÍVEL ]',
@@ -853,6 +850,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ],
                               ),
                               InkWell(
+                                canRequestFocus: false,
                                 onTap: () => WatchHistoryService.removeItem(item.id),
                                 borderRadius: BorderRadius.circular(14),
                                 child: Container(
@@ -1111,6 +1109,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               builder: (context, _, __) {
                                 final isFav = FavoritesService.isFavoriteSync(favId);
                                 return InkWell(
+                                  canRequestFocus: false,
                                   onTap: () async {
                                     final favItem = FavoriteItem(
                                       id: favId,
@@ -1146,6 +1145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(width: 6),
                             // Botão Fechar / Remover dos recentes
                             InkWell(
+                              canRequestFocus: false,
                               onTap: () => RecentChannelsService.removeChannel(item.streamId),
                               borderRadius: BorderRadius.circular(14),
                               child: Container(

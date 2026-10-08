@@ -408,7 +408,17 @@ class _FilterModalTriggerButtonState extends State<_FilterModalTriggerButton> {
     final hasActive = widget.activeCount > 0;
 
     return FocusableActionDetector(
-      onShowFocusHighlight: (f) => setState(() => _isFocused = f),
+      onShowFocusHighlight: (f) {
+        setState(() => _isFocused = f);
+        if (f && mounted) {
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+          );
+        }
+      },
       onShowHoverHighlight: (h) => setState(() => _isHovered = h),
       mouseCursor: SystemMouseCursors.click,
       actions: {
@@ -533,7 +543,17 @@ class _QuickActionPillState extends State<_QuickActionPill> {
     }
 
     return FocusableActionDetector(
-      onShowFocusHighlight: (f) => setState(() => _isFocused = f),
+      onShowFocusHighlight: (f) {
+        setState(() => _isFocused = f);
+        if (f && mounted) {
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+          );
+        }
+      },
       onShowHoverHighlight: (h) => setState(() => _isHovered = h),
       mouseCursor: SystemMouseCursors.click,
       actions: {

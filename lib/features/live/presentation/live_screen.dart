@@ -587,6 +587,7 @@ class _LiveScreenState extends State<LiveScreen> {
                           final favId = 'live_${channel.streamId}';
                           final isFav = FavoritesService.isFavoriteSync(favId);
                           return InkWell(
+                            canRequestFocus: false,
                             onTap: () async {
                               final favItem = FavoriteItem(
                                 id: favId,

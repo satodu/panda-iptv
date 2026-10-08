@@ -742,6 +742,7 @@ class _LoginScreenState extends State<LoginScreen> {
             return KeyEventResult.ignored;
           },
           child: InkWell(
+            canRequestFocus: false,
             onTap: () {
               _openEditModal(
                 title: label.replaceAll(':', ''),
@@ -869,6 +870,7 @@ class _LoginScreenState extends State<LoginScreen> {
             return KeyEventResult.ignored;
           },
           child: InkWell(
+            canRequestFocus: false,
             onTap: () => setState(() => _rememberMe = !_rememberMe),
             borderRadius: BorderRadius.circular(6),
             child: Container(

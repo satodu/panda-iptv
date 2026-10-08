@@ -483,10 +483,21 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.borderHairline, width: 1),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        style: ButtonStyle(
+                          side: WidgetStateProperty.resolveWith<BorderSide>((states) {
+                            if (states.contains(WidgetState.focused)) {
+                              return const BorderSide(color: AppColors.accentCyan, width: 2.0);
+                            }
+                            return const BorderSide(color: AppColors.borderHairline, width: 1.0);
+                          }),
+                          backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                            if (states.contains(WidgetState.focused)) {
+                              return AppColors.surfaceHover;
+                            }
+                            return Colors.transparent;
+                          }),
+                          padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                          shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                         ),
                       ),
                     OutlinedButton.icon(
@@ -511,13 +522,24 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                           color: isWatched ? AppColors.statusLive : AppColors.textPrimary,
                         ),
                       ),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: isWatched ? AppColors.statusLive : AppColors.borderHairline,
-                          width: 1,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      style: ButtonStyle(
+                        side: WidgetStateProperty.resolveWith<BorderSide>((states) {
+                          if (states.contains(WidgetState.focused)) {
+                            return const BorderSide(color: AppColors.accentCyan, width: 2.0);
+                          }
+                          return BorderSide(
+                            color: isWatched ? AppColors.statusLive : AppColors.borderHairline,
+                            width: 1.0,
+                          );
+                        }),
+                        backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                          if (states.contains(WidgetState.focused)) {
+                            return AppColors.surfaceHover;
+                          }
+                          return Colors.transparent;
+                        }),
+                        padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                        shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                       ),
                     ),
                     OutlinedButton.icon(
@@ -535,13 +557,24 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                           color: _isFavorite ? AppColors.statusLive : AppColors.textPrimary,
                         ),
                       ),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: _isFavorite ? AppColors.statusLive : AppColors.borderHairline,
-                          width: 1,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      style: ButtonStyle(
+                        side: WidgetStateProperty.resolveWith<BorderSide>((states) {
+                          if (states.contains(WidgetState.focused)) {
+                            return const BorderSide(color: AppColors.accentCyan, width: 2.0);
+                          }
+                          return BorderSide(
+                            color: _isFavorite ? AppColors.statusLive : AppColors.borderHairline,
+                            width: 1.0,
+                          );
+                        }),
+                        backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                          if (states.contains(WidgetState.focused)) {
+                            return AppColors.surfaceHover;
+                          }
+                          return Colors.transparent;
+                        }),
+                        padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                        shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                       ),
                     ),
                   ],

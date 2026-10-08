@@ -454,13 +454,24 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
               color: _isFavorite ? AppColors.statusLive : AppColors.textPrimary,
             ),
           ),
-          style: OutlinedButton.styleFrom(
-            side: BorderSide(
-              color: _isFavorite ? AppColors.statusLive : AppColors.borderHairline,
-              width: 1,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          style: ButtonStyle(
+            side: WidgetStateProperty.resolveWith<BorderSide>((states) {
+              if (states.contains(WidgetState.focused)) {
+                return const BorderSide(color: AppColors.accentCyan, width: 2.0);
+              }
+              return BorderSide(
+                color: _isFavorite ? AppColors.statusLive : AppColors.borderHairline,
+                width: 1.0,
+              );
+            }),
+            backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+              if (states.contains(WidgetState.focused)) {
+                return AppColors.surfaceHover;
+              }
+              return Colors.transparent;
+            }),
+            padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
           ),
         ),
 
@@ -745,6 +756,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                         ),
                         const SizedBox(width: 8),
                         IconButton(
+                          focusNode: FocusNode(skipTraversal: true),
                           tooltip: isWatched ? 'Marcar como não visto' : 'Marcar como visto',
                           icon: Icon(
                             isWatched ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
@@ -754,6 +766,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                           onPressed: () => WatchedService.toggleWatched(epMediaId),
                         ),
                         IconButton(
+                          focusNode: FocusNode(skipTraversal: true),
                           tooltip: 'Assistir',
                           icon: const Icon(Icons.play_circle_fill_rounded, color: AppColors.accentPrimary, size: 30),
                           onPressed: () => _playEpisode(ep),

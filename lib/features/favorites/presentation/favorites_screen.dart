@@ -10,6 +10,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/hanko_badge.dart';
+import '../../../core/widgets/focusable_category_chip.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../player/presentation/video_player_screen.dart';
@@ -125,29 +126,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         itemBuilder: (context, index) {
           final f = filters[index];
           final isSelected = _selectedFilter == f['key'];
-          return GestureDetector(
+          return FocusableCategoryChip(
+            label: f['label']!,
+            isSelected: isSelected,
             onTap: () => setState(() => _selectedFilter = f['key']!),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.accentPrimary : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: isSelected ? AppColors.accentPrimary : AppColors.borderHairline,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  f['label']!,
-                  style: AppTypography.mono(
-                    fontSize: 11,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? Colors.white : AppColors.textMuted,
-                  ),
-                ),
-              ),
-            ),
           );
         },
       ),
@@ -292,6 +274,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   top: 8,
                   right: 8,
                   child: InkWell(
+                    canRequestFocus: false,
                     onTap: () {
                       FavoritesService.removeFavorite(item.id);
                       AppToast.info(context, '${item.title} REMOVIDO DOS FAVORITOS.');

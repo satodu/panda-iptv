@@ -132,6 +132,7 @@ class _BentoCardState extends State<BentoCard> {
               Material(
                 color: Colors.transparent,
                 child: InkWell(
+                  canRequestFocus: false,
                   onTap: widget.onTap,
                   splashColor: AppColors.accentPrimary.withValues(alpha: 0.15),
                   highlightColor: AppColors.accentPrimary.withValues(alpha: 0.05),

@@ -124,6 +124,7 @@ class _BrutalistButtonState extends State<BrutalistButton> {
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           child: InkWell(
+            canRequestFocus: false,
             onTap: isInteractive ? widget.onPressed : null,
             borderRadius: BorderRadius.circular(10),
             splashColor: Colors.white.withValues(alpha: 0.2),

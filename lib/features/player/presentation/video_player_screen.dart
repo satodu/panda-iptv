@@ -938,8 +938,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       final key = event.logicalKey;
 
       if (key == LogicalKeyboardKey.escape ||
-          key == LogicalKeyboardKey.backspace ||
-          key == LogicalKeyboardKey.goBack) {
+          key == LogicalKeyboardKey.backspace) {
         if (_showLiveEpgPanel) {
           _closeLiveEpgPanel();
           return KeyEventResult.handled;
@@ -1274,11 +1273,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     final isNarrow = MediaQuery.of(context).size.width < 600;
 
     return PopScope(
-      canPop: !_showEpisodesPanel,
+      canPop: !_showEpisodesPanel && !_showLiveEpgPanel,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && _showEpisodesPanel) {
-          _closeEpisodesPanel();
-          return;
+        if (!didPop) {
+          if (_showLiveEpgPanel) {
+            _closeLiveEpgPanel();
+            return;
+          }
+          if (_showEpisodesPanel) {
+            _closeEpisodesPanel();
+            return;
+          }
         }
         _saveCurrentProgress();
         try {
