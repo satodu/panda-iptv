@@ -13,6 +13,8 @@ import '../../../core/widgets/brutalist_entrance.dart';
 import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
+import '../../../core/widgets/quick_filter_bar.dart';
+import '../../../core/widgets/content_filter_modal.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../player/models/playlist_item.dart';
 import '../../player/presentation/video_player_screen.dart';
@@ -61,10 +63,17 @@ class _LiveScreenState extends State<LiveScreen> {
         child: Column(
           children: [
             // Top Bar Responsiva
-            _buildTopBar(context, live, isNarrow),
+            _buildTopBar(context, live, account, isNarrow),
 
             // Barra de Categorias
             _buildCategorySelector(context, live, account),
+
+            // Barra de Filtros & Ordenação Rápida
+            QuickFilterBar.live(
+              context: context,
+              filterState: live.filterState,
+              onFilterChanged: (newState) => live.setFilterState(newState),
+            ),
 
             // Sub-barra com contagem e status
             if (!live.isLoadingChannels && live.error == null && live.filteredChannels.isNotEmpty)
@@ -145,7 +154,7 @@ class _LiveScreenState extends State<LiveScreen> {
     return cat != null ? cat.categoryName.toUpperCase() : 'CATEGORIA';
   }
 
-  Widget _buildTopBar(BuildContext context, LiveProvider live, bool isNarrow) {
+  Widget _buildTopBar(BuildContext context, LiveProvider live, dynamic account, bool isNarrow) {
     if (isNarrow && _isSearchExpanded) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -229,6 +238,52 @@ class _LiveScreenState extends State<LiveScreen> {
             const TechCrosses(count: 3, opacity: 0.2),
           ],
           const Spacer(),
+
+          // Botão Filtros
+          Stack(
+            children: [
+              IconButton(
+                tooltip: context.tr('filter.title'),
+                icon: Icon(
+                  Icons.tune_rounded,
+                  color: live.filterState.hasActiveFilters ? AppColors.accentPrimary : AppColors.textPrimary,
+                ),
+                onPressed: () {
+                  ContentFilterModal.showLiveFilter(
+                    context: context,
+                    currentState: live.filterState,
+                    onApply: (newState) => live.setFilterState(newState),
+                  );
+                },
+              ),
+              if (live.filterState.hasActiveFilters)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accentPrimary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 4),
+
+          // Botão Atualizar Catálogo
+          IconButton(
+            tooltip: context.tr('common.refresh'),
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+            onPressed: () {
+              if (account != null) {
+                live.refresh(account);
+              }
+            },
+          ),
+          const SizedBox(width: 4),
 
           if (isNarrow) ...[
             if (_searchController.text.isNotEmpty) ...[

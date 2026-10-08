@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/bento_card.dart';
@@ -9,6 +10,8 @@ import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../../core/widgets/focusable_category_chip.dart';
+import '../../../core/widgets/quick_filter_bar.dart';
+import '../../../core/widgets/content_filter_modal.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../models/vod_category.dart';
 import '../models/vod_item.dart';
@@ -55,10 +58,17 @@ class _VodScreenState extends State<VodScreen> {
         child: Column(
           children: [
             // Top Bar Responsiva
-            _buildTopBar(context, vod, isNarrow),
+            _buildTopBar(context, vod, account, isNarrow),
 
             // Categories Bar
             _buildCategorySelector(context, vod, account),
+
+            // Barra de Filtros & Ordenação Rápida
+            QuickFilterBar.content(
+              context: context,
+              filterState: vod.filterState,
+              onFilterChanged: (newState) => vod.setFilterState(newState),
+            ),
 
             // Sub-barra com contagem e status
             if (!vod.isLoadingMovies && vod.error == null && vod.filteredMovies.isNotEmpty)
@@ -136,7 +146,7 @@ class _VodScreenState extends State<VodScreen> {
     return cat != null ? cat.categoryName.toUpperCase() : 'CATEGORIA';
   }
 
-  Widget _buildTopBar(BuildContext context, VodProvider vod, bool isNarrow) {
+  Widget _buildTopBar(BuildContext context, VodProvider vod, dynamic account, bool isNarrow) {
     // Modo Mobile Vertical com busca expandida
     if (isNarrow && _isSearchExpanded) {
       return Container(
@@ -222,6 +232,52 @@ class _VodScreenState extends State<VodScreen> {
             const TechCrosses(count: 3, opacity: 0.2),
           ],
           const Spacer(),
+
+          // Botão Filtros
+          Stack(
+            children: [
+              IconButton(
+                tooltip: context.tr('filter.title'),
+                icon: Icon(
+                  Icons.tune_rounded,
+                  color: vod.filterState.hasActiveFilters ? AppColors.accentPrimary : AppColors.textPrimary,
+                ),
+                onPressed: () {
+                  ContentFilterModal.showContentFilter(
+                    context: context,
+                    currentState: vod.filterState,
+                    onApply: (newState) => vod.setFilterState(newState),
+                  );
+                },
+              ),
+              if (vod.filterState.hasActiveFilters)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accentPrimary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 4),
+
+          // Botão Atualizar Catálogo
+          IconButton(
+            tooltip: context.tr('common.refresh'),
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+            onPressed: () {
+              if (account != null) {
+                vod.refresh(account);
+              }
+            },
+          ),
+          const SizedBox(width: 4),
 
           // No mobile: botão de busca com badge ativo se houver texto
           if (isNarrow) ...[
@@ -409,6 +465,30 @@ class _VodScreenState extends State<VodScreen> {
                           ),
                         ),
                 ),
+                // Pílula com o Ano (canto superior esquerdo)
+                if (movie.displayYear != null)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppColors.textMuted.withValues(alpha: 0.4)),
+                      ),
+                      child: Text(
+                        movie.displayYear!,
+                        style: AppTypography.mono(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Pílula com a Nota (canto superior direito)
                 if (movie.rating > 0)
                   Positioned(
                     top: 6,

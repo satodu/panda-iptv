@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/storage/favorite_item.dart';
@@ -14,6 +15,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/bento_card.dart';
 import '../../core/widgets/bento_card_background.dart';
+import '../../core/widgets/brutalist_button.dart';
 import '../../core/widgets/brutalist_entrance.dart';
 import '../../core/widgets/hanko_badge.dart';
 import '../../core/widgets/tech_crosses.dart';
@@ -26,6 +28,9 @@ import '../series/presentation/series_screen.dart';
 import '../../core/services/update_service.dart';
 import '../settings/presentation/settings_screen.dart';
 import '../vod/presentation/vod_screen.dart';
+import '../vod/presentation/vod_provider.dart';
+import '../series/presentation/series_provider.dart';
+import '../live/presentation/live_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -118,6 +123,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Future<bool> _showExitConfirmationDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppColors.surfaceCard,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: AppColors.borderHairline),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.exit_to_app_rounded, color: AppColors.accentPrimary, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.tr('dashboard.exit_title'),
+                  style: AppTypography.sectionTitle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            context.tr('dashboard.exit_message'),
+            style: AppTypography.mono(fontSize: 13, color: AppColors.textPrimary),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          actions: [
+            BrutalistButton(
+              label: context.tr('dashboard.exit_cancel'),
+              isSecondary: true,
+              autofocus: true,
+              onPressed: () => Navigator.of(ctx).pop(false),
+            ),
+            const SizedBox(width: 8),
+            BrutalistButton(
+              label: context.tr('dashboard.exit_confirm'),
+              onPressed: () => Navigator.of(ctx).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      await SystemNavigator.pop();
+      return true;
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -126,7 +183,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     final isNarrow = MediaQuery.of(context).size.width < 600;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _showExitConfirmationDialog();
+      },
+      child: Focus(
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent &&
+              (event.logicalKey == LogicalKeyboardKey.escape ||
+               event.logicalKey == LogicalKeyboardKey.goBack)) {
+            _showExitConfirmationDialog();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: Scaffold(
       backgroundColor: AppColors.canvas,
       body: SafeArea(
         child: Column(
@@ -207,6 +280,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
+    ),
+    ),
     );
   }
 
@@ -288,7 +363,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             tooltip: context.tr('dashboard.logout_tooltip'),
             icon: Icons.power_settings_new_rounded,
             color: AppColors.textMuted,
-            onPressed: () => auth.logout(),
+            onPressed: () {
+              context.read<VodProvider>().clear();
+              context.read<SeriesProvider>().clear();
+              context.read<LiveProvider>().clear();
+              auth.logout();
+            },
           ),
         ],
       ),

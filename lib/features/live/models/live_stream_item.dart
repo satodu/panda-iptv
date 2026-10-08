@@ -44,4 +44,9 @@ class LiveStreamItem {
     if (upper.contains('SD') || upper.contains('480')) return 'SD';
     return 'LIVE';
   }
+
+  bool get is4K => resolutionTag == '4K';
+  bool get isFhd => resolutionTag == 'FHD';
+  bool get isHd => resolutionTag == 'HD';
+  bool get hasEpg => epgChannelId != null && epgChannelId!.trim().isNotEmpty;
 }

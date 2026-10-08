@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../auth/models/xtream_account.dart';
 import '../models/live_category.dart';
+import '../models/live_epg_item.dart';
 import '../models/live_stream_item.dart';
 
 class LiveService {
@@ -64,5 +65,29 @@ class LiveService {
   /// Constrói a URL do stream ao vivo para reprodução no media_kit
   String buildStreamUrl(XtreamAccount account, int streamId, {String extension = 'ts'}) {
     return '${account.serverUrl}/live/${account.username}/${account.password}/$streamId.$extension';
+  }
+
+  /// Busca a programação EPG do canal
+  Future<List<LiveEpgItem>> getShortEpg(XtreamAccount account, int streamId, {int limit = 10}) async {
+    final params = {
+      'stream_id': streamId.toString(),
+      'limit': limit.toString(),
+    };
+
+    final url = _buildUrl(account, 'get_short_epg', params);
+    try {
+      final response = await _client.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return [];
+
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic> && data['epg_listings'] is List) {
+        final listings = data['epg_listings'] as List;
+        return listings
+            .whereType<Map<String, dynamic>>()
+            .map((json) => LiveEpgItem.fromJson(json))
+            .toList();
+      }
+    } catch (_) {}
+    return [];
   }
 }

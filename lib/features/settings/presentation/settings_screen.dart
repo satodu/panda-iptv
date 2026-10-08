@@ -12,6 +12,9 @@ import '../../../core/widgets/brutalist_button.dart';
 import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../auth/presentation/auth_provider.dart';
+import '../../vod/presentation/vod_provider.dart';
+import '../../series/presentation/series_provider.dart';
+import '../../live/presentation/live_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -233,6 +236,9 @@ class SettingsScreen extends StatelessWidget {
                                 isSecondary: true,
                                 icon: Icons.sync_alt_rounded,
                                 onPressed: () {
+                                  context.read<VodProvider>().clear();
+                                  context.read<SeriesProvider>().clear();
+                                  context.read<LiveProvider>().clear();
                                   auth.logout();
                                   Navigator.of(context).popUntil((route) => route.isFirst);
                                 },

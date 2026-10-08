@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,7 +18,13 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
+import 'package:provider/provider.dart';
+import '../../auth/presentation/auth_provider.dart';
+import '../../live/models/live_stream_item.dart';
+import '../../live/presentation/live_provider.dart';
+import '../../series/presentation/series_provider.dart';
 import '../models/playlist_item.dart';
+import 'live_channel_epg_panel.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final String title;
@@ -47,7 +54,8 @@ class VideoPlayerScreen extends StatefulWidget {
   State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
 }
 
-class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindingObserver {
+class _VideoPlayerScreenState extends State<VideoPlayerScreen>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late final Player _player;
   late final VideoController _controller;
 
@@ -99,6 +107,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   StreamSubscription? _errSub;
   StreamSubscription? _volSub;
   StreamSubscription? _compSub;
+  bool _isDisposed = false;
+
+  void _safeSetState(VoidCallback fn) {
+    if (_isDisposed || !mounted) return;
+    try {
+      setState(fn);
+    } catch (_) {
+      // Evita exceção caso o elemento tenha entrado em defunct durante o processamento de microtasks
+    }
+  }
 
   final FocusNode _rootFocusNode = FocusNode(debugLabel: 'PlayerRoot');
   final FocusNode _playPauseFocusNode = FocusNode(debugLabel: 'PlayerPlayPause');
@@ -119,10 +137,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   Duration _holdSeekTarget = Duration.zero;
   int _holdSeekElapsedTicks = 0;
 
+  // Menu / Gaveta lateral de seleção de episódios
+  bool _showEpisodesPanel = false;
+  final ScrollController _episodesScrollController = ScrollController();
+  late final AnimationController _episodesPanelController;
+  late final Animation<Offset> _episodesSlideAnimation;
+  late final Animation<double> _episodesFadeAnimation;
+
+  // Menu / Painel em cascata de canais e guia EPG para Live Stream
+  bool _showLiveEpgPanel = false;
+
+  List<PlaylistItem>? _playlist;
+
   bool get hasNextEpisode =>
-      widget.playlist != null && _currentIndex < widget.playlist!.length - 1;
+      _playlist != null && _currentIndex < _playlist!.length - 1;
   bool get hasPreviousEpisode =>
-      widget.playlist != null && _currentIndex > 0;
+      _playlist != null && _currentIndex > 0;
 
   @override
   void initState() {
@@ -138,12 +168,38 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
+    // Inicialização da animação suave de slide para o menu de episódios
+    _episodesPanelController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _episodesSlideAnimation = Tween<Offset>(
+      begin: const Offset(1.0, 0.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _episodesPanelController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    ));
+    _episodesFadeAnimation = CurvedAnimation(
+      parent: _episodesPanelController,
+      curve: Curves.easeOut,
+    );
+
+    _playlist = widget.playlist;
+    final isSeriesMedia = widget.mediaType == 'series' || (widget.mediaId?.startsWith('series_') ?? false);
+    if (_playlist == null && isSeriesMedia) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadSeriesPlaylistIfNeeded();
+      });
+    }
+
     _currentIndex = widget.initialPlaylistIndex;
-    if (widget.playlist != null &&
-        widget.playlist!.isNotEmpty &&
+    if (_playlist != null &&
+        _playlist!.isNotEmpty &&
         _currentIndex >= 0 &&
-        _currentIndex < widget.playlist!.length) {
-      final item = widget.playlist![_currentIndex];
+        _currentIndex < _playlist!.length) {
+      final item = _playlist![_currentIndex];
       _currentTitle = item.title;
       _currentSubtitle = item.subtitle;
       _currentStreamUrl = item.streamUrl;
@@ -156,7 +212,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       _currentStreamUrl = widget.streamUrl;
       _currentMediaId = widget.mediaId;
       _currentCover = widget.cover;
-      _currentMediaType = widget.mediaType;
+      _currentMediaType = (widget.mediaId?.startsWith('series_') ?? false)
+          ? 'series'
+          : widget.mediaType;
     }
 
     if (_currentMediaId != null && _currentMediaType != 'live') {
@@ -190,8 +248,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     );
 
     _posSub = _player.stream.position.listen((pos) {
-      if (mounted) {
-        setState(() {
+      if (!_isDisposed && mounted) {
+        _safeSetState(() {
           _position = pos;
           if (pos > Duration.zero) {
             _isBuffering = false;
@@ -205,7 +263,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
           final ratio = _position.inSeconds / _duration.inSeconds;
           if (ratio >= 0.90 && !_isWatched && _currentMediaId != null) {
             WatchedService.markAsWatched(_currentMediaId!);
-            setState(() => _isWatched = true);
+            _safeSetState(() => _isWatched = true);
           }
 
           // Se faltam <= 15s para o fim e há próximo episódio, aciona contagem regressiva
@@ -220,21 +278,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     });
 
     _durSub = _player.stream.duration.listen((dur) {
-      if (mounted) {
-        setState(() => _duration = dur);
+      if (!_isDisposed && mounted) {
+        _safeSetState(() => _duration = dur);
         _checkAndApplyResume();
       }
     });
 
     _playSub = _player.stream.playing.listen((playing) {
-      if (mounted) {
-        setState(() => _isPlaying = playing);
+      if (!_isDisposed && mounted) {
+        _safeSetState(() => _isPlaying = playing);
       }
     });
 
     _bufSub = _player.stream.buffering.listen((buffering) {
-      if (mounted) {
-        setState(() {
+      if (!_isDisposed && mounted) {
+        _safeSetState(() {
           if (_position == Duration.zero) {
             _isBuffering = buffering;
           } else {
@@ -245,8 +303,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     });
 
     _volSub = _player.stream.volume.listen((vol) {
-      if (mounted && !_isSilencedForResume) {
-        setState(() => _volume = vol.clamp(0.0, 100.0));
+      if (!_isDisposed && mounted && !_isSilencedForResume) {
+        _safeSetState(() => _volume = vol.clamp(0.0, 100.0));
       }
     });
 
@@ -260,19 +318,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
           errLower.contains('seekable')) {
         return;
       }
-      if (mounted) {
+      if (!_isDisposed && mounted) {
         if (_isPlaying) {
           return;
         }
-        setState(() => _errorMessage = 'Erro ao carregar transmissão: $err');
+        _safeSetState(() => _errorMessage = 'Erro ao carregar transmissão: $err');
       }
     });
 
     _compSub = _player.stream.completed.listen((completed) {
-      if (completed && mounted) {
+      if (completed && !_isDisposed && mounted) {
         if (_currentMediaId != null && _currentMediaType != 'live') {
           WatchedService.markAsWatched(_currentMediaId!);
-          setState(() => _isWatched = true);
+          _safeSetState(() => _isWatched = true);
         }
         if (hasNextEpisode) {
           _triggerNextEpisodeCountdown();
@@ -339,10 +397,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
       try {
         await _player.seek(target);
-        if (mounted) {
+        if (!_isDisposed && mounted) {
           _isSilencedForResume = false;
           _player.setVolume(_volumeToRestore);
-          setState(() {
+          _safeSetState(() {
             _volume = _volumeToRestore;
             _hasResumed = true;
             _pendingResumePosition = null;
@@ -353,10 +411,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         }
       } catch (e) {
         debugPrint('[RESUME SEEK ERROR] $e');
-        if (mounted) {
+        if (!_isDisposed && mounted) {
           _isSilencedForResume = false;
           _player.setVolume(_volumeToRestore);
-          setState(() {
+          _safeSetState(() {
             _volume = _volumeToRestore;
             _hasResumed = true;
             _pendingResumePosition = null;
@@ -405,19 +463,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     final url = streamUrl ?? _currentStreamUrl;
     try {
       final platform = _player.platform;
-      if (platform is NativePlayer) {
-        await platform.setProperty('hwdec', _hwdecMode);
-        await platform.setProperty('user-agent', 'IPTVSmartersPro/3.1.5 (Linux; Android 12)');
-        await platform.setProperty('cache', 'yes');
-        await platform.setProperty('force-seekable', 'yes');
+      if (!kIsWeb && platform is NativePlayer) {
+        final p = platform as dynamic;
+        await p.setProperty('hwdec', _hwdecMode);
+        await p.setProperty('user-agent', 'IPTVSmartersPro/3.1.5 (Linux; Android 12)');
+        await p.setProperty('cache', 'yes');
+        await p.setProperty('force-seekable', 'yes');
         if (_currentMediaType == 'live') {
-          await platform.setProperty('demuxer-seekable-cache', 'no');
+          await p.setProperty('demuxer-seekable-cache', 'no');
         } else {
-          await platform.setProperty('demuxer-seekable-cache', 'yes');
+          await p.setProperty('demuxer-seekable-cache', 'yes');
         }
-        await platform.setProperty('demuxer-max-bytes', '67108864'); // 64 MB
-        await platform.setProperty('demuxer-max-back-bytes', '33554432'); // 32 MB
-        await platform.setProperty('hr-seek', 'yes');
+        await p.setProperty('demuxer-max-bytes', '67108864'); // 64 MB
+        await p.setProperty('demuxer-max-back-bytes', '33554432'); // 32 MB
+        await p.setProperty('hr-seek', 'yes');
       }
     } catch (_) {}
 
@@ -444,8 +503,97 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _playEpisodeIndex(_currentIndex - 1);
   }
 
+  void _loadSeriesPlaylistIfNeeded() async {
+    if (_playlist != null && _playlist!.isNotEmpty) return;
+    final isSeries = _currentMediaType == 'series' ||
+        widget.mediaType == 'series' ||
+        (_currentMediaId?.startsWith('series_') ?? false) ||
+        (widget.mediaId?.startsWith('series_') ?? false);
+    if (!isSeries) return;
+
+    int? sId;
+    String? epId;
+
+    final mediaIdToUse = _currentMediaId ?? widget.mediaId;
+    if (mediaIdToUse != null && mediaIdToUse.startsWith('series_')) {
+      final parts = mediaIdToUse.split('_');
+      if (parts.length >= 3) {
+        sId = int.tryParse(parts[1]);
+        epId = parts.sublist(2).join('_');
+      }
+    }
+
+    try {
+      final account = context.read<AuthProvider>().currentAccount;
+      if (account == null) return;
+      final seriesProv = context.read<SeriesProvider>();
+
+      if (sId == null) {
+        final match = seriesProv.seriesList.where(
+          (s) => s.name.trim().toLowerCase() == _currentTitle.trim().toLowerCase(),
+        ).firstOrNull;
+        if (match != null) {
+          sId = match.seriesId;
+        }
+      }
+      if (sId == null) return;
+
+      if (epId == null) {
+        final reg = RegExp(r'/series/[^/]+/[^/]+/(\d+)\.');
+        final m = reg.firstMatch(_currentStreamUrl);
+        if (m != null) {
+          epId = m.group(1);
+        }
+      }
+
+      final detail = await seriesProv.loadSeriesDetail(account, sId);
+      if (detail == null || detail.episodesBySeason.isEmpty || !mounted) return;
+
+      String? matchedSeason;
+      if (epId != null) {
+        for (final entry in detail.episodesBySeason.entries) {
+          if (entry.value.any((ep) => ep.id.toString().trim() == epId!.trim())) {
+            matchedSeason = entry.key;
+            break;
+          }
+        }
+      }
+      matchedSeason ??= detail.seasonNumbers.isNotEmpty
+          ? detail.seasonNumbers.first
+          : (detail.episodesBySeason.keys.isNotEmpty ? detail.episodesBySeason.keys.first : '1');
+
+      final episodes = detail.episodesBySeason[matchedSeason] ?? [];
+      if (episodes.isEmpty || !mounted) return;
+
+      final generatedPlaylist = episodes.map((ep) {
+        final url = seriesProv.buildStreamUrl(account, ep.id, ep.containerExtension);
+        return PlaylistItem(
+          id: 'series_${sId}_${ep.id}',
+          title: _currentTitle,
+          subtitle: 'TEMP $matchedSeason // EP ${ep.episodeNum} - ${ep.title}',
+          streamUrl: url,
+          cover: ep.image ?? detail.cover ?? _currentCover,
+          mediaType: 'series',
+        );
+      }).toList();
+
+      final idx = epId != null
+          ? episodes.indexWhere((ep) => ep.id.toString().trim() == epId!.trim())
+          : 0;
+
+      if (!_isDisposed && mounted) {
+        _safeSetState(() {
+          _playlist = generatedPlaylist;
+          if (idx >= 0) _currentIndex = idx;
+        });
+      }
+    } catch (_) {
+      // Falha silenciosa caso não consiga sincronizar episódios
+    }
+  }
+
   void _playEpisodeIndex(int index) async {
-    if (widget.playlist == null || index < 0 || index >= widget.playlist!.length) return;
+    if (_playlist == null || index < 0 || index >= _playlist!.length) return;
     _cancelNextCountdown();
 
     if (_currentMediaId != null) {
@@ -453,7 +601,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     }
     _saveCurrentProgress();
 
-    final nextItem = widget.playlist![index];
+    final nextItem = _playlist![index];
     setState(() {
       _currentIndex = index;
       _currentTitle = nextItem.title;
@@ -482,15 +630,122 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     await _initAndPlay(streamUrl: nextItem.streamUrl);
   }
 
+  void _openEpisodesPanel() {
+    if (_playlist == null || _playlist!.isEmpty) return;
+    setState(() {
+      _showEpisodesPanel = true;
+      _hideTimer?.cancel();
+    });
+    _episodesPanelController.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_episodesScrollController.hasClients && _currentIndex > 0) {
+        final targetOffset = (_currentIndex * 68.0).clamp(
+          0.0,
+          _episodesScrollController.position.maxScrollExtent,
+        );
+        _episodesScrollController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
+  void _closeEpisodesPanel() {
+    if (!_showEpisodesPanel) return;
+    _episodesPanelController.reverse().then((_) {
+      if (!_isDisposed && mounted) {
+        _safeSetState(() {
+          _showEpisodesPanel = false;
+          _startHideTimer();
+        });
+      }
+    });
+  }
+
+  void _toggleEpisodesPanel() {
+    if (_showEpisodesPanel) {
+      _closeEpisodesPanel();
+    } else {
+      _openEpisodesPanel();
+    }
+  }
+
+  void _openLiveEpgPanel() {
+    _safeSetState(() {
+      _showLiveEpgPanel = true;
+      _hideTimer?.cancel();
+    });
+  }
+
+  void _closeLiveEpgPanel() {
+    if (!_showLiveEpgPanel) return;
+    _safeSetState(() {
+      _showLiveEpgPanel = false;
+      _startHideTimer();
+    });
+  }
+
+  void _toggleLiveEpgPanel() {
+    if (_showLiveEpgPanel) {
+      _closeLiveEpgPanel();
+    } else {
+      _openLiveEpgPanel();
+    }
+  }
+
+  void _switchLiveChannel(LiveStreamItem channel) async {
+    final authProv = context.read<AuthProvider>();
+    final liveProv = context.read<LiveProvider>();
+    final account = authProv.currentAccount;
+    if (account == null) return;
+
+    final newUrl = liveProv.buildStreamUrl(account, channel.streamId);
+
+    // Registra no histórico de recentes
+    RecentChannelsService.recordChannelWatched(
+      streamId: channel.streamId,
+      name: channel.name,
+      streamIcon: channel.streamIcon,
+      categoryName: channel.categoryName,
+      channelNumber: channel.formattedNumber,
+      streamUrl: newUrl,
+    );
+
+    // Se temos playlist de canais, atualiza o índice
+    if (_playlist != null && _playlist!.isNotEmpty) {
+      final foundIdx = _playlist!.indexWhere((item) => item.id == channel.streamId.toString());
+      if (foundIdx >= 0) {
+        _currentIndex = foundIdx;
+      }
+    }
+
+    _safeSetState(() {
+      _currentTitle = channel.name;
+      _currentSubtitle = channel.categoryName ?? '${channel.formattedNumber} // AO VIVO';
+      _currentStreamUrl = newUrl;
+      _currentMediaId = channel.streamId.toString();
+      _currentCover = channel.streamIcon;
+      _currentMediaType = 'live';
+      _isBuffering = true;
+      _position = Duration.zero;
+      _duration = Duration.zero;
+    });
+
+    _showHud('SINTONIZANDO: ${channel.formattedNumber} - ${channel.name.toUpperCase()}');
+    await _initAndPlay(streamUrl: newUrl);
+  }
+
   void _triggerNextEpisodeCountdown() {
     if (_showNextCountdown || !hasNextEpisode) return;
-    setState(() {
+    _safeSetState(() {
       _showNextCountdown = true;
       _countdownSeconds = 6;
     });
     _countdownTimer?.cancel();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
+      if (_isDisposed || !mounted) {
         timer.cancel();
         return;
       }
@@ -498,7 +753,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         timer.cancel();
         _playNextEpisode();
       } else {
-        setState(() {
+        _safeSetState(() {
           _countdownSeconds--;
         });
       }
@@ -508,16 +763,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   void _cancelNextCountdown() {
     _countdownTimer?.cancel();
     _countdownTimer = null;
-    if (_showNextCountdown && mounted) {
-      setState(() => _showNextCountdown = false);
+    if (_showNextCountdown && !_isDisposed && mounted) {
+      _safeSetState(() => _showNextCountdown = false);
     }
   }
 
   void _toggleWatched() async {
     if (_currentMediaId == null) return;
     final isNowWatched = await WatchedService.toggleWatched(_currentMediaId!);
-    if (mounted) {
-      setState(() => _isWatched = isNowWatched);
+    if (!_isDisposed && mounted) {
+      _safeSetState(() => _isWatched = isNowWatched);
       _showHud(isNowWatched ? 'MARCADO COMO VISTO.' : 'DESMARCADO COMO VISTO.');
     }
   }
@@ -528,8 +783,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
     try {
       final platform = _player.platform;
-      if (platform is NativePlayer) {
-        await platform.setProperty('hwdec', nextMode);
+      if (!kIsWeb && platform is NativePlayer) {
+        await (platform as dynamic).setProperty('hwdec', nextMode);
       }
     } catch (_) {}
 
@@ -541,20 +796,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   void _startHideTimer() {
     _hideTimer?.cancel();
     _hideTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted && _isPlaying) {
-        setState(() => _showControls = false);
+      if (!_isDisposed && mounted && _isPlaying) {
+        _safeSetState(() => _showControls = false);
       }
     });
   }
 
   void _toggleControls() {
-    setState(() {
+    _safeSetState(() {
       _showControls = !_showControls;
     });
     if (_showControls) {
       _startHideTimer();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _showControls) {
+        if (!_isDisposed && mounted && _showControls) {
           _playPauseFocusNode.requestFocus();
         }
       });
@@ -563,11 +818,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
   void _revealControls() {
     if (!_showControls) {
-      setState(() => _showControls = true);
+      _safeSetState(() => _showControls = true);
     }
     _startHideTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _showControls) {
+      if (!_isDisposed && mounted && _showControls) {
         _playPauseFocusNode.requestFocus();
       }
     });
@@ -596,7 +851,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     }
     _doubleTapSeekAccumulated += delta;
 
-    setState(() {
+    _safeSetState(() {
       _showLeftDoubleTap = !isForward;
       _showRightDoubleTap = isForward;
     });
@@ -607,8 +862,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _seekTo(target);
 
     _doubleTapTimer = Timer(const Duration(milliseconds: 650), () {
-      if (mounted) {
-        setState(() {
+      if (!_isDisposed && mounted) {
+        _safeSetState(() {
           _showLeftDoubleTap = false;
           _showRightDoubleTap = false;
           _doubleTapSeekAccumulated = 0;
@@ -627,10 +882,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _holdSeekElapsedTicks = 0;
 
     _holdSeekTimer = Timer(const Duration(milliseconds: 320), () {
-      if (!mounted) return;
+      if (_isDisposed || !mounted) return;
       _isHoldingSeek = true;
       _holdSeekTickTimer = Timer.periodic(const Duration(milliseconds: 140), (timer) {
-        if (!mounted) {
+        if (_isDisposed || !mounted) {
           timer.cancel();
           return;
         }
@@ -645,7 +900,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             .clamp(0, _duration.inMilliseconds > 0 ? _duration.inMilliseconds : 0);
         _holdSeekTarget = Duration(milliseconds: newTargetMs);
 
-        setState(() {
+        _safeSetState(() {
           _position = _holdSeekTarget;
         });
 
@@ -685,17 +940,45 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       if (key == LogicalKeyboardKey.escape ||
           key == LogicalKeyboardKey.backspace ||
           key == LogicalKeyboardKey.goBack) {
+        if (_showLiveEpgPanel) {
+          _closeLiveEpgPanel();
+          return KeyEventResult.handled;
+        }
+        if (_showEpisodesPanel) {
+          _closeEpisodesPanel();
+          return KeyEventResult.handled;
+        }
         if (_showControls) {
-          setState(() => _showControls = false);
+          _safeSetState(() => _showControls = false);
           return KeyEventResult.handled;
         } else {
-          _saveCurrentProgress();
-          Navigator.of(context).pop();
+          _stopPlaybackAndPop();
+          return KeyEventResult.handled;
+        }
+      }
+
+      if (key == LogicalKeyboardKey.keyG || key == LogicalKeyboardKey.keyC) {
+        if (_currentMediaType == 'live') {
+          _toggleLiveEpgPanel();
+          return KeyEventResult.handled;
+        }
+      }
+
+      if (key == LogicalKeyboardKey.keyE) {
+        if (_playlist != null && _playlist!.length > 1 && _currentMediaType == 'series') {
+          _toggleEpisodesPanel();
           return KeyEventResult.handled;
         }
       }
 
       if (!_showControls) {
+        if (_currentMediaType == 'live' &&
+            (key == LogicalKeyboardKey.arrowLeft ||
+             key == LogicalKeyboardKey.arrowRight)) {
+          _openLiveEpgPanel();
+          return KeyEventResult.handled;
+        }
+
         if (key == LogicalKeyboardKey.arrowUp ||
             key == LogicalKeyboardKey.arrowDown ||
             key == LogicalKeyboardKey.select ||
@@ -836,9 +1119,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
   void _showHud(String message) {
     _hudTimer?.cancel();
-    setState(() => _hudMessage = message);
+    _safeSetState(() => _hudMessage = message);
     _hudTimer = Timer(const Duration(milliseconds: 1600), () {
-      if (mounted) setState(() => _hudMessage = null);
+      if (!_isDisposed && mounted) {
+        _safeSetState(() => _hudMessage = null);
+      }
     });
   }
 
@@ -891,40 +1176,92 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     return '$minutes:$seconds';
   }
 
+  void _stopPlaybackAndPop() {
+    _saveCurrentProgress();
+    try {
+      _player.pause();
+      _player.stop();
+    } catch (_) {}
+    Navigator.of(context).pop();
+  }
+
   @override
   void dispose() {
-    // Restaura a barra de status do sistema e todas as orientações permitidas ao sair do player
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: SystemUiOverlay.values,
-    );
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    _isDisposed = true;
 
-    _cancelNextCountdown();
-    _doubleTapTimer?.cancel();
-    _holdSeekTimer?.cancel();
-    _holdSeekTickTimer?.cancel();
-    _rootFocusNode.dispose();
-    _playPauseFocusNode.dispose();
-    _sliderFocusNode.dispose();
-    WidgetsBinding.instance.removeObserver(this);
-    _saveProgressTimer?.cancel();
-    _saveCurrentProgress();
-    _hideTimer?.cancel();
-    _hudTimer?.cancel();
-    _posSub?.cancel();
-    _durSub?.cancel();
-    _playSub?.cancel();
-    _bufSub?.cancel();
-    _volSub?.cancel();
-    _errSub?.cancel();
-    _compSub?.cancel();
-    _player.dispose();
+    // 1. Interrompe e descarta a reprodução de áudio e vídeo imediatamente
+    try {
+      _player.pause();
+      _player.stop();
+      _player.dispose();
+    } catch (e) {
+      debugPrint('[PLAYER DISPOSE ERROR] $e');
+    }
+
+    // 2. Cancela imediatamente todas as assinaturas de streams para evitar microtasks residuais
+    try {
+      _posSub?.cancel();
+      _durSub?.cancel();
+      _playSub?.cancel();
+      _bufSub?.cancel();
+      _volSub?.cancel();
+      _errSub?.cancel();
+      _compSub?.cancel();
+    } catch (_) {}
+    _posSub = null;
+    _durSub = null;
+    _playSub = null;
+    _bufSub = null;
+    _volSub = null;
+    _errSub = null;
+    _compSub = null;
+
+    // 3. Cancela timers e salva o progresso final
+    try {
+      _cancelNextCountdown();
+      _doubleTapTimer?.cancel();
+      _holdSeekTimer?.cancel();
+      _holdSeekTickTimer?.cancel();
+      _saveProgressTimer?.cancel();
+      _saveCurrentProgress();
+      _hideTimer?.cancel();
+      _hudTimer?.cancel();
+    } catch (_) {}
+
+    try {
+      WidgetsBinding.instance.removeObserver(this);
+    } catch (_) {}
+
+    // 4. Para animações ativas antes do descarte para evitar exceção de ticker ativo
+    try {
+      _episodesPanelController.stop();
+      _episodesPanelController.dispose();
+    } catch (_) {}
+
+    try {
+      _episodesScrollController.dispose();
+    } catch (_) {}
+
+    try {
+      _rootFocusNode.dispose();
+      _playPauseFocusNode.dispose();
+      _sliderFocusNode.dispose();
+    } catch (_) {}
+
+    // 5. Restaura a barra de status do sistema e todas as orientações permitidas ao sair do player
+    try {
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } catch (_) {}
+
     super.dispose();
   }
 
@@ -937,9 +1274,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     final isNarrow = MediaQuery.of(context).size.width < 600;
 
     return PopScope(
-      canPop: true,
+      canPop: !_showEpisodesPanel,
       onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _showEpisodesPanel) {
+          _closeEpisodesPanel();
+          return;
+        }
         _saveCurrentProgress();
+        try {
+          _player.pause();
+          _player.stop();
+        } catch (_) {}
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -1200,28 +1545,29 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                     child: Center(
                       child: IgnorePointer(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.75),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.accentPrimary, width: 2),
+                            color: Colors.black.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.accentPrimary, width: 1.2),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.accentPrimary.withValues(alpha: 0.45),
-                                blurRadius: 20,
+                                color: Colors.black.withValues(alpha: 0.6),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
                               ),
                             ],
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.fast_rewind_rounded, color: AppColors.accentPrimary, size: 38),
-                              const SizedBox(height: 4),
+                              const Icon(Icons.fast_rewind_rounded, color: AppColors.accentPrimary, size: 24),
+                              const SizedBox(height: 3),
                               Text(
                                 '-${_doubleTapSeekAccumulated.abs()}s',
                                 style: const TextStyle(
                                   fontFamily: 'JetBrainsMono',
-                                  fontSize: 13,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.accentPrimary,
                                 ),
@@ -1242,28 +1588,29 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                     child: Center(
                       child: IgnorePointer(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.75),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.accentPrimary, width: 2),
+                            color: Colors.black.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.accentPrimary, width: 1.2),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.accentPrimary.withValues(alpha: 0.45),
-                                blurRadius: 20,
+                                color: Colors.black.withValues(alpha: 0.6),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
                               ),
                             ],
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.fast_forward_rounded, color: AppColors.accentPrimary, size: 38),
-                              const SizedBox(height: 4),
+                              const Icon(Icons.fast_forward_rounded, color: AppColors.accentPrimary, size: 24),
+                              const SizedBox(height: 3),
                               Text(
                                 '+${_doubleTapSeekAccumulated.abs()}s',
                                 style: const TextStyle(
                                   fontFamily: 'JetBrainsMono',
-                                  fontSize: 13,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.accentPrimary,
                                 ),
@@ -1311,7 +1658,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                                   _PlayerFocusButton(
                                     tooltip: 'Voltar',
                                     onFocused: _startHideTimer,
-                                    onPressed: () => Navigator.of(context).pop(),
+                                    onPressed: _stopPlaybackAndPop,
                                     child: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
                                   ),
                                   const SizedBox(width: 8),
@@ -1385,6 +1732,56 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                                         size: 20,
                                       ),
                                     ),
+                                  if (_currentMediaType == 'live') ...[
+                                    const SizedBox(width: 6),
+                                    _PlayerFocusButton(
+                                      tooltip: context.tr('player.live_channels_tooltip'),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                      onFocused: _startHideTimer,
+                                      onPressed: _toggleLiveEpgPanel,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.live_tv_rounded,
+                                            color: AppColors.accentPrimary,
+                                            size: 16,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          HankoBadge(
+                                            text: context.tr('player.live_channels'),
+                                            borderColor: AppColors.accentPrimary,
+                                            textColor: AppColors.accentPrimary,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  if (_playlist != null && _playlist!.length > 1 && _currentMediaType == 'series') ...[
+                                    const SizedBox(width: 6),
+                                    _PlayerFocusButton(
+                                      tooltip: context.tr('player.episodes_tooltip'),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                      onFocused: _startHideTimer,
+                                      onPressed: _toggleEpisodesPanel,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.video_collection_outlined,
+                                            color: AppColors.accentPrimary,
+                                            size: 16,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          HankoBadge(
+                                            text: '${context.tr('player.episodes_menu')} [ ${_currentIndex + 1}/${_playlist!.length} ]',
+                                            borderColor: AppColors.accentPrimary,
+                                            textColor: AppColors.accentPrimary,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                   if (hasNextEpisode) ...[
                                     const SizedBox(width: 6),
                                     _PlayerFocusButton(
@@ -1585,9 +1982,26 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                                               textColor: AppColors.statusLive,
                                             ),
                                             const SizedBox(width: 10),
-                                            Text(
-                                              '[ TRANSMISSÃO EM DIRETO ]',
-                                              style: AppTypography.mono(fontSize: isNarrow ? 10 : 11, color: AppColors.accentCyan),
+                                            _PlayerFocusButton(
+                                              tooltip: context.tr('player.live_channels_tooltip'),
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                              onFocused: _startHideTimer,
+                                              onPressed: _toggleLiveEpgPanel,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.live_tv_rounded,
+                                                    size: 14,
+                                                    color: AppColors.accentCyan,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '[ GUIA DE CANAIS // EPG ]',
+                                                    style: AppTypography.mono(fontSize: isNarrow ? 10 : 11, color: AppColors.accentCyan),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -1690,6 +2104,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                     right: 24,
                     child: _buildNextEpisodeCountdownCard(),
                   ),
+
+                // Gaveta Lateral / Menu de Troca de Episódios
+                if (_showEpisodesPanel && _playlist != null && _playlist!.isNotEmpty)
+                  Positioned.fill(
+                    child: _buildEpisodesPanel(context, isNarrow),
+                  ),
+
+                // Painel Multi-Coluna em Cascata de Canais e Guia EPG (Live Stream)
+                if (_showLiveEpgPanel && _currentMediaType == 'live')
+                  Positioned.fill(
+                    child: LiveChannelEpgPanel(
+                      currentStreamId: _currentMediaId,
+                      onChannelSelected: _switchLiveChannel,
+                      onClose: _closeLiveEpgPanel,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -1700,8 +2130,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   }
 
   Widget _buildNextEpisodeCountdownCard() {
-    if (!hasNextEpisode) return const SizedBox.shrink();
-    final nextItem = widget.playlist![_currentIndex + 1];
+    if (!hasNextEpisode || _playlist == null) return const SizedBox.shrink();
+    final nextItem = _playlist![_currentIndex + 1];
 
     return Container(
       width: 320,
@@ -1776,6 +2206,229 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       ),
     );
   }
+
+  Widget _buildEpisodesPanel(BuildContext context, bool isNarrow) {
+    if (_playlist == null || _playlist!.isEmpty) return const SizedBox.shrink();
+
+    return Stack(
+      children: [
+        // Backdrop escurecido interativo para fechar ao tocar fora
+        FadeTransition(
+          opacity: _episodesFadeAnimation,
+          child: GestureDetector(
+            onTap: _closeEpisodesPanel,
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.68),
+            ),
+          ),
+        ),
+
+        // Gaveta Lateral Deslizante à Direita (Bento / Oriental Brutalism)
+        Align(
+          alignment: Alignment.centerRight,
+          child: SlideTransition(
+            position: _episodesSlideAnimation,
+            child: Container(
+              width: isNarrow ? MediaQuery.of(context).size.width * 0.88 : 380,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.canvas,
+                border: const Border(
+                  left: BorderSide(color: AppColors.accentPrimary, width: 1.5),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.85),
+                    blurRadius: 28,
+                    offset: const Offset(-6, 0),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                  // Top Bar da Gaveta de Episódios
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: const BoxDecoration(
+                      color: AppColors.surfaceCard,
+                      border: Border(bottom: BorderSide(color: AppColors.borderHairline)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.video_collection_outlined,
+                          color: AppColors.accentPrimary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                context.tr('player.episodes_menu'),
+                                style: AppTypography.titleMedium(fontSize: 14),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '[ ${_playlist!.length} EPISÓDIOS // SELEÇÃO ]',
+                                style: AppTypography.mono(fontSize: 10, color: AppColors.accentCyan),
+                              ),
+                            ],
+                          ),
+                        ),
+                        _PlayerFocusButton(
+                          tooltip: 'Fechar (ESC)',
+                          padding: const EdgeInsets.all(4),
+                          onPressed: _closeEpisodesPanel,
+                          child: const Icon(Icons.close_rounded, color: AppColors.textPrimary, size: 20),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Lista de Episódios com rolagem automática para o atual
+                  Expanded(
+                    child: ListView.separated(
+                      controller: _episodesScrollController,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      itemCount: _playlist!.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final ep = _playlist![index];
+                        final isCurrent = index == _currentIndex;
+                        final isWatched = WatchedService.isWatchedSync(ep.id);
+
+                        return _PlayerFocusButton(
+                          autofocus: isCurrent,
+                          borderRadius: BorderRadius.circular(8),
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            _playEpisodeIndex(index);
+                            _closeEpisodesPanel();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isCurrent ? AppColors.surfaceHover : AppColors.surfaceCard,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isCurrent ? AppColors.accentPrimary : AppColors.borderHairline,
+                                width: isCurrent ? 1.5 : 1.0,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                // Thumbnail do Episódio
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Container(
+                                    width: 76,
+                                    height: 48,
+                                    color: AppColors.canvas,
+                                    child: ep.cover != null && ep.cover!.isNotEmpty
+                                        ? CachedNetworkImage(
+                                            imageUrl: ep.cover!,
+                                            fit: BoxFit.cover,
+                                            placeholder: (_, __) => Container(
+                                              color: AppColors.surfaceCard,
+                                              child: const Center(
+                                                child: HankoLoader.mini(
+                                                  miniSize: 18,
+                                                  primaryColor: AppColors.accentPrimary,
+                                                ),
+                                              ),
+                                            ),
+                                            errorWidget: (_, __, ___) => Container(
+                                              color: AppColors.surfaceCard,
+                                              child: const Center(
+                                                child: Icon(Icons.movie_outlined, size: 20, color: AppColors.textDisabled),
+                                              ),
+                                            ),
+                                          )
+                                        : Container(
+                                            color: AppColors.surfaceCard,
+                                            child: const Center(
+                                              child: Icon(Icons.movie_outlined, size: 20, color: AppColors.textDisabled),
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+
+                                // Informações do Episódio
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          if (isCurrent) ...[
+                                            HankoBadge(
+                                              text: context.tr('player.now_playing'),
+                                              borderColor: AppColors.accentPrimary,
+                                              textColor: AppColors.accentPrimary,
+                                            ),
+                                            const SizedBox(width: 6),
+                                          ] else if (isWatched) ...[
+                                            const Icon(Icons.check_circle_rounded, color: AppColors.statusLive, size: 14),
+                                            const SizedBox(width: 4),
+                                          ],
+                                          Expanded(
+                                            child: Text(
+                                              ep.subtitle ?? 'EPISÓDIO ${index + 1}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: AppTypography.mono(
+                                                fontSize: 10,
+                                                fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                                                color: isCurrent ? AppColors.accentPrimary : AppColors.textPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        ep.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                                          color: isCurrent ? AppColors.textPrimary : AppColors.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(width: 6),
+                                Icon(
+                                  isCurrent ? Icons.play_arrow_rounded : Icons.play_arrow_outlined,
+                                  color: isCurrent ? AppColors.accentPrimary : AppColors.textDisabled,
+                                  size: 22,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
 }
 
 /// Botão de controle de mídia otimizado para navegação via D-pad em Android TV / Fire Stick.

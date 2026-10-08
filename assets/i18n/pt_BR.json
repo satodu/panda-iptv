@@ -6,7 +6,8 @@
     "all": "TODOS",
     "search": "BUSCAR...",
     "error_loading": "ERRO AO CARREGAR.",
-    "not_found": "NENHUM RESULTADO ENCONTRADO."
+    "not_found": "NENHUM RESULTADO ENCONTRADO.",
+    "refresh": "ATUALIZAR."
   },
   "auth": {
     "title": "ACESSO RESTRITO.",
@@ -42,7 +43,11 @@
     "recent_channels_title": "ÚLTIMOS CANAIS.",
     "connection": "CONEXÃO",
     "logout_tooltip": "Desconectar",
-    "footer": "PANDA IPTV // ARCH LINUX & ANDROID CORE // MPV ACCELERATED"
+    "footer": "PANDA IPTV // ARCH LINUX & ANDROID CORE // MPV ACCELERATED",
+    "exit_title": "FECHAR APLICATIVO.",
+    "exit_message": "Deseja realmente sair do Panda IPTV?",
+    "exit_cancel": "CONTINUAR NO APP.",
+    "exit_confirm": "SIM, SAIR."
   },
   "vod": {
     "title": "FILMES.",
@@ -92,7 +97,24 @@
     "paused": "PAUSADO.",
     "loading_stream": "+ + + [ CARREGANDO TRANSMISSÃO ] + + +",
     "resuming": "RETOMANDO REPRODUÇÃO.",
-    "loading_label": "CARREGANDO."
+    "loading_label": "CARREGANDO.",
+    "episodes_menu": "EPISÓDIOS.",
+    "episodes_tooltip": "Lista de Episódios (E)",
+    "now_playing": "REPRODUZINDO",
+    "live_channels": "CANAIS & GUIA (EPG)",
+    "live_channels_tooltip": "Guia de Canais e Programação (G)",
+    "categories": "CATEGORIAS",
+    "all_channels": "TODOS OS CANAIS",
+    "now_playing_tag": "NO AR",
+    "up_next": "A SEGUIR",
+    "no_epg": "PROGRAMAÇÃO INDISPONÍVEL",
+    "no_epg_desc": "O canal não possui guia EPG cadastrado no servidor.",
+    "channel_epg": "PROGRAMAÇÃO DO CANAL",
+    "search_channels": "BUSCAR CANAIS...",
+    "exit_confirm_title": "ENCERRAR REPRODUÇÃO.",
+    "exit_confirm_desc": "Deseja realmente sair da reprodução?",
+    "exit_confirm_no": "CONTINUAR ASSISTINDO.",
+    "exit_confirm_yes": "SIM, SAIR."
   },
   "settings": {
     "title": "CONFIGURAÇÕES.",
@@ -158,5 +180,38 @@
     "view_series_button": "VER SÉRIE.",
     "delete_button": "REMOVER.",
     "item_deleted": "ITEM REMOVIDO DO HISTÓRICO."
+  },
+  "filter": {
+    "title": "FILTROS & ORDENAÇÃO.",
+    "button": "FILTROS",
+    "sort_by": "ORDENAR POR:",
+    "sort_recent": "RECENTES",
+    "sort_added": "NOVIDADES PROVEDOR",
+    "sort_rating": "MELHOR NOTA",
+    "sort_alpha_asc": "A - Z",
+    "sort_alpha_desc": "Z - A",
+    "audio": "ÁUDIO / IDIOMA:",
+    "audio_all": "TODOS",
+    "audio_dub": "DUBLADOS",
+    "audio_sub": "LEGENDADOS",
+    "status": "STATUS:",
+    "status_all": "TODOS",
+    "status_unwatched": "NÃO ASSISTIDOS",
+    "status_watched": "JÁ VISTOS",
+    "quality": "QUALIDADE:",
+    "quality_all": "TODAS",
+    "quality_4k": "4K UHD",
+    "quality_fhd": "1080P FHD",
+    "quality_hd": "720P HD",
+    "top_releases": "LANÇAMENTOS",
+    "live_filter": "FILTRAR CANAIS:",
+    "live_filter_all": "TODOS",
+    "live_filter_with_epg": "COM GUIA (EPG)",
+    "live_sort_provider": "PADRÃO PROVEDOR",
+    "live_sort_number": "NÚMERO (#)",
+    "genres": "ESTILOS / GÊNEROS:",
+    "genre_all": "TODOS",
+    "clear": "LIMPAR FILTROS.",
+    "apply": "APLICAR."
   }
 }

@@ -6,7 +6,8 @@
     "all": "ALL",
     "search": "SEARCH...",
     "error_loading": "FAILED TO LOAD.",
-    "not_found": "NO RESULTS FOUND."
+    "not_found": "NO RESULTS FOUND.",
+    "refresh": "REFRESH."
   },
   "auth": {
     "title": "RESTRICTED ACCESS.",
@@ -42,7 +43,11 @@
     "recent_channels_title": "RECENT CHANNELS.",
     "connection": "CONNECTION",
     "logout_tooltip": "Sign out",
-    "footer": "PANDA IPTV // ARCH LINUX & ANDROID CORE // MPV ACCELERATED"
+    "footer": "PANDA IPTV // ARCH LINUX & ANDROID CORE // MPV ACCELERATED",
+    "exit_title": "EXIT APPLICATION.",
+    "exit_message": "Do you really want to exit Panda IPTV?",
+    "exit_cancel": "STAY IN APP.",
+    "exit_confirm": "YES, EXIT."
   },
   "vod": {
     "title": "MOVIES.",
@@ -92,7 +97,20 @@
     "paused": "PAUSED.",
     "loading_stream": "+ + + [ LOADING STREAM ] + + +",
     "resuming": "RESUMING PLAYBACK.",
-    "loading_label": "LOADING."
+    "loading_label": "LOADING.",
+    "episodes_menu": "EPISODES.",
+    "episodes_tooltip": "Episodes List (E)",
+    "now_playing": "PLAYING",
+    "live_channels": "CHANNELS & TV GUIDE (EPG)",
+    "live_channels_tooltip": "Channels & TV Guide (G)",
+    "categories": "CATEGORIES",
+    "all_channels": "ALL CHANNELS",
+    "now_playing_tag": "ON AIR",
+    "up_next": "UP NEXT",
+    "no_epg": "NO GUIDE AVAILABLE",
+    "no_epg_desc": "The channel does not have EPG guide data on the server.",
+    "channel_epg": "CHANNEL TV GUIDE",
+    "search_channels": "SEARCH CHANNELS..."
   },
   "settings": {
     "title": "SETTINGS.",
@@ -158,5 +176,38 @@
     "view_series_button": "VIEW SERIES.",
     "delete_button": "REMOVE.",
     "item_deleted": "ITEM REMOVED FROM HISTORY."
+  },
+  "filter": {
+    "title": "FILTERS & SORTING.",
+    "button": "FILTERS",
+    "sort_by": "SORT BY:",
+    "sort_recent": "RECENT",
+    "sort_added": "PROVIDER NEWEST",
+    "sort_rating": "TOP RATED",
+    "sort_alpha_asc": "A - Z",
+    "sort_alpha_desc": "Z - A",
+    "audio": "AUDIO / LANGUAGE:",
+    "audio_all": "ALL",
+    "audio_dub": "DUBBED",
+    "audio_sub": "SUBTITLED",
+    "status": "STATUS:",
+    "status_all": "ALL",
+    "status_unwatched": "UNWATCHED",
+    "status_watched": "WATCHED",
+    "quality": "QUALITY:",
+    "quality_all": "ALL",
+    "quality_4k": "4K UHD",
+    "quality_fhd": "1080P FHD",
+    "quality_hd": "720P HD",
+    "top_releases": "NEW RELEASES",
+    "live_filter": "FILTER CHANNELS:",
+    "live_filter_all": "ALL",
+    "live_filter_with_epg": "WITH TV GUIDE (EPG)",
+    "live_sort_provider": "PROVIDER DEFAULT",
+    "live_sort_number": "CHANNEL NUMBER (#)",
+    "genres": "GENRES / STYLES:",
+    "genre_all": "ALL",
+    "clear": "CLEAR FILTERS.",
+    "apply": "APPLY."
   }
 }
