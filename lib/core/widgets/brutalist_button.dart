@@ -14,6 +14,9 @@ class BrutalistButton extends StatefulWidget {
   final bool autofocus;
   final bool autoScrollOnFocus;
   final FocusNode? focusNode;
+  final double? height;
+  final EdgeInsetsGeometry? padding;
+  final double? fontSize;
 
   const BrutalistButton({
     super.key,
@@ -25,6 +28,9 @@ class BrutalistButton extends StatefulWidget {
     this.autofocus = false,
     this.autoScrollOnFocus = false,
     this.focusNode,
+    this.height,
+    this.padding,
+    this.fontSize,
   });
 
   @override
@@ -88,7 +94,7 @@ class _BrutalistButtonState extends State<BrutalistButton> {
         curve: Curves.easeOutCubic,
         transform: Matrix4.diagonal3Values(scale, scale, 1.0),
         transformAlignment: Alignment.center,
-        height: 48,
+        height: widget.height ?? 48,
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(10),
@@ -129,7 +135,7 @@ class _BrutalistButtonState extends State<BrutalistButton> {
             borderRadius: BorderRadius.circular(10),
             splashColor: Colors.white.withValues(alpha: 0.2),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: widget.padding ?? const EdgeInsets.symmetric(horizontal: 24),
               child: Center(
                 child: widget.isLoading
                     ? HankoLoader.mini(
@@ -141,8 +147,12 @@ class _BrutalistButtonState extends State<BrutalistButton> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (widget.icon != null) ...[
-                            Icon(widget.icon, size: 18, color: fgColor),
-                            const SizedBox(width: 8),
+                            Icon(
+                              widget.icon,
+                              size: (widget.height != null && widget.height! < 40) ? 15 : 18,
+                              color: fgColor,
+                            ),
+                            SizedBox(width: (widget.height != null && widget.height! < 40) ? 6 : 8),
                           ],
                           Flexible(
                             child: Text(
@@ -150,7 +160,7 @@ class _BrutalistButtonState extends State<BrutalistButton> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppTypography.mono(
-                                fontSize: 13,
+                                fontSize: widget.fontSize ?? 13,
                                 fontWeight: FontWeight.w700,
                                 color: fgColor,
                               ),

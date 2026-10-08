@@ -223,7 +223,7 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
                             crossAxisCount: 2,
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 14,
-                            mainAxisExtent: 190,
+                            mainAxisExtent: 200,
                           ),
                           itemCount: filtered.length,
                           itemBuilder: (context, index) {
@@ -657,33 +657,46 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
 
                 const SizedBox(height: 10),
 
-                // Linha de Ações com Wrap (nunca estoura pixel horizontalmente)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                // Linha de Ações: Botões organizados lado a lado sem corte vertical
+                Row(
                   children: [
-                    BrutalistButton(
-                      label: isWatched
-                          ? context.tr('history.watch_button')
-                          : context.tr('history.resume_button'),
-                      icon: Icons.play_arrow_rounded,
-                      isSecondary: isSeries,
-                      onPressed: () => _onPlayItem(item),
-                    ),
-                    if (isSeries)
-                      BrutalistButton(
-                        label: context.tr('history.view_series_button'),
-                        icon: Icons.tv_rounded,
+                    Expanded(
+                      child: BrutalistButton(
+                        height: 38,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        fontSize: 11,
+                        label: isWatched
+                            ? context.tr('history.watch_button')
+                            : context.tr('history.resume_button'),
+                        icon: Icons.play_arrow_rounded,
                         isSecondary: false,
-                        onPressed: () => _onOpenSeriesDetails(item),
+                        onPressed: () => _onPlayItem(item),
                       ),
-                    if (!isSeries)
-                      BrutalistButton(
-                        label: 'DETALHES.',
-                        icon: Icons.info_outline_rounded,
-                        isSecondary: true,
-                        onPressed: () => _onOpenMovieDetails(item),
+                    ),
+                    const SizedBox(width: 8),
+                    if (isSeries)
+                      Expanded(
+                        child: BrutalistButton(
+                          height: 38,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          fontSize: 11,
+                          label: context.tr('history.view_series_button'),
+                          icon: Icons.tv_rounded,
+                          isSecondary: true,
+                          onPressed: () => _onOpenSeriesDetails(item),
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: BrutalistButton(
+                          height: 38,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          fontSize: 11,
+                          label: 'DETALHES.',
+                          icon: Icons.info_outline_rounded,
+                          isSecondary: true,
+                          onPressed: () => _onOpenMovieDetails(item),
+                        ),
                       ),
                   ],
                 ),
