@@ -132,6 +132,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   LogicalKeyboardKey? _seekKeyPressed;
   Timer? _holdSeekTimer;
   Timer? _holdSeekTickTimer;
+  Timer? _seekKeyResetTimer;
   bool _isHoldingSeek = false;
   int _holdSeekDirection = 0;
   Duration _holdSeekTarget = Duration.zero;
@@ -733,6 +734,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _duration = Duration.zero;
     });
 
+    _closeLiveEpgPanel();
     _showHud('SINTONIZANDO: ${channel.formattedNumber} - ${channel.name.toUpperCase()}');
     await _initAndPlay(streamUrl: newUrl);
   }
@@ -872,6 +874,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     });
   }
 
+  void _performStepSeek(bool isForward) {
+    if (_currentMediaType == 'live') return;
+    final deltaSeconds = isForward ? 10 : -10;
+    final basePosMs = _isHoldingSeek ? _holdSeekTarget.inMilliseconds : _position.inMilliseconds;
+    final newPosMs = (basePosMs + (deltaSeconds * 1000))
+        .clamp(0, _duration.inMilliseconds > 0 ? _duration.inMilliseconds : 0);
+    final newPos = Duration(milliseconds: newPosMs);
+    _holdSeekTarget = newPos;
+    _seekTo(newPos);
+    _showHud('${isForward ? "+10s" : "-10s"} [ ${_formatDuration(newPos)} ]');
+  }
+
   void _startHoldSeek(bool isForward) {
     if (_currentMediaType == 'live') return;
     _holdSeekTimer?.cancel();
@@ -881,7 +895,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _holdSeekTarget = _position;
     _holdSeekElapsedTicks = 0;
 
-    _holdSeekTimer = Timer(const Duration(milliseconds: 320), () {
+    _holdSeekTimer = Timer(const Duration(milliseconds: 350), () {
       if (_isDisposed || !mounted) return;
       _isHoldingSeek = true;
       _holdSeekTickTimer = Timer.periodic(const Duration(milliseconds: 140), (timer) {
@@ -921,13 +935,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _isHoldingSeek = false;
       _seekTo(_holdSeekTarget);
       _showHud('${_holdSeekDirection > 0 ? "⏩" : "⏪"} [ ${_formatDuration(_holdSeekTarget)} ]');
-    } else {
-      final deltaSeconds = _holdSeekDirection > 0 ? 10 : -10;
-      final newPosMs = (_position.inMilliseconds + (deltaSeconds * 1000))
-          .clamp(0, _duration.inMilliseconds > 0 ? _duration.inMilliseconds : 0);
-      final newPos = Duration(milliseconds: newPosMs);
-      _seekTo(newPos);
-      _showHud('${_holdSeekDirection > 0 ? "+10s" : "-10s"} [ ${_formatDuration(newPos)} ]');
     }
   }
 
@@ -954,6 +961,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           _stopPlaybackAndPop();
           return KeyEventResult.handled;
         }
+      }
+
+      // Se qualquer painel lateral estiver aberto (Episódios ou Live EPG),
+      // o root focus NUNCA deve interceptar setas, seleções ou atalhos!
+      // O FocusScope interno dos painéis assume 100% da navegação e D-pad.
+      if (_showLiveEpgPanel || _showEpisodesPanel) {
+        return KeyEventResult.ignored;
       }
 
       if (key == LogicalKeyboardKey.keyG || key == LogicalKeyboardKey.keyC) {
@@ -1026,20 +1040,51 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         if (_currentMediaType == 'live') {
           return KeyEventResult.ignored;
         }
-        final isMediaSeek = key == LogicalKeyboardKey.mediaFastForward || key == LogicalKeyboardKey.mediaRewind;
-        final isNavigatingButtons = _showControls && !_sliderFocusNode.hasFocus && !isMediaSeek;
+        final isForward = key == LogicalKeyboardKey.arrowRight || key == LogicalKeyboardKey.mediaFastForward;
 
-        if (!isNavigatingButtons) {
-          if (event is KeyDownEvent && _seekKeyPressed != key) {
+        // Se o usuário estiver explicitamente com foco num botão da barra inferior (não o root nem slider)
+        final isSliderFocused = _sliderFocusNode.hasFocus;
+        final isRootFocused = _rootFocusNode.hasFocus;
+        final primaryFocus = FocusManager.instance.primaryFocus;
+        final isButtonExplicitlyFocused = !isSliderFocused && !isRootFocused && primaryFocus != null && primaryFocus != _rootFocusNode;
+
+        if (isButtonExplicitlyFocused && _showControls && key != LogicalKeyboardKey.mediaFastForward && key != LogicalKeyboardKey.mediaRewind) {
+          return KeyEventResult.ignored;
+        }
+
+        // Seek confiável no Android TV e desktop
+        if (event is KeyDownEvent) {
+          _performStepSeek(isForward);
+          if (_seekKeyPressed != key) {
             _seekKeyPressed = key;
-            final isForward = key == LogicalKeyboardKey.arrowRight || key == LogicalKeyboardKey.mediaFastForward;
             _startHoldSeek(isForward);
           }
+          // Timer de segurança para desobstruir _seekKeyPressed caso Android TV não envie KeyUpEvent
+          _seekKeyResetTimer?.cancel();
+          _seekKeyResetTimer = Timer(const Duration(milliseconds: 300), () {
+            if (_seekKeyPressed == key) {
+              _finishHoldSeek();
+              _seekKeyPressed = null;
+            }
+          });
+          return KeyEventResult.handled;
+        } else if (event is KeyRepeatEvent) {
+          if (!_isHoldingSeek) {
+            _performStepSeek(isForward);
+          }
+          _seekKeyResetTimer?.cancel();
+          _seekKeyResetTimer = Timer(const Duration(milliseconds: 300), () {
+            if (_seekKeyPressed == key) {
+              _finishHoldSeek();
+              _seekKeyPressed = null;
+            }
+          });
           return KeyEventResult.handled;
         }
       }
     } else if (event is KeyUpEvent) {
       if (_seekKeyPressed == event.logicalKey) {
+        _seekKeyResetTimer?.cancel();
         _finishHoldSeek();
         _seekKeyPressed = null;
         return KeyEventResult.handled;
@@ -1221,6 +1266,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _doubleTapTimer?.cancel();
       _holdSeekTimer?.cancel();
       _holdSeekTickTimer?.cancel();
+      _seekKeyResetTimer?.cancel();
       _saveProgressTimer?.cancel();
       _saveCurrentProgress();
       _hideTimer?.cancel();
@@ -2215,7 +2261,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   Widget _buildEpisodesPanel(BuildContext context, bool isNarrow) {
     if (_playlist == null || _playlist!.isEmpty) return const SizedBox.shrink();
 
-    return Stack(
+    return FocusScope(
+      autofocus: true,
+      child: Stack(
       children: [
         // Backdrop escurecido interativo para fechar ao tocar fora
         FadeTransition(
@@ -2432,6 +2480,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         ),
       ),
     ],
+  ),
   );
 }
 }

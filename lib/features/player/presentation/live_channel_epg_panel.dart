@@ -491,6 +491,8 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
                               widget.currentStreamId == channel.streamId.toString();
                           final isPreviewing =
                               _previewChannel?.streamId == channel.streamId;
+                          final hasMatch = channels.any((c) => c.streamId.toString() == widget.currentStreamId);
+                          final shouldAutofocus = isCurrentlyPlaying || (!hasMatch && index == 0);
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 4),
@@ -498,6 +500,7 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
                               channel: channel,
                               isCurrentlyPlaying: isCurrentlyPlaying,
                               isPreviewing: isPreviewing,
+                              autofocus: shouldAutofocus,
                               onTune: () => _tuneChannel(channel),
                               onPreview: () {
                                 _setPreviewChannel(channel);
@@ -931,7 +934,9 @@ class _CategoryTileState extends State<_CategoryTile> {
       shortcuts: const {
         SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
         SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowRight): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadEnter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
       },
       child: InkWell(
         canRequestFocus: false,
@@ -1004,6 +1009,7 @@ class _LiveChannelTile extends StatefulWidget {
   final LiveStreamItem channel;
   final bool isCurrentlyPlaying;
   final bool isPreviewing;
+  final bool autofocus;
   final VoidCallback onTune;
   final VoidCallback onPreview;
   final VoidCallback? onBackToCategories;
@@ -1012,6 +1018,7 @@ class _LiveChannelTile extends StatefulWidget {
     required this.channel,
     required this.isCurrentlyPlaying,
     required this.isPreviewing,
+    this.autofocus = false,
     required this.onTune,
     required this.onPreview,
     this.onBackToCategories,
@@ -1027,6 +1034,7 @@ class _LiveChannelTileState extends State<_LiveChannelTile> {
   @override
   Widget build(BuildContext context) {
     return FocusableActionDetector(
+      autofocus: widget.autofocus,
       onFocusChange: (f) {
         setState(() => _isFocused = f);
         if (f) {
@@ -1046,15 +1054,14 @@ class _LiveChannelTileState extends State<_LiveChannelTile> {
       shortcuts: const {
         SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
         SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadEnter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
       },
       child: Focus(
         canRequestFocus: false,
         onKeyEvent: (node, event) {
           if (event is KeyDownEvent) {
-            if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              widget.onPreview();
-              return KeyEventResult.handled;
-            }
             if (event.logicalKey == LogicalKeyboardKey.arrowLeft && widget.onBackToCategories != null) {
               widget.onBackToCategories!();
               return KeyEventResult.handled;

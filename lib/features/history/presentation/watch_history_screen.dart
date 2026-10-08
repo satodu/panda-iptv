@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/storage/full_watch_history_service.dart';
@@ -233,7 +234,7 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
 
                             return BrutalistEntrance(
                               index: index,
-                              child: _buildHistoryCard(item, isWatched, isNarrow: false),
+                              child: _buildHistoryCard(item, isWatched, isNarrow: false, isFirst: index == 0),
                             );
                           },
                         );
@@ -254,7 +255,7 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
 
                           return BrutalistEntrance(
                             index: index,
-                            child: _buildHistoryCard(item, isWatched, isNarrow: isNarrow),
+                            child: _buildHistoryCard(item, isWatched, isNarrow: isNarrow, isFirst: index == 0),
                           );
                         },
                       );
@@ -508,7 +509,12 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
     );
   }
 
-  Widget _buildHistoryCard(WatchHistoryItem item, bool isWatched, {required bool isNarrow}) {
+  Widget _buildHistoryCard(
+    WatchHistoryItem item,
+    bool isWatched, {
+    required bool isNarrow,
+    bool isFirst = false,
+  }) {
     final isSeries = item.type == 'series';
     final hasCover = item.cover != null &&
         item.cover!.trim().isNotEmpty &&
@@ -518,24 +524,27 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
     return BentoCard(
       padding: const EdgeInsets.all(12),
       borderRadius: 12,
-      onTap: () => _onPlayItem(item),
+      onTap: null,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Capa do Conteúdo com ratio 2:3
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              width: isNarrow ? 70 : 88,
-              height: isNarrow ? 105 : 132,
-              color: AppColors.surfaceHover,
-              child: hasCover
-                  ? CachedNetworkImage(
-                      imageUrl: item.cover!,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => _buildFallbackCover(isSeries),
-                    )
-                  : _buildFallbackCover(isSeries),
+          // Capa do Conteúdo com ratio 2:3 (clicável para play no mouse/touch)
+          GestureDetector(
+            onTap: () => _onPlayItem(item),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: isNarrow ? 70 : 88,
+                height: isNarrow ? 105 : 132,
+                color: AppColors.surfaceHover,
+                child: hasCover
+                    ? CachedNetworkImage(
+                        imageUrl: item.cover!,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => _buildFallbackCover(isSeries),
+                      )
+                    : _buildFallbackCover(isSeries),
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -582,50 +591,26 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
                         ],
                         const Spacer(),
 
-                        // Botão Deletar SEMPRE visível no canto superior direito do card
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            canRequestFocus: false,
-                            borderRadius: BorderRadius.circular(6),
-                            onTap: () => _onDeleteItem(item),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.delete_outline_rounded,
-                                    size: 16,
-                                    color: AppColors.textMuted,
-                                  ),
-                                  if (!isNarrow) ...[
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      context.tr('history.delete_button'),
-                                      style: AppTypography.mono(
-                                        fontSize: 10,
-                                        color: AppColors.textMuted,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
+                        // Botão Deletar 100% FOCÁVEL via D-pad do Controle Remoto
+                        _HistoryDeleteButton(
+                          onDelete: () => _onDeleteItem(item),
+                          isNarrow: isNarrow,
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
 
-                    // Título
-                    Text(
-                      item.title.toUpperCase().endsWith('.')
-                          ? item.title.toUpperCase()
-                          : '${item.title.toUpperCase()}.',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.sectionTitle(fontSize: isNarrow ? 12 : 14).copyWith(height: 1.2),
+                    // Título (clicável no touch/mouse)
+                    GestureDetector(
+                      onTap: () => _onPlayItem(item),
+                      child: Text(
+                        item.title.toUpperCase().endsWith('.')
+                            ? item.title.toUpperCase()
+                            : '${item.title.toUpperCase()}.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.sectionTitle(fontSize: isNarrow ? 12 : 14).copyWith(height: 1.2),
+                      ),
                     ),
 
                     // Subtítulo (Episódio / Temporada / Ano)
@@ -657,7 +642,7 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
 
                 const SizedBox(height: 10),
 
-                // Linha de Ações: Botões organizados lado a lado sem corte vertical
+                // Linha de Ações: Botões organizados lado a lado com navegação limpa no D-pad
                 Row(
                   children: [
                     Expanded(
@@ -665,6 +650,8 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
                         height: 38,
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         fontSize: 11,
+                        autofocus: isFirst,
+                        autoScrollOnFocus: true,
                         label: isWatched
                             ? context.tr('history.watch_button')
                             : context.tr('history.resume_button'),
@@ -680,6 +667,7 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
                           height: 38,
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           fontSize: 11,
+                          autoScrollOnFocus: true,
                           label: context.tr('history.view_series_button'),
                           icon: Icons.tv_rounded,
                           isSecondary: true,
@@ -692,6 +680,7 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
                           height: 38,
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           fontSize: 11,
+                          autoScrollOnFocus: true,
                           label: 'DETALHES.',
                           icon: Icons.info_outline_rounded,
                           isSecondary: true,
@@ -721,3 +710,108 @@ class _WatchHistoryScreenState extends State<WatchHistoryScreen> {
     );
   }
 }
+
+/// Botão de exclusão de histórico brutalista, 100% navegável por D-pad em Smart TV / Android TV
+class _HistoryDeleteButton extends StatefulWidget {
+  final VoidCallback onDelete;
+  final bool isNarrow;
+
+  const _HistoryDeleteButton({
+    required this.onDelete,
+    required this.isNarrow,
+  });
+
+  @override
+  State<_HistoryDeleteButton> createState() => _HistoryDeleteButtonState();
+}
+
+class _HistoryDeleteButtonState extends State<_HistoryDeleteButton> {
+  bool _isFocused = false;
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = _isFocused || _isHovered;
+
+    return FocusableActionDetector(
+      onFocusChange: (f) {
+        setState(() => _isFocused = f);
+        if (f) {
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+          );
+        }
+      },
+      onShowHoverHighlight: (h) => setState(() => _isHovered = h),
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) => widget.onDelete(),
+        ),
+      },
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.numpadEnter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+      },
+      child: InkWell(
+        canRequestFocus: false,
+        onTap: widget.onDelete,
+        borderRadius: BorderRadius.circular(6),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: _isFocused
+                ? AppColors.statusError.withValues(alpha: 0.28)
+                : (active
+                    ? AppColors.statusError.withValues(alpha: 0.15)
+                    : AppColors.surfaceHover),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: _isFocused
+                  ? AppColors.statusError
+                  : (active ? AppColors.statusError.withValues(alpha: 0.6) : AppColors.borderHairline),
+              width: _isFocused ? 1.8 : 1.0,
+            ),
+            boxShadow: _isFocused
+                ? [
+                    BoxShadow(
+                      color: AppColors.statusError.withValues(alpha: 0.5),
+                      blurRadius: 10,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.delete_outline_rounded,
+                size: 15,
+                color: active ? AppColors.statusError : AppColors.textMuted,
+              ),
+              if (!widget.isNarrow) ...[
+                const SizedBox(width: 4),
+                Text(
+                  context.tr('history.delete_button'),
+                  style: AppTypography.mono(
+                    fontSize: 10,
+                    color: active ? AppColors.statusError : AppColors.textMuted,
+                    fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
