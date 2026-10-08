@@ -37,6 +37,7 @@ class LiveChannelEpgPanel extends StatefulWidget {
 class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode(debugLabel: 'LiveEpgSearch');
+  final ScrollController _channelsScrollController = ScrollController();
 
   String? _selectedCategoryId; // 'all' ou ID de categoria
   LiveStreamItem? _previewChannel; // Canal selecionado para exibir no EPG
@@ -61,6 +62,7 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _channelsScrollController.dispose();
     super.dispose();
   }
 
@@ -83,6 +85,16 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
       );
       if (currentMatch.isNotEmpty) {
         _setPreviewChannel(currentMatch.first);
+        final matchIdx = channels.indexWhere((c) => c.streamId.toString() == widget.currentStreamId);
+        if (matchIdx > 0 && mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_channelsScrollController.hasClients) {
+              _channelsScrollController.jumpTo(
+                (matchIdx * 56.0).clamp(0.0, _channelsScrollController.position.maxScrollExtent),
+              );
+            }
+          });
+        }
       } else if (channels.isNotEmpty) {
         _setPreviewChannel(channels.first);
       }
@@ -196,20 +208,22 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
           const Spacer(),
           const TechCrosses(count: 3),
           const SizedBox(width: 12),
-          IconButton(
-            tooltip: 'Fechar Guia (ESC)',
-            icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary, size: 22),
-            onPressed: widget.onClose,
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surfaceHover,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ).copyWith(
-              side: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.focused)) {
-                  return const BorderSide(color: AppColors.accentCyan, width: 2.0);
-                }
-                return const BorderSide(color: Colors.transparent);
-              }),
+          ExcludeFocus(
+            child: IconButton(
+              tooltip: 'Fechar Guia (ESC)',
+              icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary, size: 22),
+              onPressed: widget.onClose,
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.surfaceHover,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ).copyWith(
+                side: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.focused)) {
+                    return const BorderSide(color: AppColors.accentCyan, width: 2.0);
+                  }
+                  return const BorderSide(color: Colors.transparent);
+                }),
+              ),
             ),
           ),
         ],
@@ -483,6 +497,7 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
                         ),
                       )
                     : ListView.builder(
+                        controller: _channelsScrollController,
                         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
                         itemCount: channels.length,
                         itemBuilder: (context, index) {
@@ -491,8 +506,8 @@ class _LiveChannelEpgPanelState extends State<LiveChannelEpgPanel> {
                               widget.currentStreamId == channel.streamId.toString();
                           final isPreviewing =
                               _previewChannel?.streamId == channel.streamId;
-                          final hasMatch = channels.any((c) => c.streamId.toString() == widget.currentStreamId);
-                          final shouldAutofocus = isCurrentlyPlaying || (!hasMatch && index == 0);
+                          final matchIdx = channels.indexWhere((c) => c.streamId.toString() == widget.currentStreamId);
+                          final shouldAutofocus = isCurrentlyPlaying || (matchIdx < 0 && index == 0);
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 4),

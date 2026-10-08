@@ -644,11 +644,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           0.0,
           _episodesScrollController.position.maxScrollExtent,
         );
-        _episodesScrollController.animateTo(
-          targetOffset,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-        );
+        _episodesScrollController.jumpTo(targetOffset);
       }
     });
   }
@@ -1037,22 +1033,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           key == LogicalKeyboardKey.mediaRewind;
 
       if (isSeekKey) {
+        final isMediaButton = key == LogicalKeyboardKey.mediaFastForward || key == LogicalKeyboardKey.mediaRewind;
+
+        // Quando os controles estão visíveis na tela, o D-pad Direita/Esquerda
+        // navega livremente entre os botões (Play/Pause, Próximo, Guia EPG, etc.).
+        // O seek só é tratado no slider (timeline) ou quando os controles estão ocultos.
+        if (_showControls && !isMediaButton) {
+          return KeyEventResult.ignored;
+        }
+
         if (_currentMediaType == 'live') {
           return KeyEventResult.ignored;
         }
+
         final isForward = key == LogicalKeyboardKey.arrowRight || key == LogicalKeyboardKey.mediaFastForward;
 
-        // Se o usuário estiver explicitamente com foco num botão da barra inferior (não o root nem slider)
-        final isSliderFocused = _sliderFocusNode.hasFocus;
-        final isRootFocused = _rootFocusNode.hasFocus;
-        final primaryFocus = FocusManager.instance.primaryFocus;
-        final isButtonExplicitlyFocused = !isSliderFocused && !isRootFocused && primaryFocus != null && primaryFocus != _rootFocusNode;
-
-        if (isButtonExplicitlyFocused && _showControls && key != LogicalKeyboardKey.mediaFastForward && key != LogicalKeyboardKey.mediaRewind) {
-          return KeyEventResult.ignored;
-        }
-
-        // Seek confiável no Android TV e desktop
+        // Seek confiável no Android TV e desktop (quando controles fechados ou botão de mídia)
         if (event is KeyDownEvent) {
           _performStepSeek(isForward);
           if (_seekKeyPressed != key) {
@@ -1941,6 +1937,60 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                     child: const Icon(Icons.skip_next_rounded, size: 34, color: AppColors.accentCyan),
                                   ),
                                 ],
+                                if (_currentMediaType == 'live') ...[
+                                  const SizedBox(width: 16),
+                                  _PlayerFocusButton(
+                                    tooltip: context.tr('player.live_channels_tooltip'),
+                                    onFocused: _startHideTimer,
+                                    onPressed: _toggleLiveEpgPanel,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surfaceCard,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: AppColors.accentCyan, width: 1.2),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.live_tv_rounded, size: 18, color: AppColors.accentCyan),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            '[ CANAIS // EPG ]',
+                                            style: AppTypography.mono(fontSize: 11, color: AppColors.accentCyan, fontWeight: FontWeight.w700),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (_currentMediaType == 'series' && _playlist != null && _playlist!.length > 1) ...[
+                                  const SizedBox(width: 16),
+                                  _PlayerFocusButton(
+                                    tooltip: context.tr('player.episodes_tooltip'),
+                                    onFocused: _startHideTimer,
+                                    onPressed: _toggleEpisodesPanel,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surfaceCard,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: AppColors.accentPrimary, width: 1.2),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.video_collection_outlined, size: 18, color: AppColors.accentPrimary),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'EPISÓDIOS [ ${_currentIndex + 1}/${_playlist!.length} ]',
+                                            style: AppTypography.mono(fontSize: 11, color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
 
@@ -2333,11 +2383,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                             ],
                           ),
                         ),
-                        _PlayerFocusButton(
-                          tooltip: 'Fechar (ESC)',
-                          padding: const EdgeInsets.all(4),
-                          onPressed: _closeEpisodesPanel,
-                          child: const Icon(Icons.close_rounded, color: AppColors.textPrimary, size: 20),
+                        ExcludeFocus(
+                          child: _PlayerFocusButton(
+                            tooltip: 'Fechar (ESC)',
+                            padding: const EdgeInsets.all(4),
+                            onPressed: _closeEpisodesPanel,
+                            child: const Icon(Icons.close_rounded, color: AppColors.textPrimary, size: 20),
+                          ),
                         ),
                       ],
                     ),
@@ -2354,9 +2406,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                         final ep = _playlist![index];
                         final isCurrent = index == _currentIndex;
                         final isWatched = WatchedService.isWatchedSync(ep.id);
+                        final shouldAutofocus = isCurrent || (_currentIndex < 0 && index == 0);
 
                         return _PlayerFocusButton(
-                          autofocus: isCurrent,
+                          autofocus: shouldAutofocus,
                           borderRadius: BorderRadius.circular(8),
                           padding: EdgeInsets.zero,
                           onPressed: () {

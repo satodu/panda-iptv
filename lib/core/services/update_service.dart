@@ -61,9 +61,34 @@ class UpdateService {
     }
   }
 
+  /// Remove APKs antigos ou corrompidos salvos no cache temporário para não ocupar espaço na TV
+  static Future<void> cleanupOldApks() async {
+    try {
+      if (!Platform.isAndroid) return;
+      final dir = await getTemporaryDirectory();
+      if (!await dir.exists()) return;
+      final entities = dir.listSync();
+      for (final entity in entities) {
+        if (entity is File && entity.path.toLowerCase().endsWith('.apk')) {
+          try {
+            await entity.delete();
+            debugPrint('[PANDA UPDATE] Removido APK antigo do cache: ${entity.path}');
+          } catch (e) {
+            debugPrint('[PANDA UPDATE] Erro ao remover APK: ${entity.path} ($e)');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[PANDA UPDATE] Erro em cleanupOldApks: $e');
+    }
+  }
+
   /// Verifica se há atualização disponível no GitHub Releases
   static Future<UpdateInfo?> checkForUpdate() async {
     try {
+      // Limpa resíduos de atualizações anteriores para liberar espaço no Android TV / Firestick
+      await cleanupOldApks();
+
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
 
@@ -140,6 +165,9 @@ class UpdateService {
 
     try {
       if (Platform.isAndroid) {
+        // Garante que APKs antigos sejam excluídos antes de baixar o novo
+        await cleanupOldApks();
+
         // 1. Baixa o arquivo para a pasta de cache do app
         final dir = await getTemporaryDirectory();
         final filePath = '${dir.path}/${updateInfo.fileName.isNotEmpty ? updateInfo.fileName : 'Panda-IPTV-update.apk'}';
