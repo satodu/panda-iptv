@@ -398,13 +398,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     if (_currentMediaType == 'live') return;
     if (_pendingResumePosition == null || _hasResumed || _isSeekingToResume) return;
 
-    // Aguarda o player reportar duração válida (metadados do stream prontos)
-    if (_duration > Duration.zero) {
+    // Aguarda o player reportar duração válida e começar a reproduzir/emitir posição (> 0),
+    // garantindo que os decodificadores e demuxer HTTP estão estabilizados antes de buscar
+    if (_duration > Duration.zero && _position > Duration.zero) {
       _isSeekingToResume = true;
       final target = _pendingResumePosition!;
 
       try {
         await _player.seek(target);
+        await Future.delayed(const Duration(milliseconds: 250));
         if (!_isDisposed && mounted) {
           _isSilencedForResume = false;
           _player.setVolume(_volumeToRestore);
@@ -412,7 +414,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
             _volume = _volumeToRestore;
             _hasResumed = true;
             _pendingResumePosition = null;
-            _position = target;
             _isBuffering = false;
           });
           _showHud('${context.tr('player.resuming')} [ ${_formatDuration(target)} ]');
@@ -484,7 +485,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         }
         await p.setProperty('demuxer-max-bytes', '67108864'); // 64 MB
         await p.setProperty('demuxer-max-back-bytes', '33554432'); // 32 MB
-        await p.setProperty('hr-seek', 'yes');
+        await p.setProperty('hr-seek', 'default');
       }
     } catch (_) {}
 

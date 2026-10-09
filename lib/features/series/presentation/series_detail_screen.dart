@@ -83,10 +83,10 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
   }
 
   void _resumeSavedHistory(WatchHistoryItem savedItem) {
-    if (_detail != null && savedItem.episodeId != null) {
-      final targetEpId = savedItem.episodeId.toString();
+    final targetEpId = savedItem.episodeStringId ?? savedItem.episodeId?.toString();
+    if (_detail != null && targetEpId != null) {
       for (final entry in _detail!.episodesBySeason.entries) {
-        final ep = entry.value.where((e) => e.id == targetEpId).firstOrNull;
+        final ep = entry.value.where((e) => e.id.toString() == targetEpId).firstOrNull;
         if (ep != null) {
           setState(() => _selectedSeason = entry.key);
           _playEpisode(ep, resumePositionMs: savedItem.positionMs);
@@ -129,10 +129,10 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
         if (detail != null && detail.seasonNumbers.isNotEmpty) {
           String? initialSeason;
           final savedItem = _getSavedSeriesHistory();
-          if (savedItem != null && savedItem.episodeId != null) {
-            final targetEpId = savedItem.episodeId.toString();
+          final targetEpId = savedItem?.episodeStringId ?? savedItem?.episodeId?.toString();
+          if (savedItem != null && targetEpId != null) {
             for (final entry in detail.episodesBySeason.entries) {
-              if (entry.value.any((ep) => ep.id == targetEpId)) {
+              if (entry.value.any((ep) => ep.id.toString() == targetEpId)) {
                 initialSeason = entry.key;
                 break;
               }
@@ -196,7 +196,8 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
     final mediaId = 'series_${widget.item.seriesId}_${episode.id}';
     final saved = WatchHistoryService.getItem(mediaId) ?? FullWatchHistoryService.getItem(mediaId);
     final seriesSaved = _getSavedSeriesHistory();
-    final fallbackPos = (seriesSaved != null && seriesSaved.episodeId.toString() == episode.id.toString())
+    final savedEpId = seriesSaved?.episodeStringId ?? seriesSaved?.episodeId?.toString();
+    final fallbackPos = (seriesSaved != null && savedEpId == episode.id.toString())
         ? seriesSaved.positionMs
         : null;
 

@@ -52,6 +52,16 @@ class WatchHistoryItem {
     return null;
   }
 
+  String? get episodeStringId {
+    if (type == 'series') {
+      final parts = id.split('_');
+      if (parts.length >= 3) {
+        return parts.sublist(2).join('_');
+      }
+    }
+    return null;
+  }
+
   int? get vodStreamId {
     if (type == 'movie') {
       final parts = id.split('_');

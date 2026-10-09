@@ -89,9 +89,9 @@ class FullWatchHistoryService {
       items.removeRange(_maxItems, items.length);
     }
 
+    historyNotifier.value = List.unmodifiable(items);
     final encodedList = items.map((e) => jsonEncode(e.toJson())).toList();
     await prefs.setStringList(_storageKey, encodedList);
-    historyNotifier.value = List.unmodifiable(items);
   }
 
   /// Remove um item específico do histórico

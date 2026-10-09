@@ -142,9 +142,9 @@ class WatchHistoryService {
         }
         return false;
       });
+      historyNotifier.value = List.unmodifiable(items);
       final encodedList = items.map((e) => jsonEncode(e.toJson())).toList();
       await prefs.setStringList(_storageKey, encodedList);
-      historyNotifier.value = List.unmodifiable(items);
       return;
     }
 
@@ -166,9 +166,9 @@ class WatchHistoryService {
       items.removeRange(_maxItems, items.length);
     }
 
+    historyNotifier.value = List.unmodifiable(items);
     final encodedList = items.map((e) => jsonEncode(e.toJson())).toList();
     await prefs.setStringList(_storageKey, encodedList);
-    historyNotifier.value = List.unmodifiable(items);
   }
 
   /// Remove um item específico do histórico
