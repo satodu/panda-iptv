@@ -121,6 +121,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   final FocusNode _rootFocusNode = FocusNode(debugLabel: 'PlayerRoot');
   final FocusNode _playPauseFocusNode = FocusNode(debugLabel: 'PlayerPlayPause');
   final FocusNode _sliderFocusNode = FocusNode(debugLabel: 'PlayerSlider');
+  final FocusNode _topBackFocusNode = FocusNode(debugLabel: 'PlayerTopBack');
+  final FocusNode _topFirstActionFocusNode = FocusNode(debugLabel: 'PlayerTopFirstAction');
+  final FocusNode _topEpisodesFocusNode = FocusNode(debugLabel: 'PlayerTopEpisodes');
+  final FocusNode _topLiveEpgFocusNode = FocusNode(debugLabel: 'PlayerTopLiveEpg');
 
   // Double-tap seeking on touch screens
   int _doubleTapSeekAccumulated = 0;
@@ -1295,6 +1299,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _rootFocusNode.dispose();
       _playPauseFocusNode.dispose();
       _sliderFocusNode.dispose();
+      _topBackFocusNode.dispose();
+      _topFirstActionFocusNode.dispose();
+      _topEpisodesFocusNode.dispose();
+      _topLiveEpgFocusNode.dispose();
     } catch (_) {}
 
     // 5. Restaura a barra de status do sistema e todas as orientações permitidas ao sair do player
@@ -1708,298 +1716,363 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                 horizontal: isNarrow ? 12 : 20,
                                 vertical: isNarrow ? 10 : 16,
                               ),
-                              child: Row(
-                                children: [
-                                  _PlayerFocusButton(
-                                    tooltip: 'Voltar',
-                                    onFocused: _startHideTimer,
-                                    onPressed: _stopPlaybackAndPop,
-                                    child: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          formattedTitle,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: AppTypography.titleMedium(
-                                            color: AppColors.textPrimary,
-                                            fontSize: isNarrow ? 13 : 15,
-                                          ),
-                                        ),
-                                        if (_currentSubtitle != null) ...[
-                                          const SizedBox(height: 2),
+                              child: FocusTraversalGroup(
+                                policy: WidgetOrderTraversalPolicy(),
+                                child: Row(
+                                  children: [
+                                    _PlayerFocusButton(
+                                      focusNode: _topBackFocusNode,
+                                      tooltip: 'Voltar',
+                                      onFocused: _startHideTimer,
+                                      onPressed: _stopPlaybackAndPop,
+                                      onKeyEvent: (node, event) {
+                                        if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                                          if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                                            if (_currentMediaType == 'series' && _playlist != null && _playlist!.length > 1) {
+                                              _topEpisodesFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            } else if (_currentMediaType == 'live') {
+                                              if (_topFirstActionFocusNode.canRequestFocus) {
+                                                _topFirstActionFocusNode.requestFocus();
+                                              } else {
+                                                _topLiveEpgFocusNode.requestFocus();
+                                              }
+                                              return KeyEventResult.handled;
+                                            } else {
+                                              if (_topFirstActionFocusNode.canRequestFocus) {
+                                                _topFirstActionFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              }
+                                            }
+                                          } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                            _playPauseFocusNode.requestFocus();
+                                            return KeyEventResult.handled;
+                                          }
+                                        }
+                                        return KeyEventResult.ignored;
+                                      },
+                                      child: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
                                           Text(
-                                            _currentSubtitle!,
+                                            formattedTitle,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: AppTypography.mono(
-                                              fontSize: isNarrow ? 9 : 11,
-                                              color: AppColors.textMuted,
+                                            style: AppTypography.titleMedium(
+                                              color: AppColors.textPrimary,
+                                              fontSize: isNarrow ? 13 : 15,
                                             ),
                                           ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  if (_currentMediaType == 'live' && _currentMediaId != null)
-                                    ValueListenableBuilder<List<FavoriteItem>>(
-                                      valueListenable: FavoritesService.favoritesNotifier,
-                                      builder: (context, _, __) {
-                                        final favId = 'live_$_currentMediaId';
-                                        final isFav = FavoritesService.isFavoriteSync(favId);
-                                        return _PlayerFocusButton(
-                                          tooltip: isFav ? 'Remover dos Favoritos' : 'Favoritar Canal',
-                                          onFocused: _startHideTimer,
-                                          onPressed: () async {
-                                            final favItem = FavoriteItem(
-                                              id: favId,
-                                              title: _currentTitle,
-                                              type: 'live',
-                                              cover: _currentCover,
-                                              genre: _currentSubtitle,
-                                              streamUrl: _currentStreamUrl,
-                                              addedAt: DateTime.now(),
-                                            );
-                                            final nowFav = await FavoritesService.toggleFavorite(favItem);
-                                            _showHud(nowFav ? 'FAVORITADO ★' : 'DESFAVORITADO ☆');
-                                          },
-                                          child: Icon(
-                                            isFav ? Icons.star_rounded : Icons.star_border_rounded,
-                                            color: isFav ? AppColors.statusLive : AppColors.textMuted,
-                                            size: 22,
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  else if (_currentMediaType != 'live')
-                                    _PlayerFocusButton(
-                                      tooltip: _isWatched ? 'Marcado como Visto' : 'Marcar como Visto',
-                                      onFocused: _startHideTimer,
-                                      onPressed: _toggleWatched,
-                                      child: Icon(
-                                        _isWatched ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
-                                        color: _isWatched ? AppColors.statusLive : AppColors.textMuted,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  if (_currentMediaType == 'live') ...[
-                                    const SizedBox(width: 6),
-                                    _PlayerFocusButton(
-                                      tooltip: context.tr('player.live_channels_tooltip'),
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                      onFocused: _startHideTimer,
-                                      onPressed: _toggleLiveEpgPanel,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(
-                                            Icons.live_tv_rounded,
-                                            color: AppColors.accentPrimary,
-                                            size: 16,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          HankoBadge(
-                                            text: context.tr('player.live_channels'),
-                                            borderColor: AppColors.accentPrimary,
-                                            textColor: AppColors.accentPrimary,
-                                          ),
+                                          if (_currentSubtitle != null) ...[
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _currentSubtitle!,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: AppTypography.mono(
+                                                fontSize: isNarrow ? 9 : 11,
+                                                color: AppColors.textMuted,
+                                              ),
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),
-                                  ],
-                                  if (_playlist != null && _playlist!.length > 1 && _currentMediaType == 'series') ...[
-                                    const SizedBox(width: 6),
-                                    _PlayerFocusButton(
-                                      tooltip: context.tr('player.episodes_tooltip'),
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                      onFocused: _startHideTimer,
-                                      onPressed: _toggleEpisodesPanel,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(
-                                            Icons.video_collection_outlined,
-                                            color: AppColors.accentPrimary,
-                                            size: 16,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          HankoBadge(
-                                            text: '${context.tr('player.episodes_menu')} [ ${_currentIndex + 1}/${_playlist!.length} ]',
-                                            borderColor: AppColors.accentPrimary,
-                                            textColor: AppColors.accentPrimary,
-                                          ),
-                                        ],
+                                    if (_currentMediaType == 'live' && _currentMediaId != null)
+                                      ValueListenableBuilder<List<FavoriteItem>>(
+                                        valueListenable: FavoritesService.favoritesNotifier,
+                                        builder: (context, _, __) {
+                                          final favId = 'live_$_currentMediaId';
+                                          final isFav = FavoritesService.isFavoriteSync(favId);
+                                          return _PlayerFocusButton(
+                                            focusNode: _topFirstActionFocusNode,
+                                            tooltip: isFav ? 'Remover dos Favoritos' : 'Favoritar Canal',
+                                            onFocused: _startHideTimer,
+                                            onPressed: () async {
+                                              final favItem = FavoriteItem(
+                                                id: favId,
+                                                title: _currentTitle,
+                                                type: 'live',
+                                                cover: _currentCover,
+                                                genre: _currentSubtitle,
+                                                streamUrl: _currentStreamUrl,
+                                                addedAt: DateTime.now(),
+                                              );
+                                              final nowFav = await FavoritesService.toggleFavorite(favItem);
+                                              _showHud(nowFav ? 'FAVORITADO ★' : 'DESFAVORITADO ☆');
+                                            },
+                                            onKeyEvent: (node, event) {
+                                              if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                                                if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                                                  _topBackFocusNode.requestFocus();
+                                                  return KeyEventResult.handled;
+                                                } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                                  _playPauseFocusNode.requestFocus();
+                                                  return KeyEventResult.handled;
+                                                }
+                                              }
+                                              return KeyEventResult.ignored;
+                                            },
+                                            child: Icon(
+                                              isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                                              color: isFav ? AppColors.statusLive : AppColors.textMuted,
+                                              size: 22,
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    else if (_currentMediaType != 'live')
+                                      _PlayerFocusButton(
+                                        focusNode: _topFirstActionFocusNode,
+                                        tooltip: _isWatched ? 'Marcado como Visto' : 'Marcar como Visto',
+                                        onFocused: _startHideTimer,
+                                        onPressed: _toggleWatched,
+                                        onKeyEvent: (node, event) {
+                                          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                                            if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                                              _topBackFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                              _playPauseFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            }
+                                          }
+                                          return KeyEventResult.ignored;
+                                        },
+                                        child: Icon(
+                                          _isWatched ? Icons.check_circle_rounded : Icons.check_circle_outline_rounded,
+                                          color: _isWatched ? AppColors.statusLive : AppColors.textMuted,
+                                          size: 20,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                  if (hasNextEpisode) ...[
-                                    const SizedBox(width: 6),
+                                    if (_currentMediaType == 'live') ...[
+                                      const SizedBox(width: 6),
+                                      _PlayerFocusButton(
+                                        focusNode: _topLiveEpgFocusNode,
+                                        tooltip: context.tr('player.live_channels_tooltip'),
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                        onFocused: _startHideTimer,
+                                        onPressed: _toggleLiveEpgPanel,
+                                        onKeyEvent: (node, event) {
+                                          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                              _playPauseFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            }
+                                          }
+                                          return KeyEventResult.ignored;
+                                        },
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.live_tv_rounded,
+                                              color: AppColors.accentPrimary,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            HankoBadge(
+                                              text: context.tr('player.live_channels'),
+                                              borderColor: AppColors.accentPrimary,
+                                              textColor: AppColors.accentPrimary,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                    if (_playlist != null && _playlist!.length > 1 && _currentMediaType == 'series') ...[
+                                      const SizedBox(width: 6),
+                                      _PlayerFocusButton(
+                                        focusNode: _topEpisodesFocusNode,
+                                        tooltip: context.tr('player.episodes_tooltip'),
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                        onFocused: _startHideTimer,
+                                        onPressed: _toggleEpisodesPanel,
+                                        onKeyEvent: (node, event) {
+                                          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                              _playPauseFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            }
+                                          }
+                                          return KeyEventResult.ignored;
+                                        },
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.video_collection_outlined,
+                                              color: AppColors.accentPrimary,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            HankoBadge(
+                                              text: '${context.tr('player.episodes_menu')} [ ${_currentIndex + 1}/${_playlist!.length} ]',
+                                              borderColor: AppColors.accentPrimary,
+                                              textColor: AppColors.accentPrimary,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                    if (hasNextEpisode) ...[
+                                      const SizedBox(width: 6),
+                                      _PlayerFocusButton(
+                                        tooltip: _currentMediaType == 'live' ? 'Próximo Canal' : 'Próximo Episódio',
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                        onFocused: _startHideTimer,
+                                        onPressed: _playNextEpisode,
+                                        onKeyEvent: (node, event) {
+                                          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                              _playPauseFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            }
+                                          }
+                                          return KeyEventResult.ignored;
+                                        },
+                                        child: HankoBadge(
+                                          text: _currentMediaType == 'live' ? 'PRÓXIMO CANAL >' : 'PRÓXIMO >',
+                                          borderColor: AppColors.accentCyan,
+                                          textColor: AppColors.accentCyan,
+                                        ),
+                                      ),
+                                    ],
+                                    if (!isNarrow) ...[
+                                      const SizedBox(width: 8),
+                                      const TechCrosses(count: 3, opacity: 0.3),
+                                      const SizedBox(width: 12),
+                                    ] else
+                                      const SizedBox(width: 8),
                                     _PlayerFocusButton(
-                                      tooltip: _currentMediaType == 'live' ? 'Próximo Canal' : 'Próximo Episódio',
+                                      tooltip: 'Decodificador de Vídeo',
                                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                       onFocused: _startHideTimer,
-                                      onPressed: _playNextEpisode,
+                                      onPressed: _toggleHwdec,
+                                      onKeyEvent: (node, event) {
+                                        if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                                          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                            _playPauseFocusNode.requestFocus();
+                                            return KeyEventResult.handled;
+                                          }
+                                        }
+                                        return KeyEventResult.ignored;
+                                      },
                                       child: HankoBadge(
-                                        text: _currentMediaType == 'live' ? 'PRÓXIMO CANAL >' : 'PRÓXIMO >',
-                                        borderColor: AppColors.accentCyan,
-                                        textColor: AppColors.accentCyan,
+                                        text: isNarrow
+                                            ? (_hwdecMode == 'no' ? 'SW' : 'HW')
+                                            : (_hwdecMode == 'no'
+                                                ? 'SW DECODER [SEGURO]'
+                                                : _hwdecMode == 'auto-copy'
+                                                    ? 'HW: AUTO-COPY'
+                                                    : 'HW: DIRETO'),
+                                        borderColor: _hwdecMode == 'no' ? AppColors.accentCyan : AppColors.accentPrimary,
+                                        textColor: _hwdecMode == 'no' ? AppColors.accentCyan : AppColors.textPrimary,
                                       ),
                                     ),
                                   ],
-                                  if (!isNarrow) ...[
-                                    const SizedBox(width: 8),
-                                    const TechCrosses(count: 3, opacity: 0.3),
-                                    const SizedBox(width: 12),
-                                  ] else
-                                    const SizedBox(width: 8),
-                                  _PlayerFocusButton(
-                                    tooltip: 'Decodificador de Vídeo',
-                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                    onFocused: _startHideTimer,
-                                    onPressed: _toggleHwdec,
-                                    child: HankoBadge(
-                                      text: isNarrow
-                                          ? (_hwdecMode == 'no' ? 'SW' : 'HW')
-                                          : (_hwdecMode == 'no'
-                                              ? 'SW DECODER [SEGURO]'
-                                              : _hwdecMode == 'auto-copy'
-                                                  ? 'HW: AUTO-COPY'
-                                                  : 'HW: DIRETO'),
-                                      borderColor: _hwdecMode == 'no' ? AppColors.accentCyan : AppColors.accentPrimary,
-                                      textColor: _hwdecMode == 'no' ? AppColors.accentCyan : AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
 
                             // Controles Centrais com Foco TV
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (hasPreviousEpisode) ...[
+                            FocusTraversalGroup(
+                              policy: WidgetOrderTraversalPolicy(),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (hasPreviousEpisode) ...[
+                                    _PlayerFocusButton(
+                                      tooltip: _currentMediaType == 'live' ? 'Canal Anterior (P)' : 'Episódio Anterior (P)',
+                                      onFocused: _startHideTimer,
+                                      onPressed: _playPreviousEpisode,
+                                      child: const Icon(Icons.skip_previous_rounded, size: 34, color: AppColors.textPrimary),
+                                    ),
+                                    const SizedBox(width: 14),
+                                  ],
+                                  if (_currentMediaType != 'live') ...[
+                                    _PlayerFocusButton(
+                                      tooltip: 'Retroceder 10s',
+                                      onFocused: _startHideTimer,
+                                      onPressed: () {
+                                        _seekTo(_position - const Duration(seconds: 10));
+                                        _showHud('-10s');
+                                      },
+                                      child: const Icon(Icons.replay_10_rounded, size: 36, color: AppColors.textPrimary),
+                                    ),
+                                    const SizedBox(width: 20),
+                                  ],
                                   _PlayerFocusButton(
-                                    tooltip: _currentMediaType == 'live' ? 'Canal Anterior (P)' : 'Episódio Anterior (P)',
+                                    autofocus: true,
+                                    focusNode: _playPauseFocusNode,
+                                    padding: const EdgeInsets.all(4),
+                                    borderRadius: BorderRadius.circular(32),
                                     onFocused: _startHideTimer,
-                                    onPressed: _playPreviousEpisode,
-                                    child: const Icon(Icons.skip_previous_rounded, size: 34, color: AppColors.textPrimary),
-                                  ),
-                                  const SizedBox(width: 14),
-                                ],
-                                if (_currentMediaType != 'live') ...[
-                                  _PlayerFocusButton(
-                                    tooltip: 'Retroceder 10s',
-                                    onFocused: _startHideTimer,
-                                    onPressed: () {
-                                      _seekTo(_position - const Duration(seconds: 10));
-                                      _showHud('-10s');
+                                    onPressed: _togglePlayPause,
+                                    onKeyEvent: (node, event) {
+                                      if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                                        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                                          if (_currentMediaType == 'series' && _playlist != null && _playlist!.length > 1) {
+                                            _topEpisodesFocusNode.requestFocus();
+                                            return KeyEventResult.handled;
+                                          } else if (_currentMediaType == 'live') {
+                                            _topLiveEpgFocusNode.requestFocus();
+                                            return KeyEventResult.handled;
+                                          } else {
+                                            _topBackFocusNode.requestFocus();
+                                            return KeyEventResult.handled;
+                                          }
+                                        } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                          if (_currentMediaType != 'live') {
+                                            _sliderFocusNode.requestFocus();
+                                            return KeyEventResult.handled;
+                                          }
+                                        }
+                                      }
+                                      return KeyEventResult.ignored;
                                     },
-                                    child: const Icon(Icons.replay_10_rounded, size: 36, color: AppColors.textPrimary),
-                                  ),
-                                  const SizedBox(width: 20),
-                                ],
-                                _PlayerFocusButton(
-                                  autofocus: true,
-                                  focusNode: _playPauseFocusNode,
-                                  padding: const EdgeInsets.all(4),
-                                  borderRadius: BorderRadius.circular(32),
-                                  onFocused: _startHideTimer,
-                                  onPressed: _togglePlayPause,
-                                  child: Container(
-                                    width: 52,
-                                    height: 52,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: AppColors.accentPrimary,
-                                    ),
-                                    child: Icon(
-                                      _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                      size: 36,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                                if (_currentMediaType != 'live') ...[
-                                  const SizedBox(width: 20),
-                                  _PlayerFocusButton(
-                                    tooltip: 'Avançar 10s',
-                                    onFocused: _startHideTimer,
-                                    onPressed: () {
-                                      _seekTo(_position + const Duration(seconds: 10));
-                                      _showHud('+10s');
-                                    },
-                                    child: const Icon(Icons.forward_10_rounded, size: 36, color: AppColors.textPrimary),
-                                  ),
-                                ],
-                                if (hasNextEpisode) ...[
-                                  const SizedBox(width: 14),
-                                  _PlayerFocusButton(
-                                    tooltip: _currentMediaType == 'live' ? 'Próximo Canal (N)' : 'Próximo Episódio (N)',
-                                    onFocused: _startHideTimer,
-                                    onPressed: _playNextEpisode,
-                                    child: const Icon(Icons.skip_next_rounded, size: 34, color: AppColors.accentCyan),
-                                  ),
-                                ],
-                                if (_currentMediaType == 'live') ...[
-                                  const SizedBox(width: 16),
-                                  _PlayerFocusButton(
-                                    tooltip: context.tr('player.live_channels_tooltip'),
-                                    onFocused: _startHideTimer,
-                                    onPressed: _toggleLiveEpgPanel,
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.surfaceCard,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: AppColors.accentCyan, width: 1.2),
+                                      width: 52,
+                                      height: 52,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.accentPrimary,
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.live_tv_rounded, size: 18, color: AppColors.accentCyan),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            '[ CANAIS // EPG ]',
-                                            style: AppTypography.mono(fontSize: 11, color: AppColors.accentCyan, fontWeight: FontWeight.w700),
-                                          ),
-                                        ],
+                                      child: Icon(
+                                        _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                        size: 36,
+                                        color: Colors.white,
                                       ),
                                     ),
                                   ),
-                                ],
-                                if (_currentMediaType == 'series' && _playlist != null && _playlist!.length > 1) ...[
-                                  const SizedBox(width: 16),
-                                  _PlayerFocusButton(
-                                    tooltip: context.tr('player.episodes_tooltip'),
-                                    onFocused: _startHideTimer,
-                                    onPressed: _toggleEpisodesPanel,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.surfaceCard,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: AppColors.accentPrimary, width: 1.2),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.video_collection_outlined, size: 18, color: AppColors.accentPrimary),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            'EPISÓDIOS [ ${_currentIndex + 1}/${_playlist!.length} ]',
-                                            style: AppTypography.mono(fontSize: 11, color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-                                          ),
-                                        ],
-                                      ),
+                                  if (_currentMediaType != 'live') ...[
+                                    const SizedBox(width: 20),
+                                    _PlayerFocusButton(
+                                      tooltip: 'Avançar 10s',
+                                      onFocused: _startHideTimer,
+                                      onPressed: () {
+                                        _seekTo(_position + const Duration(seconds: 10));
+                                        _showHud('+10s');
+                                      },
+                                      child: const Icon(Icons.forward_10_rounded, size: 36, color: AppColors.textPrimary),
                                     ),
-                                  ),
+                                  ],
+                                  if (hasNextEpisode) ...[
+                                    const SizedBox(width: 14),
+                                    _PlayerFocusButton(
+                                      tooltip: _currentMediaType == 'live' ? 'Próximo Canal (N)' : 'Próximo Episódio (N)',
+                                      onFocused: _startHideTimer,
+                                      onPressed: _playNextEpisode,
+                                      child: const Icon(Icons.skip_next_rounded, size: 34, color: AppColors.accentCyan),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
 
                             // Barra Inferior (Seek Bar / Live Badge + Tempos + Controle de Volume e Tela)
@@ -2028,6 +2101,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                             final newPos = _position + const Duration(seconds: 10);
                                             _seekTo(newPos);
                                             _showHud('+10s [ ${_formatDuration(newPos)} ]');
+                                            return KeyEventResult.handled;
+                                          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                                            _playPauseFocusNode.requestFocus();
+                                            return KeyEventResult.handled;
+                                          } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                            node.focusInDirection(TraversalDirection.down);
                                             return KeyEventResult.handled;
                                           }
                                         }
@@ -2058,18 +2137,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
                                                 trackHeight: 3,
                                               ),
-                                              child: Slider(
-                                                value: _position.inMilliseconds.clamp(0, _duration.inMilliseconds).toDouble(),
-                                                max: _duration.inMilliseconds.toDouble() > 0
-                                                    ? _duration.inMilliseconds.toDouble()
-                                                    : 1.0,
-                                                onChanged: (val) {
-                                                  _startHideTimer();
-                                                  _player.seek(Duration(milliseconds: val.toInt()));
-                                                },
-                                                onChangeEnd: (val) {
-                                                  _seekTo(Duration(milliseconds: val.toInt()));
-                                                },
+                                              child: ExcludeFocus(
+                                                excluding: true,
+                                                child: Slider(
+                                                  value: _position.inMilliseconds.clamp(0, _duration.inMilliseconds).toDouble(),
+                                                  max: _duration.inMilliseconds.toDouble() > 0
+                                                      ? _duration.inMilliseconds.toDouble()
+                                                      : 1.0,
+                                                  onChanged: (val) {
+                                                    _startHideTimer();
+                                                    _player.seek(Duration(milliseconds: val.toInt()));
+                                                  },
+                                                  onChangeEnd: (val) {
+                                                    _seekTo(Duration(milliseconds: val.toInt()));
+                                                  },
+                                                ),
                                               ),
                                             ),
                                           );
@@ -2083,34 +2165,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       if (_currentMediaType == 'live') ...[
-                                        Row(
+                                        const Row(
                                           children: [
-                                            const HankoBadge(
+                                            HankoBadge(
                                               text: '● AO VIVO',
                                               borderColor: AppColors.statusLive,
                                               textColor: AppColors.statusLive,
-                                            ),
-                                            const SizedBox(width: 10),
-                                            _PlayerFocusButton(
-                                              tooltip: context.tr('player.live_channels_tooltip'),
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                              onFocused: _startHideTimer,
-                                              onPressed: _toggleLiveEpgPanel,
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(
-                                                    Icons.live_tv_rounded,
-                                                    size: 14,
-                                                    color: AppColors.accentCyan,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '[ GUIA DE CANAIS // EPG ]',
-                                                    style: AppTypography.mono(fontSize: isNarrow ? 10 : 11, color: AppColors.accentCyan),
-                                                  ),
-                                                ],
-                                              ),
                                             ),
                                           ],
                                         ),
@@ -2160,13 +2220,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                                   overlayShape: const RoundSliderOverlayShape(overlayRadius: 8),
                                                   trackHeight: 2,
                                                 ),
-                                                child: Slider(
-                                                  value: _volume,
-                                                  min: 0.0,
-                                                  max: 100.0,
-                                                  onChanged: (val) {
-                                                    _setVolume(val);
-                                                  },
+                                                child: ExcludeFocus(
+                                                  excluding: true,
+                                                  child: Slider(
+                                                    value: _volume,
+                                                    min: 0.0,
+                                                    max: 100.0,
+                                                    onChanged: (val) {
+                                                      _setVolume(val);
+                                                    },
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -2556,6 +2619,7 @@ class _PlayerFocusButton extends StatefulWidget {
   final EdgeInsets padding;
   final BorderRadius? borderRadius;
   final VoidCallback? onFocused;
+  final FocusOnKeyEventCallback? onKeyEvent;
 
   const _PlayerFocusButton({
     required this.child,
@@ -2566,6 +2630,7 @@ class _PlayerFocusButton extends StatefulWidget {
     this.padding = const EdgeInsets.all(8),
     this.borderRadius,
     this.onFocused,
+    this.onKeyEvent,
   });
 
   @override
@@ -2618,6 +2683,10 @@ class _PlayerFocusButtonState extends State<_PlayerFocusButton> {
       focusNode: _node,
       autofocus: widget.autofocus,
       onKeyEvent: (node, event) {
+        if (widget.onKeyEvent != null) {
+          final res = widget.onKeyEvent!(node, event);
+          if (res != KeyEventResult.ignored) return res;
+        }
         if (event is KeyDownEvent) {
           final key = event.logicalKey;
           if (key == LogicalKeyboardKey.select ||
