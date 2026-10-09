@@ -373,6 +373,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
     final pos = currentPos.inMilliseconds;
     final dur = currentDur.inMilliseconds;
+
+    // Proteção anti-sobrescrita: se o vídeo foi iniciado para continuar de uma posição salva (> 15s)
+    // e o player ainda reporta posição inicial (< 12s), evita apagar o progresso salvo
+    if (widget.initialPositionMs != null && widget.initialPositionMs! > 15000 && pos < 12000) {
+      return;
+    }
+
     if (pos > 5000 && dur > 0) {
       WatchHistoryService.saveProgress(
         id: _currentMediaId ?? _currentStreamUrl,
@@ -391,8 +398,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     if (_currentMediaType == 'live') return;
     if (_pendingResumePosition == null || _hasResumed || _isSeekingToResume) return;
 
-    // Aguarda o player reportar duração válida e começar a reproduzir/emitir posição (> 0)
-    if (_duration > Duration.zero && _position > Duration.zero) {
+    // Aguarda o player reportar duração válida (metadados do stream prontos)
+    if (_duration > Duration.zero) {
       _isSeekingToResume = true;
       final target = _pendingResumePosition!;
 
@@ -442,8 +449,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         _player.setVolume(0);
       } catch (_) {}
 
-      // Timeout de segurança: se após 6 segundos não conseguir dar seek, retoma normal para não travar
-      Timer(const Duration(seconds: 6), () {
+      // Timeout de segurança estendido para conexões IPTV remotas: se após 15 segundos não conseguir dar seek, retoma normal
+      Timer(const Duration(seconds: 15), () {
         if (mounted && !_hasResumed) {
           _isSilencedForResume = false;
           _player.setVolume(_volumeToRestore);

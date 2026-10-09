@@ -8,12 +8,14 @@ class FocusableCategoryChip extends StatefulWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool autofocus;
 
   const FocusableCategoryChip({
     super.key,
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.autofocus = false,
   });
 
   @override
@@ -41,6 +43,7 @@ class _FocusableCategoryChipState extends State<FocusableCategoryChip> {
     final scale = _isFocused ? 1.05 : (_isHovered ? 1.02 : 1.0);
 
     return FocusableActionDetector(
+      autofocus: widget.autofocus,
       onShowFocusHighlight: _onFocusChanged,
       onShowHoverHighlight: (hovered) => setState(() => _isHovered = hovered),
       mouseCursor: SystemMouseCursors.click,

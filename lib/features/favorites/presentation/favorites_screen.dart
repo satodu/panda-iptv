@@ -129,6 +129,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           return FocusableCategoryChip(
             label: f['label']!,
             isSelected: isSelected,
+            autofocus: index == 0,
             onTap: () => setState(() => _selectedFilter = f['key']!),
           );
         },

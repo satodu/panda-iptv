@@ -786,7 +786,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
     if (_similarMovies.isEmpty) return const SizedBox.shrink();
 
     final vodProvider = context.read<VodProvider>();
-    final allIptvMovies = vodProvider.filteredMovies;
+    final allIptvMovies = vodProvider.movies.isNotEmpty ? vodProvider.movies : vodProvider.filteredMovies;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -822,8 +822,14 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
               final movie = _similarMovies[index];
               final poster = movie.posterUrl;
 
+              final cleanTmdb = movie.title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
               final iptvMatch = allIptvMovies.cast<VodItem?>().firstWhere(
-                (m) => m != null && m.name.toLowerCase().contains(movie.title.toLowerCase()),
+                (m) {
+                  if (m == null) return false;
+                  final cleanIptv = m.name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+                  if (cleanIptv.isEmpty || cleanTmdb.isEmpty) return false;
+                  return cleanIptv.contains(cleanTmdb) || cleanTmdb.contains(cleanIptv);
+                },
                 orElse: () => null,
               );
 

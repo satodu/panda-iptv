@@ -346,45 +346,54 @@ class _SeriesScreenState extends State<SeriesScreen> {
           ),
           const SizedBox(width: 4),
 
-          // No mobile: botão de busca com badge ativo se houver texto
+          // No mobile: se houver busca ativa, mostra chip com termo e botão de fechar (sem lupa redundante).
+          // Se não houver busca ativa, mostra apenas o botão da lupa.
           if (isNarrow) ...[
-            if (hasSearch) ...[
-              GestureDetector(
-                onTap: () => setState(() => _isSearchExpanded = true),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentPrimary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: AppColors.accentPrimary),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'BUSCA: "${seriesProv.searchQuery.isNotEmpty ? seriesProv.searchQuery : _searchController.text}"',
-                        style: AppTypography.mono(fontSize: 10, color: AppColors.accentPrimary, fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: () => _clearSearch(seriesProv),
-                        child: const Icon(Icons.close_rounded, size: 14, color: AppColors.accentPrimary),
-                      ),
-                    ],
+            if (hasSearch)
+              Flexible(
+                child: GestureDetector(
+                  onTap: () => setState(() => _isSearchExpanded = true),
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentPrimary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppColors.accentPrimary),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'BUSCA: "${seriesProv.searchQuery.isNotEmpty ? seriesProv.searchQuery : _searchController.text}"',
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: AppTypography.mono(
+                              fontSize: 10,
+                              color: AppColors.accentPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => _clearSearch(seriesProv),
+                          child: const Icon(Icons.close_rounded, size: 14, color: AppColors.accentPrimary),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.search_rounded, color: AppColors.textPrimary),
+                tooltip: context.tr('common.search'),
+                onPressed: () {
+                  setState(() => _isSearchExpanded = true);
+                },
               ),
-              const SizedBox(width: 8),
-            ],
-            IconButton(
-              icon: Icon(
-                Icons.search_rounded,
-                color: hasSearch ? AppColors.accentPrimary : AppColors.textPrimary,
-              ),
-              onPressed: () {
-                setState(() => _isSearchExpanded = true);
-              },
-            ),
           ] else ...[
             // Desktop / Landscape: campo de busca inline elegante
             SizedBox(
@@ -467,6 +476,7 @@ class _SeriesScreenState extends State<SeriesScreen> {
           return FocusableCategoryChip(
             label: label,
             isSelected: isSelected,
+            autofocus: isAll,
             onTap: () {
               if (account != null) {
                 seriesProv.selectCategory(account, isAll ? 'all' : seriesProv.categories[index - 1].categoryId);

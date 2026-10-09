@@ -18,7 +18,7 @@ class WatchHistoryService {
   static String _seriesKey(String id, String title) {
     if (id.startsWith('series_')) {
       final parts = id.split('_');
-      if (parts.length >= 3) {
+      if (parts.length >= 2) {
         return 'series_${parts[1]}';
       }
     }
