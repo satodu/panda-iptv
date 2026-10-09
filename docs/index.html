@@ -87,7 +87,7 @@
 
     /* Container Central */
     .container {
-      max-width: 1120px;
+      max-width: 1240px;
       margin: 0 auto;
       padding: 0 24px;
       position: relative;
@@ -115,14 +115,15 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       text-decoration: none;
       color: var(--text-primary);
+      flex-shrink: 0;
     }
 
     .brand img {
-      width: 44px;
-      height: 44px;
+      width: 42px;
+      height: 42px;
       border-radius: var(--radius-md);
       border: 1px solid var(--border-hairline);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 16px rgba(10, 132, 255, 0.3);
@@ -137,9 +138,10 @@
 
     .brand-title {
       font-family: var(--font-display);
-      font-size: 1.35rem;
+      font-size: 1.3rem;
       font-weight: 800;
       letter-spacing: -0.5px;
+      white-space: nowrap;
     }
 
     .brand-title span {
@@ -149,15 +151,16 @@
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 6px;
+      flex-wrap: nowrap;
     }
 
     .nav-btn {
       font-family: var(--font-mono);
-      font-size: 0.82rem;
+      font-size: 0.76rem;
       color: var(--text-muted);
       text-decoration: none;
-      padding: 8px 14px;
+      padding: 6px 10px;
       border-radius: var(--radius-sm);
       border: 1px solid transparent;
       background: transparent;
@@ -165,7 +168,14 @@
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .nav-btn .svg-icon {
+      width: 15px;
+      height: 15px;
     }
 
     .nav-btn:hover {
@@ -180,6 +190,7 @@
       border-color: var(--accent-primary);
       box-shadow: 0 0 18px rgba(10, 132, 255, 0.35);
       font-weight: 700;
+      padding: 6px 12px;
     }
 
     .nav-btn.primary:hover {
@@ -192,6 +203,7 @@
       border-color: rgba(255, 94, 91, 0.35);
       background: rgba(255, 94, 91, 0.08);
       font-weight: 700;
+      padding: 6px 10px;
     }
 
     .nav-btn.kofi-nav:hover {
@@ -389,34 +401,41 @@
     }
 
     .tabs-nav {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: 8px;
       background: rgba(20, 26, 31, 0.7);
       padding: 6px;
       border-radius: var(--radius-lg);
       border: 1px solid var(--border-hairline);
       margin-bottom: 20px;
-      overflow-x: auto;
     }
 
     .tab-trigger {
-      flex: 1;
-      min-width: 200px;
+      width: 100%;
+      min-width: 0;
       background: transparent;
       border: 1px solid transparent;
       color: var(--text-muted);
       font-family: var(--font-mono);
-      font-size: 0.85rem;
+      font-size: 0.78rem;
       font-weight: 700;
-      padding: 14px 18px;
+      padding: 12px 8px;
       border-radius: var(--radius-md);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       transition: var(--transition);
       user-select: none;
+      white-space: nowrap;
+    }
+
+    .tab-trigger span:not(.tab-tag) {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .tab-trigger:hover {
@@ -438,12 +457,14 @@
     }
 
     .tab-tag {
-      font-size: 0.7rem;
-      padding: 2px 7px;
+      font-size: 0.68rem;
+      padding: 2px 6px;
       border-radius: 4px;
       border: 1px solid var(--border-hairline);
       color: var(--text-muted);
       transition: var(--transition);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     /* Painéis de Conteúdo das Abas */
@@ -1048,6 +1069,18 @@
     /* ==========================================================================
        RESPONSIVIDADE COMPLETA: TABLET & SMARTPHONES (MOBILE FIRST COMPATIBLE)
        ========================================================================== */
+    @media (max-width: 1120px) {
+      .nav-links .nav-btn:not(.primary):not(.kofi-nav) {
+        display: none;
+      }
+    }
+
+    @media (max-width: 960px) {
+      .tabs-nav {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
     @media (max-width: 900px) {
       .features-grid,
       .controls-grid {
@@ -1132,7 +1165,7 @@
       }
 
       .tabs-nav {
-        flex-direction: column;
+        grid-template-columns: 1fr;
         gap: 8px;
         padding: 6px;
       }
@@ -1329,27 +1362,27 @@
       <div class="nav-links">
         <button class="nav-btn" onclick="activateTab('firetv')">
           <svg class="svg-icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
-          <span>[ FIRE TV ]</span>
+          <span>FIRE TV</span>
         </button>
         <button class="nav-btn" onclick="activateTab('android')">
           <svg class="svg-icon" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-          <span>[ CELULAR ]</span>
+          <span>CELULAR</span>
         </button>
         <button class="nav-btn" onclick="activateTab('linux')">
           <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-          <span>[ LINUX ]</span>
+          <span>LINUX</span>
         </button>
         <button class="nav-btn" onclick="activateTab('windows')">
           <svg class="svg-icon" viewBox="0 0 24 24"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.949-1.801" fill="currentColor"/></svg>
-          <span>[ WINDOWS ]</span>
+          <span>WINDOWS</span>
         </button>
         <a href="https://github.com/satodu/panda-iptv" target="_blank" class="nav-btn primary">
           <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-          <span>GITHUB REPO</span>
+          <span>GITHUB</span>
         </a>
         <a href="https://ko-fi.com/retro_panda" target="_blank" rel="noopener" class="nav-btn kofi-nav">
           <svg class="svg-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M23.881 8.948c-.024-.627-.149-1.229-.374-1.794-.226-.565-.558-1.077-.996-1.536s-.971-.832-1.6-1.121c-.629-.289-1.332-.444-2.11-.465L3.89 4.013c-.878 0-1.65.312-2.316.936-.666.624-1.01 1.401-1.034 2.331l-.54 8.729c-.024.385.068.749.276 1.092.208.343.498.618.87.825l.899.497c1.08.597 2.278.908 3.594.933h8.775c1.316-.025 2.514-.336 3.594-.933l.899-.497c.372-.207.662-.482.87-.825.208-.343.3-.707.276-1.092l-.123-1.989c.754-.047 1.455-.246 2.103-.597.648-.351 1.206-.819 1.674-1.404.468-.585.819-1.258 1.053-2.019.234-.761.351-1.57.351-2.427zm-5.074 4.092c-.22.257-.487.458-.801.603-.314.145-.662.226-1.044.243l-.195-3.155c.382.017.73.098 1.044.243.314.145.581.346.801.603.22.257.382.553.486.888.104.335.156.696.156 1.083 0 .387-.052.748-.156 1.083-.104.335-.266.631-.486.888z"/></svg>
-          <span>[ KO-FI ☕ ]</span>
+          <span>KO-FI ☕</span>
         </a>
       </div>
     </div>
@@ -1400,7 +1433,7 @@
         <nav class="tabs-nav" role="tablist">
           <button class="tab-trigger active" id="tab-btn-firetv" onclick="switchTab('firetv')" role="tab">
             <svg class="svg-icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
-            <span>FIRE TV & ANDROID TV</span>
+            <span>FIRE TV & SMART TV</span>
             <span class="tab-tag">[ 9916531 ]</span>
           </button>
           <button class="tab-trigger" id="tab-btn-android" onclick="switchTab('android')" role="tab">
@@ -1415,7 +1448,7 @@
           </button>
           <button class="tab-trigger" id="tab-btn-windows" onclick="switchTab('windows')" role="tab">
             <svg class="svg-icon" viewBox="0 0 24 24"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.949-1.801" fill="currentColor"/></svg>
-            <span>WINDOWS</span>
+            <span>WINDOWS DESKTOP</span>
             <span class="tab-tag">[ ZIP ]</span>
           </button>
         </nav>
