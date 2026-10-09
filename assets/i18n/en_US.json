@@ -7,7 +7,9 @@
     "search": "SEARCH...",
     "error_loading": "FAILED TO LOAD.",
     "not_found": "NO RESULTS FOUND.",
-    "refresh": "REFRESH."
+    "refresh": "REFRESH.",
+    "clear_search": "CLEAR SEARCH.",
+    "clear_search_filters": "CLEAR SEARCH & FILTERS."
   },
   "auth": {
     "title": "RESTRICTED ACCESS.",

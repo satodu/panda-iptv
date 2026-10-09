@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +11,6 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_entrance.dart';
-import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../../core/widgets/quick_filter_bar.dart';
@@ -32,6 +32,7 @@ class LiveScreen extends StatefulWidget {
 
 class _LiveScreenState extends State<LiveScreen> {
   final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
   bool _isSearchExpanded = false;
 
   @override
@@ -40,14 +41,40 @@ class _LiveScreenState extends State<LiveScreen> {
     FavoritesService.loadFavorites();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final account = context.read<AuthProvider>().currentAccount;
+      final live = context.read<LiveProvider>();
+      // Ao entrar na tela, limpa qualquer busca residual para exibir catálogo completo
+      live.setSearchQuery('');
+      _searchController.clear();
       if (account != null) {
-        context.read<LiveProvider>().init(account);
+        live.init(account);
       }
     });
   }
 
+  void _performSearch(String val, LiveProvider live) {
+    _debounceTimer?.cancel();
+    live.setSearchQuery(val.trim());
+    setState(() {});
+  }
+
+  void _onSearchChanged(String val, LiveProvider live) {
+    // Se o usuário apagou todo o texto no campo e havia uma busca ativa, restaura o catálogo
+    if (val.trim().isEmpty && live.searchQuery.isNotEmpty) {
+      live.setSearchQuery('');
+    }
+    setState(() {});
+  }
+
+  void _clearSearch(LiveProvider live) {
+    _debounceTimer?.cancel();
+    _searchController.clear();
+    live.setSearchQuery('');
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -58,8 +85,16 @@ class _LiveScreenState extends State<LiveScreen> {
     final account = context.watch<AuthProvider>().currentAccount;
     final isNarrow = MediaQuery.of(context).size.width < 600;
 
-    return Scaffold(
-      backgroundColor: AppColors.canvas,
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          _clearSearch(live);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.canvas,
+        resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Column(
           children: [
@@ -131,9 +166,32 @@ class _LiveScreenState extends State<LiveScreen> {
                         )
                       : live.filteredChannels.isEmpty
                           ? Center(
-                              child: Text(
-                                context.tr('live.empty'),
-                                style: AppTypography.mono(fontSize: 13, color: AppColors.textMuted),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    context.tr('live.empty'),
+                                    style: AppTypography.mono(fontSize: 13, color: AppColors.textMuted),
+                                  ),
+                                  if (live.searchQuery.isNotEmpty || live.filterState.hasActiveFilters) ...[
+                                    const SizedBox(height: 16),
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.surfaceHover,
+                                        side: const BorderSide(color: AppColors.accentPrimary),
+                                      ),
+                                      onPressed: () {
+                                        _clearSearch(live);
+                                        live.resetFilterState();
+                                      },
+                                      icon: const Icon(Icons.clear_all_rounded, size: 16, color: AppColors.accentPrimary),
+                                      label: Text(
+                                        context.tr('common.clear_search_filters'),
+                                        style: AppTypography.button(color: AppColors.accentPrimary),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             )
                           : _buildChannelsGrid(context, live, account),
@@ -141,8 +199,9 @@ class _LiveScreenState extends State<LiveScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   String _getSelectedCategoryName(BuildContext context, LiveProvider live) {
     if (live.selectedCategoryId == null || live.selectedCategoryId == 'all') {
@@ -156,6 +215,8 @@ class _LiveScreenState extends State<LiveScreen> {
   }
 
   Widget _buildTopBar(BuildContext context, LiveProvider live, dynamic account, bool isNarrow) {
+    final hasSearch = _searchController.text.isNotEmpty || live.searchQuery.isNotEmpty;
+
     if (isNarrow && _isSearchExpanded) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -178,19 +239,22 @@ class _LiveScreenState extends State<LiveScreen> {
                 child: TextField(
                   controller: _searchController,
                   autofocus: true,
-                  onChanged: (val) => live.setSearchQuery(val),
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (val) => _performSearch(val, live),
+                  onChanged: (val) => _onSearchChanged(val, live),
                   style: AppTypography.body(fontSize: 13),
                   decoration: InputDecoration(
                     hintText: context.tr('live.search_hint'),
                     hintStyle: AppTypography.mono(fontSize: 11, color: AppColors.textDisabled),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.accentPrimary),
-                    suffixIcon: _searchController.text.isNotEmpty
+                    prefixIcon: IconButton(
+                      icon: const Icon(Icons.search_rounded, size: 18, color: AppColors.accentPrimary),
+                      tooltip: context.tr('common.search'),
+                      onPressed: () => _performSearch(_searchController.text, live),
+                    ),
+                    suffixIcon: hasSearch
                         ? IconButton(
                             icon: const Icon(Icons.clear_rounded, size: 16, color: AppColors.textMuted),
-                            onPressed: () {
-                              _searchController.clear();
-                              live.setSearchQuery('');
-                            },
+                            onPressed: () => _clearSearch(live),
                           )
                         : null,
                     contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
@@ -227,7 +291,10 @@ class _LiveScreenState extends State<LiveScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              _clearSearch(live);
+              Navigator.of(context).pop();
+            },
           ),
           const SizedBox(width: 4),
           Text(
@@ -287,13 +354,30 @@ class _LiveScreenState extends State<LiveScreen> {
           const SizedBox(width: 4),
 
           if (isNarrow) ...[
-            if (_searchController.text.isNotEmpty) ...[
+            if (hasSearch) ...[
               GestureDetector(
                 onTap: () => setState(() => _isSearchExpanded = true),
-                child: HankoBadge(
-                  text: context.tr('live.search_active'),
-                  borderColor: AppColors.accentPrimary,
-                  textColor: AppColors.accentPrimary,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentPrimary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: AppColors.accentPrimary),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'BUSCA: "${live.searchQuery.isNotEmpty ? live.searchQuery : _searchController.text}"',
+                        style: AppTypography.mono(fontSize: 10, color: AppColors.accentPrimary, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => _clearSearch(live),
+                        child: const Icon(Icons.close_rounded, size: 14, color: AppColors.accentPrimary),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -301,7 +385,7 @@ class _LiveScreenState extends State<LiveScreen> {
             IconButton(
               icon: Icon(
                 Icons.search_rounded,
-                color: _searchController.text.isNotEmpty ? AppColors.accentPrimary : AppColors.textPrimary,
+                color: hasSearch ? AppColors.accentPrimary : AppColors.textPrimary,
               ),
               onPressed: () {
                 setState(() => _isSearchExpanded = true);
@@ -313,19 +397,22 @@ class _LiveScreenState extends State<LiveScreen> {
               height: 38,
               child: TextField(
                 controller: _searchController,
-                onChanged: (val) => live.setSearchQuery(val),
+                textInputAction: TextInputAction.search,
+                onSubmitted: (val) => _performSearch(val, live),
+                onChanged: (val) => _onSearchChanged(val, live),
                 style: AppTypography.body(fontSize: 13),
                 decoration: InputDecoration(
                   hintText: context.tr('live.search_desktop_hint'),
                   hintStyle: AppTypography.mono(fontSize: 11, color: AppColors.textDisabled),
-                  prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
-                  suffixIcon: _searchController.text.isNotEmpty
+                  prefixIcon: IconButton(
+                    icon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                    tooltip: context.tr('common.search'),
+                    onPressed: () => _performSearch(_searchController.text, live),
+                  ),
+                  suffixIcon: hasSearch
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 16, color: AppColors.textMuted),
-                          onPressed: () {
-                            _searchController.clear();
-                            live.setSearchQuery('');
-                          },
+                          onPressed: () => _clearSearch(live),
                         )
                       : null,
                   contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
@@ -417,6 +504,7 @@ class _LiveScreenState extends State<LiveScreen> {
         final isNarrow = constraints.maxWidth < 600;
 
         return GridView.builder(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: EdgeInsets.all(isNarrow ? 12 : 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
@@ -505,6 +593,8 @@ class _LiveScreenState extends State<LiveScreen> {
                         ? CachedNetworkImage(
                             imageUrl: channel.streamIcon!,
                             fit: BoxFit.contain,
+                            memCacheWidth: 200,
+                            memCacheHeight: 200,
                             errorWidget: (_, __, ___) => const Icon(
                               Icons.live_tv_rounded,
                               size: 32,

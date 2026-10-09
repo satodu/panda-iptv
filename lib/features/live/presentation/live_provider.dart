@@ -24,6 +24,7 @@ class LiveProvider extends ChangeNotifier {
   final Map<String, List<LiveStreamItem>> _channelsCache = {};
 
   List<LiveStreamItem> _channels = [];
+  List<LiveStreamItem> _filteredChannels = [];
   String _searchQuery = '';
   LiveFilterState _filterState = LiveFilterState.initial;
 
@@ -37,7 +38,10 @@ class LiveProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   LiveFilterState get filterState => _filterState;
 
-  List<LiveStreamItem> get filteredChannels {
+  List<LiveStreamItem> get channels => _channels;
+  List<LiveStreamItem> get filteredChannels => _filteredChannels;
+
+  void _recomputeFilteredChannels() {
     var result = List<LiveStreamItem>.from(_channels);
 
     // 1. Filtro por busca difusa inteligente
@@ -80,16 +84,18 @@ class LiveProvider extends ChangeNotifier {
         break;
     }
 
-    return result;
+    _filteredChannels = result;
   }
 
   void setFilterState(LiveFilterState state) {
     _filterState = state;
+    _recomputeFilteredChannels();
     notifyListeners();
   }
 
   void resetFilterState() {
     _filterState = LiveFilterState.initial;
+    _recomputeFilteredChannels();
     notifyListeners();
   }
 
@@ -124,6 +130,7 @@ class LiveProvider extends ChangeNotifier {
     _error = null;
     _categories.clear();
     _channels.clear();
+    _filteredChannels.clear();
     _channelsCache.clear();
     _selectedCategoryId = null;
     _searchQuery = '';
@@ -154,6 +161,7 @@ class LiveProvider extends ChangeNotifier {
       _channels = _channelsCache[catKey]!;
       _isLoadingChannels = false;
       _error = null;
+      _recomputeFilteredChannels();
       notifyListeners();
       return;
     }
@@ -181,6 +189,7 @@ class LiveProvider extends ChangeNotifier {
       );
       _channels = items;
       _channelsCache[categoryId ?? 'all'] = items;
+      _recomputeFilteredChannels();
     } catch (e) {
       _error = 'Erro ao carregar canais: $e';
     } finally {
@@ -190,7 +199,9 @@ class LiveProvider extends ChangeNotifier {
   }
 
   void setSearchQuery(String query) {
+    if (_searchQuery == query) return;
     _searchQuery = query;
+    _recomputeFilteredChannels();
     notifyListeners();
   }
 

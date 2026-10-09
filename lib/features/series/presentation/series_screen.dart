@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +7,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_entrance.dart';
-import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../../../core/widgets/focusable_category_chip.dart';
@@ -27,6 +27,7 @@ class SeriesScreen extends StatefulWidget {
 
 class _SeriesScreenState extends State<SeriesScreen> {
   final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
   bool _isSearchExpanded = false;
 
   @override
@@ -34,14 +35,40 @@ class _SeriesScreenState extends State<SeriesScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final account = context.read<AuthProvider>().currentAccount;
+      final seriesProv = context.read<SeriesProvider>();
+      // Ao entrar na tela, limpa qualquer busca residual para exibir catálogo completo
+      seriesProv.setSearchQuery('');
+      _searchController.clear();
       if (account != null) {
-        context.read<SeriesProvider>().init(account);
+        seriesProv.init(account);
       }
     });
   }
 
+  void _performSearch(String val, SeriesProvider seriesProv) {
+    _debounceTimer?.cancel();
+    seriesProv.setSearchQuery(val.trim());
+    setState(() {});
+  }
+
+  void _onSearchChanged(String val, SeriesProvider seriesProv) {
+    // Se o usuário apagou todo o texto no campo e havia uma busca ativa, restaura o catálogo
+    if (val.trim().isEmpty && seriesProv.searchQuery.isNotEmpty) {
+      seriesProv.setSearchQuery('');
+    }
+    setState(() {});
+  }
+
+  void _clearSearch(SeriesProvider seriesProv) {
+    _debounceTimer?.cancel();
+    _searchController.clear();
+    seriesProv.setSearchQuery('');
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -52,8 +79,16 @@ class _SeriesScreenState extends State<SeriesScreen> {
     final account = context.watch<AuthProvider>().currentAccount;
     final isNarrow = MediaQuery.of(context).size.width < 600;
 
-    return Scaffold(
-      backgroundColor: AppColors.canvas,
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          _clearSearch(seriesProv);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.canvas,
+        resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Column(
           children: [
@@ -122,9 +157,32 @@ class _SeriesScreenState extends State<SeriesScreen> {
                         )
                       : seriesProv.filteredSeries.isEmpty
                           ? Center(
-                              child: Text(
-                                'NENHUMA SÉRIE ENCONTRADA.',
-                                style: AppTypography.mono(fontSize: 13, color: AppColors.textMuted),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    context.tr('common.not_found'),
+                                    style: AppTypography.mono(fontSize: 13, color: AppColors.textMuted),
+                                  ),
+                                  if (seriesProv.searchQuery.isNotEmpty || seriesProv.filterState.hasActiveFilters) ...[
+                                    const SizedBox(height: 16),
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.surfaceHover,
+                                        side: const BorderSide(color: AppColors.accentPrimary),
+                                      ),
+                                      onPressed: () {
+                                        _clearSearch(seriesProv);
+                                        seriesProv.resetFilterState();
+                                      },
+                                      icon: const Icon(Icons.clear_all_rounded, size: 16, color: AppColors.accentPrimary),
+                                      label: Text(
+                                        context.tr('common.clear_search_filters'),
+                                        style: AppTypography.button(color: AppColors.accentPrimary),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             )
                           : _buildSeriesGrid(context, seriesProv.filteredSeries),
@@ -132,8 +190,9 @@ class _SeriesScreenState extends State<SeriesScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   String _getSelectedCategoryName(SeriesProvider seriesProv) {
     if (seriesProv.selectedCategoryId == null || seriesProv.selectedCategoryId == 'all') {
@@ -147,6 +206,8 @@ class _SeriesScreenState extends State<SeriesScreen> {
   }
 
   Widget _buildTopBar(BuildContext context, SeriesProvider seriesProv, dynamic account, bool isNarrow) {
+    final hasSearch = _searchController.text.isNotEmpty || seriesProv.searchQuery.isNotEmpty;
+
     // Modo Mobile Vertical com busca expandida
     if (isNarrow && _isSearchExpanded) {
       return Container(
@@ -170,19 +231,22 @@ class _SeriesScreenState extends State<SeriesScreen> {
                 child: TextField(
                   controller: _searchController,
                   autofocus: true,
-                  onChanged: (val) => seriesProv.setSearchQuery(val),
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (val) => _performSearch(val, seriesProv),
+                  onChanged: (val) => _onSearchChanged(val, seriesProv),
                   style: AppTypography.body(fontSize: 13),
                   decoration: InputDecoration(
-                    hintText: 'DIGITE O NOME DA SÉRIE...',
+                    hintText: context.tr('series.search_hint'),
                     hintStyle: AppTypography.mono(fontSize: 11, color: AppColors.textDisabled),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.accentPrimary),
-                    suffixIcon: _searchController.text.isNotEmpty
+                    prefixIcon: IconButton(
+                      icon: const Icon(Icons.search_rounded, size: 18, color: AppColors.accentPrimary),
+                      tooltip: context.tr('common.search'),
+                      onPressed: () => _performSearch(_searchController.text, seriesProv),
+                    ),
+                    suffixIcon: hasSearch
                         ? IconButton(
                             icon: const Icon(Icons.clear_rounded, size: 16, color: AppColors.textMuted),
-                            onPressed: () {
-                              _searchController.clear();
-                              seriesProv.setSearchQuery('');
-                            },
+                            onPressed: () => _clearSearch(seriesProv),
                           )
                         : null,
                     contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
@@ -220,7 +284,10 @@ class _SeriesScreenState extends State<SeriesScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              _clearSearch(seriesProv);
+              Navigator.of(context).pop();
+            },
           ),
           const SizedBox(width: 4),
           Text(
@@ -281,13 +348,30 @@ class _SeriesScreenState extends State<SeriesScreen> {
 
           // No mobile: botão de busca com badge ativo se houver texto
           if (isNarrow) ...[
-            if (_searchController.text.isNotEmpty) ...[
+            if (hasSearch) ...[
               GestureDetector(
                 onTap: () => setState(() => _isSearchExpanded = true),
-                child: const HankoBadge(
-                  text: 'BUSCA ATIVA',
-                  borderColor: AppColors.accentPrimary,
-                  textColor: AppColors.accentPrimary,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentPrimary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: AppColors.accentPrimary),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'BUSCA: "${seriesProv.searchQuery.isNotEmpty ? seriesProv.searchQuery : _searchController.text}"',
+                        style: AppTypography.mono(fontSize: 10, color: AppColors.accentPrimary, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => _clearSearch(seriesProv),
+                        child: const Icon(Icons.close_rounded, size: 14, color: AppColors.accentPrimary),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -295,7 +379,7 @@ class _SeriesScreenState extends State<SeriesScreen> {
             IconButton(
               icon: Icon(
                 Icons.search_rounded,
-                color: _searchController.text.isNotEmpty ? AppColors.accentPrimary : AppColors.textPrimary,
+                color: hasSearch ? AppColors.accentPrimary : AppColors.textPrimary,
               ),
               onPressed: () {
                 setState(() => _isSearchExpanded = true);
@@ -308,19 +392,22 @@ class _SeriesScreenState extends State<SeriesScreen> {
               height: 38,
               child: TextField(
                 controller: _searchController,
-                onChanged: (val) => seriesProv.setSearchQuery(val),
+                textInputAction: TextInputAction.search,
+                onSubmitted: (val) => _performSearch(val, seriesProv),
+                onChanged: (val) => _onSearchChanged(val, seriesProv),
                 style: AppTypography.body(fontSize: 13),
                 decoration: InputDecoration(
-                  hintText: 'BUSCAR SÉRIE...',
+                  hintText: context.tr('series.search_desktop_hint'),
                   hintStyle: AppTypography.mono(fontSize: 11, color: AppColors.textDisabled),
-                  prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
-                  suffixIcon: _searchController.text.isNotEmpty
+                  prefixIcon: IconButton(
+                    icon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                    tooltip: context.tr('common.search'),
+                    onPressed: () => _performSearch(_searchController.text, seriesProv),
+                  ),
+                  suffixIcon: hasSearch
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded, size: 16, color: AppColors.textMuted),
-                          onPressed: () {
-                            _searchController.clear();
-                            seriesProv.setSearchQuery('');
-                          },
+                          onPressed: () => _clearSearch(seriesProv),
                         )
                       : null,
                   contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
@@ -408,6 +495,7 @@ class _SeriesScreenState extends State<SeriesScreen> {
         final isNarrow = constraints.maxWidth < 600;
 
         return GridView.builder(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: EdgeInsets.all(isNarrow ? 12 : 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
@@ -454,6 +542,8 @@ class _SeriesScreenState extends State<SeriesScreen> {
                         ? CachedNetworkImage(
                             imageUrl: item.cover!,
                             fit: BoxFit.cover,
+                            memCacheWidth: 320,
+                            memCacheHeight: 480,
                             errorWidget: (_, __, ___) => Container(
                               color: AppColors.surfaceCard,
                               child: const Center(

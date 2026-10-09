@@ -46,7 +46,7 @@
 ## KEY FEATURES.
 
 * **Complete Multimedia Hub:**
-  * **Movies (VOD):** Comprehensive catalog with real-time instant search, category filters (defaulting to `ALL`), high-resolution posters, plot synopses, cast, director, release year, age rating, and watched markers.
+  * **Movies (VOD):** Comprehensive catalog with optimized search confirmed via Enter or TV remote, auto-reset upon exit for fluid navigation, category filters (defaulting to `ALL`), high-resolution posters, plot synopses, cast, director, release year, age rating, and watched markers.
   * **Series & Binge-Watching:** Full season and episode hierarchy, runtimes, next/previous episode transitions, and automatic 6-second countdown cards to play next episodes seamlessly.
   * **Favorites System:** 1-click star bookmarking for channels, movies, and TV series, stored locally and accessible instantly from the central dashboard.
   * **Watched History & Progress Tracking:** Automatic detection marking movies and episodes as watched (`[ VISTO ]`) upon reaching $\ge 90\%$ playback or completion, with full manual checkmark toggles.
@@ -176,7 +176,15 @@ Artifacts are automatically produced inside the `dist/` directory:
 * `dist/panda-iptv-<version>-linux-x64.tar.gz` (Standalone tarball bundle)
 
 ### Arch User Repository (AUR):
-An official `PKGBUILD` template is available in `packaging/aur/PKGBUILD` for publishing to the AUR (`panda-iptv-bin`).
+The package is officially available on the Arch User Repository (AUR) as [`panda-iptv-bin`](https://aur.archlinux.org/packages/panda-iptv-bin).
+
+Install directly with your preferred AUR helper:
+```bash
+paru -S panda-iptv-bin
+# or
+yay -S panda-iptv-bin
+```
+The packaging template is maintained under `packaging/aur/PKGBUILD`.
 
 ### Android APK & TV Downloader (Android TV / Fire Stick):
 You can download the APK directly or install it on your TV / Fire TV Stick using the **Downloader by AFTVnews** app:

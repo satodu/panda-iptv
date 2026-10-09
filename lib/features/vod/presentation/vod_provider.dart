@@ -25,6 +25,7 @@ class VodProvider extends ChangeNotifier {
   final Map<String, List<VodItem>> _moviesCache = {};
 
   List<VodItem> _movies = [];
+  List<VodItem> _filteredMovies = [];
   String _searchQuery = '';
   ContentFilterState _filterState = ContentFilterState.initial;
 
@@ -45,7 +46,10 @@ class VodProvider extends ChangeNotifier {
     return null;
   }
 
-  List<VodItem> get filteredMovies {
+  List<VodItem> get movies => _movies;
+  List<VodItem> get filteredMovies => _filteredMovies;
+
+  void _recomputeFilteredMovies() {
     var result = List<VodItem>.from(_movies);
 
     // 1. Filtro de Estilo / Gênero
@@ -126,16 +130,18 @@ class VodProvider extends ChangeNotifier {
       }
     }
 
-    return result;
+    _filteredMovies = result;
   }
 
   void setFilterState(ContentFilterState state) {
     _filterState = state;
+    _recomputeFilteredMovies();
     notifyListeners();
   }
 
   void resetFilterState() {
     _filterState = ContentFilterState.initial;
+    _recomputeFilteredMovies();
     notifyListeners();
   }
 
@@ -170,6 +176,7 @@ class VodProvider extends ChangeNotifier {
     _error = null;
     _categories.clear();
     _movies.clear();
+    _filteredMovies.clear();
     _moviesCache.clear();
     _selectedCategoryId = null;
     _searchQuery = '';
@@ -200,6 +207,7 @@ class VodProvider extends ChangeNotifier {
       _movies = _moviesCache[catKey]!;
       _isLoadingMovies = false;
       _error = null;
+      _recomputeFilteredMovies();
       notifyListeners();
       return;
     }
@@ -216,6 +224,7 @@ class VodProvider extends ChangeNotifier {
       final items = await _vodService.getStreams(account, categoryId: categoryId);
       _movies = items;
       _moviesCache[categoryId ?? 'all'] = items;
+      _recomputeFilteredMovies();
     } catch (e) {
       _error = 'Erro ao carregar filmes: $e';
     } finally {
@@ -225,7 +234,9 @@ class VodProvider extends ChangeNotifier {
   }
 
   void setSearchQuery(String query) {
+    if (_searchQuery == query) return;
     _searchQuery = query;
+    _recomputeFilteredMovies();
     notifyListeners();
   }
 

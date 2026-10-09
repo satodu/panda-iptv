@@ -4,21 +4,24 @@
 /// - Busca multi-palavra em qualquer ordem (ex: "aranha homem" acha "Homem-Aranha")
 /// - Ranking de relevância com pontuação ponderada (matches exatos no topo)
 class FuzzySearchUtil {
+  static final RegExp _cleanRegex = RegExp(r'[^a-z0-9\s]');
+  static final RegExp _whitespaceRegex = RegExp(r'\s+');
+
+  static const Map<String, String> _diacritics = {
+    'á': 'a', 'à': 'a', 'ã': 'a', 'â': 'a', 'ä': 'a',
+    'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
+    'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i',
+    'ó': 'o', 'ò': 'o', 'õ': 'o', 'ô': 'o', 'ö': 'o',
+    'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u',
+    'ç': 'c', 'ñ': 'n',
+  };
+
   /// Remove acentos e converte para minúsculas
   static String normalize(String input) {
     if (input.isEmpty) return '';
     var text = input.toLowerCase().trim();
 
-    const diacritics = {
-      'á': 'a', 'à': 'a', 'ã': 'a', 'â': 'a', 'ä': 'a',
-      'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
-      'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i',
-      'ó': 'o', 'ò': 'o', 'õ': 'o', 'ô': 'o', 'ö': 'o',
-      'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u',
-      'ç': 'c', 'ñ': 'n',
-    };
-
-    diacritics.forEach((char, replacement) {
+    _diacritics.forEach((char, replacement) {
       if (text.contains(char)) {
         text = text.replaceAll(char, replacement);
       }
@@ -29,9 +32,10 @@ class FuzzySearchUtil {
 
   /// Limpa símbolos e pontuações para tokenização
   static List<String> tokenize(String input) {
-    final clean = normalize(input).replaceAll(RegExp(r'[^a-z0-9\s]'), ' ');
+    if (input.isEmpty) return const [];
+    final clean = normalize(input).replaceAll(_cleanRegex, ' ');
     return clean
-        .split(RegExp(r'\s+'))
+        .split(_whitespaceRegex)
         .where((t) => t.isNotEmpty)
         .toList();
   }
@@ -68,6 +72,14 @@ class FuzzySearchUtil {
     if (rawTarget.trim().isEmpty) return 0;
 
     final normQuery = normalize(rawQuery);
+    final queryTokens = tokenize(normQuery);
+
+    return _scoreWithPrecomputed(normQuery, queryTokens, rawTarget);
+  }
+
+  static int _scoreWithPrecomputed(String normQuery, List<String> queryTokens, String rawTarget) {
+    if (rawTarget.isEmpty) return 0;
+
     final normTarget = normalize(rawTarget);
 
     // 1. Match exato idêntico
@@ -83,15 +95,17 @@ class FuzzySearchUtil {
     // 3. Contém a query inteira de forma contígua
     final contIndex = normTarget.indexOf(normQuery);
     if (contIndex != -1) {
-      // Quanto mais perto do início, maior o score
       return 600 - (contIndex * 5).clamp(0, 150);
     }
 
-    // 4. Tokenização e correspondência de palavras (em qualquer ordem)
-    final queryTokens = tokenize(rawQuery);
-    final targetTokens = tokenize(rawTarget);
-
     if (queryTokens.isEmpty) return 0;
+
+    // Para buscas curtas (1 ou 2 letras), não gasta CPU com loops caros se não foi contíguo
+    if (normQuery.length <= 2) return 0;
+
+    // 4. Tokenização e correspondência de palavras (em qualquer ordem)
+    final targetTokens = tokenize(normTarget);
+    if (targetTokens.isEmpty) return 0;
 
     int matchedTokensCount = 0;
     int tokenScore = 0;
@@ -138,17 +152,14 @@ class FuzzySearchUtil {
       }
 
       if (!tokenMatched) {
-        // Se a query tem poucos caracteres (1 a 3), exigimos que coincida
         if (qToken.length <= 3) return 0;
       }
     }
 
-    // Se todos os tokens da busca foram satisfeitos, é um match forte!
     if (matchedTokensCount == queryTokens.length) {
       return 400 + tokenScore;
     }
 
-    // Se a query tem 2 ou mais tokens e acertou pelo menos 75% deles
     if (queryTokens.length >= 3 && (matchedTokensCount / queryTokens.length) >= 0.75) {
       return 200 + tokenScore;
     }
@@ -174,27 +185,32 @@ class FuzzySearchUtil {
     return calculateScore(query, target) > 0;
   }
 
-  /// Filtra e ordena uma lista de itens pelo ranking de relevância
+  /// Filtra e ordena uma lista de itens pelo ranking de relevância com alta performance
   static List<T> search<T>({
     required String query,
     required List<T> items,
     required String Function(T) titleSelector,
     String Function(T)? secondarySelector,
   }) {
-    if (query.trim().isEmpty) return items;
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return items;
+
+    final normQuery = normalize(trimmed);
+    if (normQuery.isEmpty) return items;
+    final queryTokens = tokenize(normQuery);
 
     final List<MapEntry<T, int>> scored = [];
 
     for (final item in items) {
       final title = titleSelector(item);
-      var score = calculateScore(query, title);
+      var score = _scoreWithPrecomputed(normQuery, queryTokens, title);
 
       if (score == 0 && secondarySelector != null) {
         final secondary = secondarySelector(item);
         if (secondary.isNotEmpty) {
-          final secScore = calculateScore(query, secondary);
+          final secScore = _scoreWithPrecomputed(normQuery, queryTokens, secondary);
           if (secScore > 0) {
-            score = secScore ~/ 2; // Pontuação menor para match secundário
+            score = secScore ~/ 2;
           }
         }
       }
@@ -204,9 +220,7 @@ class FuzzySearchUtil {
       }
     }
 
-    // Ordena pelo score decrescente
     scored.sort((a, b) => b.value.compareTo(a.value));
-
     return scored.map((e) => e.key).toList();
   }
 }

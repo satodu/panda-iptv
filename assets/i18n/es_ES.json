@@ -7,7 +7,9 @@
     "search": "BUSCAR...",
     "error_loading": "ERROR AL CARGAR.",
     "not_found": "SIN RESULTADOS.",
-    "refresh": "ACTUALIZAR."
+    "refresh": "ACTUALIZAR.",
+    "clear_search": "LIMPIAR BÚSQUEDA.",
+    "clear_search_filters": "LIMPIAR BÚSQUEDA Y FILTROS."
   },
   "auth": {
     "title": "ACCESO RESTRINGIDO.",

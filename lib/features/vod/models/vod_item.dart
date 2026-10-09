@@ -44,13 +44,15 @@ class VodItem {
     );
   }
 
+  static final RegExp _yearRegex = RegExp(r'\b(19\d\d|20\d\d)\b');
+
   /// Extrai o ano em 4 dígitos do campo releaseDate ou do próprio título
   String? get displayYear {
     if (releaseDate != null && releaseDate!.trim().isNotEmpty) {
-      final match = RegExp(r'\b(19\d\d|20\d\d)\b').firstMatch(releaseDate!);
+      final match = _yearRegex.firstMatch(releaseDate!);
       if (match != null) return match.group(0);
     }
-    final match = RegExp(r'\b(19\d\d|20\d\d)\b').firstMatch(name);
+    final match = _yearRegex.firstMatch(name);
     if (match != null) return match.group(0);
     return null;
   }

@@ -27,6 +27,7 @@ class SeriesProvider extends ChangeNotifier {
   final Map<int, SeriesDetail> _seriesDetailCache = {};
 
   List<SeriesItem> _seriesList = [];
+  List<SeriesItem> _filteredSeries = [];
   String _searchQuery = '';
   ContentFilterState _filterState = ContentFilterState.initial;
 
@@ -48,7 +49,9 @@ class SeriesProvider extends ChangeNotifier {
   }
 
   List<SeriesItem> get seriesList => _seriesList;
-  List<SeriesItem> get filteredSeries {
+  List<SeriesItem> get filteredSeries => _filteredSeries;
+
+  void _recomputeFilteredSeries() {
     var result = List<SeriesItem>.from(_seriesList);
 
     // 1. Filtro de Estilo / Gênero
@@ -125,16 +128,18 @@ class SeriesProvider extends ChangeNotifier {
       }
     }
 
-    return result;
+    _filteredSeries = result;
   }
 
   void setFilterState(ContentFilterState state) {
     _filterState = state;
+    _recomputeFilteredSeries();
     notifyListeners();
   }
 
   void resetFilterState() {
     _filterState = ContentFilterState.initial;
+    _recomputeFilteredSeries();
     notifyListeners();
   }
 
@@ -169,6 +174,7 @@ class SeriesProvider extends ChangeNotifier {
     _error = null;
     _categories.clear();
     _seriesList.clear();
+    _filteredSeries.clear();
     _seriesCache.clear();
     _seriesDetailCache.clear();
     _selectedCategoryId = null;
@@ -200,6 +206,7 @@ class SeriesProvider extends ChangeNotifier {
       _seriesList = _seriesCache[catKey]!;
       _isLoadingSeries = false;
       _error = null;
+      _recomputeFilteredSeries();
       notifyListeners();
       return;
     }
@@ -216,6 +223,7 @@ class SeriesProvider extends ChangeNotifier {
       final items = await _seriesService.getSeries(account, categoryId: categoryId);
       _seriesList = items;
       _seriesCache[categoryId ?? 'all'] = items;
+      _recomputeFilteredSeries();
     } catch (e) {
       _error = 'Erro ao carregar séries: $e';
     } finally {
@@ -225,7 +233,9 @@ class SeriesProvider extends ChangeNotifier {
   }
 
   void setSearchQuery(String query) {
+    if (_searchQuery == query) return;
     _searchQuery = query;
+    _recomputeFilteredSeries();
     notifyListeners();
   }
 
