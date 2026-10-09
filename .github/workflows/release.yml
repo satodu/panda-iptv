@@ -141,8 +141,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist
           $version = "${{ steps.get_version.outputs.VERSION }}"
-          7z a -tzip "dist/panda-iptv-$version-windows-x64.zip" .\build\windows\x64\runner\Release\*
-          Copy-Item "dist/panda-iptv-$version-windows-x64.zip" "dist/Panda-IPTV-$version-windows-x64.zip"
+          7z a -tzip "dist/Panda-IPTV-$version-windows-x64.zip" .\build\windows\x64\runner\Release\*
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
