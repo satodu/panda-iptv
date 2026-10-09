@@ -125,6 +125,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   final FocusNode _topFirstActionFocusNode = FocusNode(debugLabel: 'PlayerTopFirstAction');
   final FocusNode _topEpisodesFocusNode = FocusNode(debugLabel: 'PlayerTopEpisodes');
   final FocusNode _topLiveEpgFocusNode = FocusNode(debugLabel: 'PlayerTopLiveEpg');
+  final FocusNode _topNextFocusNode = FocusNode(debugLabel: 'PlayerTopNext');
+  final FocusNode _topDecoderFocusNode = FocusNode(debugLabel: 'PlayerTopDecoder');
 
   // Double-tap seeking on touch screens
   int _doubleTapSeekAccumulated = 0;
@@ -1303,6 +1305,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _topFirstActionFocusNode.dispose();
       _topEpisodesFocusNode.dispose();
       _topLiveEpgFocusNode.dispose();
+      _topNextFocusNode.dispose();
+      _topDecoderFocusNode.dispose();
     } catch (_) {}
 
     // 5. Restaura a barra de status do sistema e todas as orientações permitidas ao sair do player
@@ -1728,22 +1732,24 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                       onKeyEvent: (node, event) {
                                         if (event is KeyDownEvent || event is KeyRepeatEvent) {
                                           if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                                            if (_currentMediaType == 'series' && _playlist != null && _playlist!.length > 1) {
+                                            if (_topFirstActionFocusNode.canRequestFocus) {
+                                              _topFirstActionFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            } else if (_currentMediaType == 'series' && _playlist != null && _playlist!.length > 1 && _topEpisodesFocusNode.canRequestFocus) {
                                               _topEpisodesFocusNode.requestFocus();
                                               return KeyEventResult.handled;
-                                            } else if (_currentMediaType == 'live') {
-                                              if (_topFirstActionFocusNode.canRequestFocus) {
-                                                _topFirstActionFocusNode.requestFocus();
-                                              } else {
-                                                _topLiveEpgFocusNode.requestFocus();
-                                              }
+                                            } else if (_currentMediaType == 'live' && _topLiveEpgFocusNode.canRequestFocus) {
+                                              _topLiveEpgFocusNode.requestFocus();
                                               return KeyEventResult.handled;
-                                            } else {
-                                              if (_topFirstActionFocusNode.canRequestFocus) {
-                                                _topFirstActionFocusNode.requestFocus();
-                                                return KeyEventResult.handled;
-                                              }
+                                            } else if (hasNextEpisode && _topNextFocusNode.canRequestFocus) {
+                                              _topNextFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            } else if (_topDecoderFocusNode.canRequestFocus) {
+                                              _topDecoderFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
                                             }
+                                          } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                                            return KeyEventResult.handled;
                                           } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
                                             _playPauseFocusNode.requestFocus();
                                             return KeyEventResult.handled;
@@ -1811,6 +1817,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                                 if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
                                                   _topBackFocusNode.requestFocus();
                                                   return KeyEventResult.handled;
+                                                } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                                                  if (_topLiveEpgFocusNode.canRequestFocus) {
+                                                    _topLiveEpgFocusNode.requestFocus();
+                                                    return KeyEventResult.handled;
+                                                  } else if (hasNextEpisode && _topNextFocusNode.canRequestFocus) {
+                                                    _topNextFocusNode.requestFocus();
+                                                    return KeyEventResult.handled;
+                                                  } else if (_topDecoderFocusNode.canRequestFocus) {
+                                                    _topDecoderFocusNode.requestFocus();
+                                                    return KeyEventResult.handled;
+                                                  }
                                                 } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
                                                   _playPauseFocusNode.requestFocus();
                                                   return KeyEventResult.handled;
@@ -1837,6 +1854,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                             if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
                                               _topBackFocusNode.requestFocus();
                                               return KeyEventResult.handled;
+                                            } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                                              if (_currentMediaType == 'series' && _playlist != null && _playlist!.length > 1 && _topEpisodesFocusNode.canRequestFocus) {
+                                                _topEpisodesFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              } else if (hasNextEpisode && _topNextFocusNode.canRequestFocus) {
+                                                _topNextFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              } else if (_topDecoderFocusNode.canRequestFocus) {
+                                                _topDecoderFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              }
                                             } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
                                               _playPauseFocusNode.requestFocus();
                                               return KeyEventResult.handled;
@@ -1860,7 +1888,23 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                         onPressed: _toggleLiveEpgPanel,
                                         onKeyEvent: (node, event) {
                                           if (event is KeyDownEvent || event is KeyRepeatEvent) {
-                                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                            if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                                              if (_topFirstActionFocusNode.canRequestFocus) {
+                                                _topFirstActionFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              } else {
+                                                _topBackFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              }
+                                            } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                                              if (hasNextEpisode && _topNextFocusNode.canRequestFocus) {
+                                                _topNextFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              } else if (_topDecoderFocusNode.canRequestFocus) {
+                                                _topDecoderFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              }
+                                            } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
                                               _playPauseFocusNode.requestFocus();
                                               return KeyEventResult.handled;
                                             }
@@ -1895,7 +1939,23 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                         onPressed: _toggleEpisodesPanel,
                                         onKeyEvent: (node, event) {
                                           if (event is KeyDownEvent || event is KeyRepeatEvent) {
-                                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                            if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                                              if (_topFirstActionFocusNode.canRequestFocus) {
+                                                _topFirstActionFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              } else {
+                                                _topBackFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              }
+                                            } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                                              if (hasNextEpisode && _topNextFocusNode.canRequestFocus) {
+                                                _topNextFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              } else if (_topDecoderFocusNode.canRequestFocus) {
+                                                _topDecoderFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              }
+                                            } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
                                               _playPauseFocusNode.requestFocus();
                                               return KeyEventResult.handled;
                                             }
@@ -1923,13 +1983,33 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                     if (hasNextEpisode) ...[
                                       const SizedBox(width: 6),
                                       _PlayerFocusButton(
+                                        focusNode: _topNextFocusNode,
                                         tooltip: _currentMediaType == 'live' ? 'Próximo Canal' : 'Próximo Episódio',
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                         onFocused: _startHideTimer,
                                         onPressed: _playNextEpisode,
                                         onKeyEvent: (node, event) {
                                           if (event is KeyDownEvent || event is KeyRepeatEvent) {
-                                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                            if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                                              if (_currentMediaType == 'series' && _playlist != null && _playlist!.length > 1 && _topEpisodesFocusNode.canRequestFocus) {
+                                                _topEpisodesFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              } else if (_currentMediaType == 'live' && _topLiveEpgFocusNode.canRequestFocus) {
+                                                _topLiveEpgFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              } else if (_topFirstActionFocusNode.canRequestFocus) {
+                                                _topFirstActionFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              } else {
+                                                _topBackFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              }
+                                            } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                                              if (_topDecoderFocusNode.canRequestFocus) {
+                                                _topDecoderFocusNode.requestFocus();
+                                                return KeyEventResult.handled;
+                                              }
+                                            } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
                                               _playPauseFocusNode.requestFocus();
                                               return KeyEventResult.handled;
                                             }
@@ -1950,13 +2030,33 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                                     ] else
                                       const SizedBox(width: 8),
                                     _PlayerFocusButton(
+                                      focusNode: _topDecoderFocusNode,
                                       tooltip: 'Decodificador de Vídeo',
                                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                       onFocused: _startHideTimer,
                                       onPressed: _toggleHwdec,
                                       onKeyEvent: (node, event) {
                                         if (event is KeyDownEvent || event is KeyRepeatEvent) {
-                                          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                                            if (hasNextEpisode && _topNextFocusNode.canRequestFocus) {
+                                              _topNextFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            } else if (_currentMediaType == 'series' && _playlist != null && _playlist!.length > 1 && _topEpisodesFocusNode.canRequestFocus) {
+                                              _topEpisodesFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            } else if (_currentMediaType == 'live' && _topLiveEpgFocusNode.canRequestFocus) {
+                                              _topLiveEpgFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            } else if (_topFirstActionFocusNode.canRequestFocus) {
+                                              _topFirstActionFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            } else {
+                                              _topBackFocusNode.requestFocus();
+                                              return KeyEventResult.handled;
+                                            }
+                                          } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                                            return KeyEventResult.handled;
+                                          } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
                                             _playPauseFocusNode.requestFocus();
                                             return KeyEventResult.handled;
                                           }
