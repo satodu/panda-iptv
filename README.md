@@ -6,13 +6,14 @@
 
 <p align="center">
   <b>Modern IPTV Multimedia Player with Oriental Minimalist Brutalism Design.</b><br/>
-  Engineered with Flutter for <b>Linux Desktop</b>, <b>Android TV</b>, <b>Fire TV Stick</b> and <b>Mobile</b>, powered by native <b>libmpv</b> hardware acceleration.
+  Engineered with Flutter for <b>Linux Desktop</b>, <b>Windows Desktop</b>, <b>Android TV</b>, <b>Fire TV Stick</b> and <b>Mobile</b>, powered by native <b>libmpv</b> hardware acceleration.
 </p>
 
 <p align="center">
   <a href="https://github.com/satodu/panda-iptv/releases/latest"><img src="https://img.shields.io/github/v/release/satodu/panda-iptv?style=for-the-badge&color=0A84FF&label=Release" alt="Latest Release" /></a>
   <a href="https://aur.archlinux.org/packages/panda-iptv-bin"><img src="https://img.shields.io/aur/version/panda-iptv-bin?style=for-the-badge&color=1793D1&logo=arch-linux&logoColor=white&label=AUR" alt="AUR Version" /></a>
   <img src="https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white" alt="Flutter" />
+  <img src="https://img.shields.io/badge/Windows_Desktop-%230078D6.svg?style=for-the-badge&logo=windows&logoColor=white" alt="Windows Desktop" />
   <img src="https://img.shields.io/badge/Linux_Desktop-%23FCC624.svg?style=for-the-badge&logo=linux&logoColor=black" alt="Linux Desktop" />
   <img src="https://img.shields.io/badge/Android_TV_%26_Mobile-%233DDC84.svg?style=for-the-badge&logo=android&logoColor=white" alt="Android" />
   <img src="https://img.shields.io/badge/Player-libmpv-0A84FF?style=for-the-badge" alt="libmpv" />
@@ -202,6 +203,10 @@ You can download the APK directly or install it on your TV / Fire TV Stick using
   1. Open the **Downloader** app on your Android TV or Fire TV Stick.
   2. Type the code **`9916531`** and press **Go**.
   3. The APK will download and trigger the Android installer automatically.
+
+### Windows Desktop (Portable Bundle x64):
+Download the portable bundle directly from [GitHub Releases](https://github.com/satodu/panda-iptv/releases/latest):
+* `Panda-IPTV-<version>-windows-x64.zip` (extract and run `panda_iptv.exe`)
 
 ### Linux AppImage & Tarball (Manual Local Build):
 Build universal standalone Linux packages locally with the included release script:

@@ -134,6 +134,16 @@ class UpdateService {
             break;
           }
         }
+      } else if (Platform.isWindows) {
+        // Procura o zip ou instalador do Windows nos assets
+        for (final asset in assets) {
+          final name = asset['name'] as String? ?? '';
+          if (name.toLowerCase().contains('windows') && (name.endsWith('.zip') || name.endsWith('.exe'))) {
+            downloadUrl = asset['browser_download_url'] as String?;
+            fileName = name;
+            break;
+          }
+        }
       }
 
       return UpdateInfo(
@@ -214,8 +224,8 @@ class UpdateService {
             onError('Erro ao abrir instalador: ${openResult.message}');
           }
         }
-      } else if (Platform.isLinux) {
-        // No Linux Desktop: abre a URL direta para salvar/executar o AppImage
+      } else if (Platform.isLinux || Platform.isWindows) {
+        // No Desktop (Linux / Windows): abre a URL direta para salvar/executar o pacote
         final uri = Uri.parse(downloadUrl);
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
