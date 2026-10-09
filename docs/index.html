@@ -808,6 +808,112 @@
       letter-spacing: 0.05em;
     }
 
+    /* ==========================================================================
+       CONTROLES & NAVEGAÇÃO // D-PAD & ATALHOS DE TECLADO
+       ========================================================================== */
+    .controls-section {
+      margin-bottom: 60px;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .control-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+      padding: 26px;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .control-card:hover {
+      border-color: rgba(10, 132, 255, 0.45);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(10, 132, 255, 0.12);
+    }
+
+    .control-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-hairline);
+    }
+
+    .control-card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .control-card-header h3 {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: -0.2px;
+      margin: 0;
+    }
+
+    .control-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .control-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      background: rgba(28, 36, 44, 0.45);
+      border: 1px solid rgba(222, 223, 215, 0.05);
+      transition: var(--transition);
+    }
+
+    .control-item:hover {
+      background: var(--surface-hover);
+      border-color: rgba(10, 132, 255, 0.25);
+    }
+
+    .control-keys {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .kbd-chip {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--accent-primary);
+      background: rgba(10, 132, 255, 0.12);
+      border: 1px solid rgba(10, 132, 255, 0.35);
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      white-space: nowrap;
+    }
+
+    .control-desc {
+      font-size: 0.88rem;
+      color: var(--text-primary);
+      text-align: right;
+    }
+
     /* Toast Notification */
     #toast {
       position: fixed;
@@ -943,7 +1049,8 @@
        RESPONSIVIDADE COMPLETA: TABLET & SMARTPHONES (MOBILE FIRST COMPATIBLE)
        ========================================================================== */
     @media (max-width: 900px) {
-      .features-grid {
+      .features-grid,
+      .controls-grid {
         grid-template-columns: 1fr;
         gap: 16px;
       }
@@ -1148,6 +1255,20 @@
         line-height: 1.5;
       }
 
+      /* Controles & Atalhos Mobile */
+      .control-card {
+        padding: 20px 18px;
+      }
+      .control-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+      .control-desc {
+        text-align: left;
+        font-size: 0.84rem;
+      }
+
       /* Footer */
       footer {
         padding: 36px 0 28px;
@@ -1236,7 +1357,7 @@
     <section class="hero">
       <div class="hero-badge-row">
         <span class="hanko-seal">ORIENTAL BRUTALISMO</span>
-        <span class="hanko-seal cyan">v0.1.8 STABLE</span>
+        <span class="hanko-seal cyan">v1.0.0 STABLE</span>
         <span class="hanko-seal live"><span class="status-dot"></span> OPEN SOURCE</span>
       </div>
       <div class="tech-crosses">+ + + [ PANDA STREAM ENGINE ] + + +</div>
@@ -1470,12 +1591,70 @@
     <section class="features-section">
       <div class="section-header">
         <h2>RECURSOS DO APLICATIVO.</h2>
-        <span class="counter">[ 06 PILARES ARQUITETURAIS ]</span>
+        <span class="counter">[ 09 PILARES ARQUITETURAIS ]</span>
       </div>
 
       <div class="features-grid">
         
-        <!-- Recurso 1: Motor de Reprodução (Span 2) -->
+        <!-- Recurso 1: Guia de Canais EPG ao Vivo (Span 2) -->
+        <div class="feature-card span-2">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg class="svg-icon large" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="5" x2="19" y2="19"/><line x1="1" y1="4" x2="1" y2="20"/></svg>
+            </div>
+            <span class="feature-kanji">放送・即</span>
+          </div>
+          <h3>GUIA DE CANAIS // EPG AO VIVO NO PLAYER.</h3>
+          <p>
+            Navegue por todos os canais sem sair ou interromper a transmissão em tela cheia. Drawer lateral inteligente com guia de programação EPG em tempo real (atual e seguinte), logos nítidos, numeração rápida de canais, troca sequencial instantânea (teclas P / N no teclado ou D-Pad) e favoritos em 1 clique.
+          </p>
+          <div class="feature-tags">
+            <span class="feature-tag">[ LIVE OVERLAY ]</span>
+            <span class="feature-tag">[ GUIA EPG ]</span>
+            <span class="feature-tag">[ TECLAS P / N ]</span>
+            <span class="feature-tag">[ 1-CLICK FAVORITE ]</span>
+          </div>
+        </div>
+
+        <!-- Recurso 2: Seletor de Episódios & Maratona -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg class="svg-icon large" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            </div>
+            <span class="feature-kanji">連続・劇</span>
+          </div>
+          <h3>SELETOR DE EPISÓDIOS & MARATONA.</h3>
+          <p>
+            Menu superior no player com indicador de capítulo <code>[ X/Y ]</code> para trocar de episódio ou temporada diretamente. Ao finalizar um capítulo, o card de maratona inicia contagem de 6 segundos com reprodução automática do próximo episódio.
+          </p>
+          <div class="feature-tags">
+            <span class="feature-tag">[ CAPÍTULOS NO PLAYER ]</span>
+            <span class="feature-tag">[ AUTO-PLAY 6s ]</span>
+            <span class="feature-tag">[ MODO MARATONA ]</span>
+          </div>
+        </div>
+
+        <!-- Recurso 3: Controle Remoto e Foco Neon -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg class="svg-icon large" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="3" ry="3"/><circle cx="12" cy="14" r="2"/><line x1="12" y1="9" x2="12" y2="11"/><line x1="12" y1="17" x2="12" y2="19"/><line x1="7" y1="14" x2="9" y2="14"/><line x1="15" y1="14" x2="17" y2="14"/><circle cx="12" cy="6" r="1"/></svg>
+            </div>
+            <span class="feature-kanji">遠隔・操</span>
+          </div>
+          <h3>CONTROLE REMOTO D-PAD & FOCO NEON.</h3>
+          <p>
+            Projetado para a experiência 10-foot em TVs, TV Boxes e Firestick. Foco direcional bidirecional sem bloqueios, bordas com glow neon nítidas a 3 metros de distância e suporte vertical portrait para smartphones.
+          </p>
+          <div class="feature-tags">
+            <span class="feature-tag">[ 10-FOOT UI ]</span>
+            <span class="feature-tag">[ D-PAD BIDIRECIONAL ]</span>
+            <span class="feature-tag">[ NEON FOCUS ]</span>
+          </div>
+        </div>
+
+        <!-- Recurso 4: Motor de Reprodução (Span 2) -->
         <div class="feature-card span-2">
           <div class="feature-header">
             <div class="feature-icon-box">
@@ -1485,34 +1664,17 @@
           </div>
           <h3>MOTOR DE REPRODUÇÃO EM ALTA FIDELIDADE.</h3>
           <p>
-            Alimentado por decodificação nativa acelerada por hardware no Linux e no Android. Suporta streams HLS (m3u8), contêineres MKV/MP4 e fluxos TS de alta taxa de bits sem perda de quadros (*zero dropped frames*) e com sincronismo labial perfeito.
+            Alimentado por decodificação nativa via media_kit (libmpv) com aceleração de hardware no Linux e Android. Seletor de modo em tempo real (Safe SW, Auto-Copy, Direct HW), suporte a HLS (m3u8), MKV, MP4 e TS com sincronismo labial perfeito e zero queda de quadros.
           </p>
           <div class="feature-tags">
             <span class="feature-tag">[ HARDWARE ACCELERATION ]</span>
             <span class="feature-tag">[ HLS / M3U8 / MKV ]</span>
             <span class="feature-tag">[ ZERO LATENCY ]</span>
+            <span class="feature-tag">[ HW SWITCHER ]</span>
           </div>
         </div>
 
-        <!-- Recurso 2: Integração TMDB -->
-        <div class="feature-card">
-          <div class="feature-header">
-            <div class="feature-icon-box">
-              <svg class="svg-icon large" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
-            </div>
-            <span class="feature-kanji">映画・知</span>
-          </div>
-          <h3>INTEGRAÇÃO TMDB & ELENCO.</h3>
-          <p>
-            Descubra perfis e filmografias de atores em tempo real, além de recomendações inteligentes de títulos semelhantes cruzados diretamente com o catálogo da sua lista IPTV.
-          </p>
-          <div class="feature-tags">
-            <span class="feature-tag">[ TMDB API ]</span>
-            <span class="feature-tag">[ CATÁLOGO CRUZADO ]</span>
-          </div>
-        </div>
-
-        <!-- Recurso 3: Continuar Assistindo -->
+        <!-- Recurso 5: Continuar Assistindo -->
         <div class="feature-card">
           <div class="feature-header">
             <div class="feature-icon-box">
@@ -1522,67 +1684,208 @@
           </div>
           <h3>CONTINUAR ASSISTINDO INTELIGENTE.</h3>
           <p>
-            Histórico local que grava o segundo exato onde você parou em filmes e episódios de séries, com barra de progresso visual e exclusão automática de títulos concluídos (>93%).
+            Grava o segundo exato onde você parou em filmes e episódios de séries, estabilizando o buffer no carregamento e marcando automaticamente como visto títulos concluídos (≥90%).
           </p>
           <div class="feature-tags">
-            <span class="feature-tag">[ AUTO-RESUME ]</span>
-            <span class="feature-tag">[ PROGRESSO REAL ]</span>
+            <span class="feature-tag">[ EXACT-SECOND RESUME ]</span>
+            <span class="feature-tag">[ STABILIZED BUFFER ]</span>
+            <span class="feature-tag">[ AUTO-WATCHED ]</span>
           </div>
         </div>
 
-        <!-- Recurso 4: Memória de Volume -->
+        <!-- Recurso 6: Internacionalização Nativa (i18n) -->
         <div class="feature-card">
           <div class="feature-header">
             <div class="feature-icon-box">
-              <svg class="svg-icon large" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              <svg class="svg-icon large" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             </div>
-            <span class="feature-kanji">音量・保</span>
+            <span class="feature-kanji">多言・通</span>
           </div>
-          <h3>MEMÓRIA PERSISTENTE DE VOLUME.</h3>
+          <h3>INTERNACIONALIZAÇÃO NATIVA (i18n).</h3>
           <p>
-            O player memoriza o nível exato de áudio preferido pelo usuário, evitando estouros sonoros repentinos na TV ao alternar de canal ao vivo ou carregar novos episódios.
+            Suporte nativo a 3 idiomas: Português (pt_BR), Inglês (en_US) e Espanhol (es_ES). Alternância dinâmica instantânea nas configurações, com 100% da interface e diálogos traduzidos.
           </p>
           <div class="feature-tags">
-            <span class="feature-tag">[ ANTI-BURST ]</span>
-            <span class="feature-tag">[ GANHO PERSISTENTE ]</span>
+            <span class="feature-tag">[ PT-BR / EN-US / ES-ES ]</span>
+            <span class="feature-tag">[ ZERO HARDCODED ]</span>
+            <span class="feature-tag">[ DYNAMIC LOCALE ]</span>
           </div>
         </div>
 
-        <!-- Recurso 5: Controle Remoto e Multi-orientação -->
+        <!-- Recurso 7: Busca Inteligente -->
         <div class="feature-card">
           <div class="feature-header">
             <div class="feature-icon-box">
-              <svg class="svg-icon large" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="6" x2="12" y2="6.01"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+              <svg class="svg-icon large" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </div>
-            <span class="feature-kanji">操作・格</span>
+            <span class="feature-kanji">検索・速</span>
           </div>
-          <h3>CONTROLE REMOTO D-PAD & TOUCH.</h3>
+          <h3>BUSCA INTELIGENTE COM CONFIRMAÇÃO.</h3>
           <p>
-            Projetado para a experiência de sofá (*10-foot*), com cards Bento que se centralizam e destacam no D-Pad, além de suporte total ao modo vertical (portrait) em smartphones.
+            Busca adaptada para controles remotos de TV com confirmação obrigatória por Enter/OK. Impede a abertura involuntária do teclado virtual na TV e limpa automaticamente ao sair.
           </p>
           <div class="feature-tags">
-            <span class="feature-tag">[ 10-FOOT EXPERIENCE ]</span>
-            <span class="feature-tag">[ D-PAD CENTRALIZADO ]</span>
+            <span class="feature-tag">[ TV-SAFE SEARCH ]</span>
+            <span class="feature-tag">[ CONFIRMAÇÃO ENTER ]</span>
+            <span class="feature-tag">[ AUTO-RESET ]</span>
           </div>
         </div>
 
-        <!-- Recurso 6: Self-Updater -->
+        <!-- Recurso 8: Integração TMDB -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <div class="feature-icon-box">
+              <svg class="svg-icon large" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+            </div>
+            <span class="feature-kanji">映画・知</span>
+          </div>
+          <h3>INTEGRAÇÃO TMDB & ELENCO COMPLETO.</h3>
+          <p>
+            Fichas técnicas completas com sinopse, avaliação, perfil e filmografia de atores cruzados diretamente com o catálogo da sua lista IPTV.
+          </p>
+          <div class="feature-tags">
+            <span class="feature-tag">[ TMDB API ]</span>
+            <span class="feature-tag">[ CATÁLOGO CRUZADO ]</span>
+            <span class="feature-tag">[ FILMOGRAFIA ]</span>
+          </div>
+        </div>
+
+        <!-- Recurso 9: Distribuição AUR & Downloader (Span 2) -->
         <div class="feature-card span-2">
           <div class="feature-header">
             <div class="feature-icon-box">
-              <svg class="svg-icon large" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              <svg class="svg-icon large" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
             </div>
             <span class="feature-kanji">更新・全</span>
           </div>
-          <h3>ATUALIZAÇÃO EM 1 CLIQUE (SELF-UPDATER).</h3>
+          <h3>DISTRIBUIÇÃO OFICIAL AUR, GITHUB & DOWNLOADER.</h3>
           <p>
-            O aplicativo detecta lançamentos no GitHub Releases e exibe um banner de boas-vindas com botão de atualização direta, sem perder seu login, configurações nem histórico assistido.
+            Pipeline contínua do GitHub Actions gerando releases para APK Android, AppImage Linux portátil, tarball universal e pacote oficial no Arch User Repository (<code>yay -S panda-iptv-bin</code>), além do código de sideloading instantâneo para TVs <strong>9916531</strong>.
           </p>
           <div class="feature-tags">
-            <span class="feature-tag">[ GITHUB SYNC ]</span>
-            <span class="feature-tag">[ SEM PERDA DE SESSÃO ]</span>
-            <span class="feature-tag">[ OTA DIRETO ]</span>
+            <span class="feature-tag">[ AUR: PANDA-IPTV-BIN ]</span>
+            <span class="feature-tag">[ GITHUB ACTIONS ]</span>
+            <span class="feature-tag">[ DOWNLOADER: 9916531 ]</span>
+            <span class="feature-tag">[ LINUX APPIMAGE ]</span>
           </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Controles & Atalhos (10-Foot UI & Desktop) -->
+    <section class="controls-section" id="controles">
+      <div class="section-header">
+        <h2>CONTROLES & NAVEGAÇÃO.</h2>
+        <span class="counter">[ 10-FOOT UI // DESKTOP & TV ]</span>
+      </div>
+
+      <div class="controls-grid">
+        
+        <!-- Card 1: Controle Remoto TV -->
+        <div class="control-card">
+          <div class="control-card-header">
+            <div class="control-card-title-group">
+              <div class="feature-icon-box">
+                <svg class="svg-icon" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="3" ry="3"/><circle cx="12" cy="14" r="2"/><line x1="12" y1="9" x2="12" y2="11"/><line x1="12" y1="17" x2="12" y2="19"/><line x1="7" y1="14" x2="9" y2="14"/><line x1="15" y1="14" x2="17" y2="14"/><circle cx="12" cy="6" r="1"/></svg>
+              </div>
+              <div>
+                <h3>CONTROLE REMOTO DE TV (D-PAD)</h3>
+                <span class="feature-kanji">遠隔・操</span>
+              </div>
+            </div>
+            <span class="hanko-seal cyan">FIRESTICK / ANDROID TV</span>
+          </div>
+
+          <ul class="control-list">
+            <li class="control-item">
+              <div class="control-keys">
+                <span class="kbd-chip">[ D-PAD ]</span>
+                <span class="kbd-chip">▲ ▼ ◄ ►</span>
+              </div>
+              <span class="control-desc">Navegação direcional, canais, timeline e cards</span>
+            </li>
+            <li class="control-item">
+              <div class="control-keys">
+                <span class="kbd-chip">[ OK / ENTER ]</span>
+              </div>
+              <span class="control-desc">Play / Pause, selecionar item e confirmar busca</span>
+            </li>
+            <li class="control-item">
+              <div class="control-keys">
+                <span class="kbd-chip">[ VOLTAR / BACK ]</span>
+              </div>
+              <span class="control-desc">Fechar gaveta de canais/episódios ou diálogo seguro de saída</span>
+            </li>
+            <li class="control-item">
+              <div class="control-keys">
+                <span class="kbd-chip">[ ▲ CIMA NO PLAYER ]</span>
+              </div>
+              <span class="control-desc">Acessa o menu superior de episódios [ X/Y ] e Guia EPG</span>
+            </li>
+            <li class="control-item">
+              <div class="control-keys">
+                <span class="kbd-chip">[ ◄ ► NA TIMELINE ]</span>
+              </div>
+              <span class="control-desc">Avanço e retrocesso de tempo no filme ou série</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Card 2: Atalhos Teclado Desktop -->
+        <div class="control-card">
+          <div class="control-card-header">
+            <div class="control-card-title-group">
+              <div class="feature-icon-box">
+                <svg class="svg-icon" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="8" x2="6" y2="8.01"/><line x1="10" y1="8" x2="10" y2="8.01"/><line x1="14" y1="8" x2="14" y2="8.01"/><line x1="18" y1="8" x2="18" y2="8.01"/><line x1="6" y1="12" x2="6" y2="12.01"/><line x1="18" y1="12" x2="18" y2="12.01"/><line x1="8" y1="16" x2="16" y2="16"/></svg>
+              </div>
+              <div>
+                <h3>ATALHOS DE TECLADO (LINUX)</h3>
+                <span class="feature-kanji">卓上・鍵</span>
+              </div>
+            </div>
+            <span class="hanko-seal">DESKTOP LINUX</span>
+          </div>
+
+          <ul class="control-list">
+            <li class="control-item">
+              <div class="control-keys">
+                <span class="kbd-chip">[ ESPAÇO ]</span>
+                <span class="kbd-chip">[ K ]</span>
+              </div>
+              <span class="control-desc">Play / Pause instantâneo</span>
+            </li>
+            <li class="control-item">
+              <div class="control-keys">
+                <span class="kbd-chip">[ ◄ ]</span>
+                <span class="kbd-chip">[ ► ]</span>
+              </div>
+              <span class="control-desc">Retroceder / Avançar 10 segundos</span>
+            </li>
+            <li class="control-item">
+              <div class="control-keys">
+                <span class="kbd-chip">[ P ]</span>
+                <span class="kbd-chip">[ N ]</span>
+              </div>
+              <span class="control-desc">Canal Anterior / Canal Seguinte (Live Stream)</span>
+            </li>
+            <li class="control-item">
+              <div class="control-keys">
+                <span class="kbd-chip">[ ▲ ]</span>
+                <span class="kbd-chip">[ ▼ ]</span>
+                <span class="kbd-chip">[ M ]</span>
+              </div>
+              <span class="control-desc">Aumentar / Diminuir volume ou Mudo</span>
+            </li>
+            <li class="control-item">
+              <div class="control-keys">
+                <span class="kbd-chip">[ D ]</span>
+                <span class="kbd-chip">[ F ]</span>
+                <span class="kbd-chip">[ ESC ]</span>
+              </div>
+              <span class="control-desc">Ciclar decodificador HW / Tela cheia / Sair</span>
+            </li>
+          </ul>
         </div>
 
       </div>
