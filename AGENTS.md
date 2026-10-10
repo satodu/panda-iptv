@@ -23,6 +23,14 @@ Quando você atuar neste repositório, você DEVE seguir estritamente estas dire
   6. Para o Arch User Repository (AUR), atualize o [PKGBUILD](file:///run/media/panda/panda/Projects/satodu/panda-iptv/packaging/aur/PKGBUILD) e [.SRCINFO](file:///run/media/panda/panda/Projects/satodu/panda-iptv/packaging/aur/.SRCINFO) com o sha256 do tarball gerado pela release e envie para o repositório AUR oficial (`panda-iptv-bin`).
 - **Nunca fazer releases manuais soltas:** Evite compilar releases manuais localmente para distribuição direta quando a pipeline estiver disponível; a esteira do GitHub garante repetibilidade, assinaturas e integridade dos binários.
 
+### 1.3 Manutenção Crítica do Pacote AUR (`panda-iptv-bin`)
+- **Base de Usuários no Arch Linux:** O Panda IPTV possui múltiplos usuários ativos instalando e atualizando via AUR (`paru`, `yay`, `pamac`, `makepkg`). É **estritamente obrigatório** manter o pacote do AUR 100% funcional, testado e atualizado a cada lançamento ou correção.
+- **Sincronia Imediata de Checksum (sha256):** Assim que a esteira do GitHub Actions publicar a release e gerar o `panda-iptv-<version>-linux-x64.tar.gz`, o hash sha256 DEVE ser calculado diretamente do arquivo publicado e sincronizado tanto no `PKGBUILD` quanto no `.SRCINFO`.
+- **Regra de Bumping de `pkgrel`:**
+  - Sempre que for lançado um novo `pkgver` (nova versão do app, ex: `1.0.1`), resetar `pkgrel=1`.
+  - Se houver QUALQUER alteração no pacote, no binário, ou correção de checksum SEM alteração do `pkgver` do app, você **DEVE obrigatoriamente incrementar o `pkgrel`** (ex: de `1` para `2`), atualizar o `.SRCINFO` e subir para o AUR. Se não incrementar o `pkgrel`, os gerenciadores como `paru` e `yay` reutilizarão o arquivo quebrado em cache dos usuários gerando erro de hash!
+- **Repositório Oficial do AUR:** As alterações no AUR devem ser commitadas e enviadas diretamente para `ssh://aur@aur.archlinux.org/panda-iptv-bin.git` (branch `master`) além de espelhadas no repositório principal do GitHub (`packaging/aur/`).
+
 ---
 
 ## 2. Identidade Visual Obrigatória
