@@ -21,6 +21,10 @@ Quando você atuar neste repositório, você DEVE seguir estritamente estas dire
   4. Crie a tag anotada ou simples: `git tag vX.Y.Z` e envie para o GitHub: `git push origin vX.Y.Z`.
   5. A esteira compilará os artefatos em ambiente limpo e publicará os binários na página de Releases do GitHub.
   6. Para o Arch User Repository (AUR), atualize o [PKGBUILD](file:///run/media/panda/panda/Projects/satodu/panda-iptv/packaging/aur/PKGBUILD) e [.SRCINFO](file:///run/media/panda/panda/Projects/satodu/panda-iptv/packaging/aur/.SRCINFO) com o sha256 do tarball gerado pela release e envie para o repositório AUR oficial (`panda-iptv-bin`).
+- **Padrão Obrigatório de Release Notes (GitHub Releases):**
+  - **Idioma:** Sempre exclusivamente em **Inglês técnico**.
+  - **Zero Emojis:** NUNCA utilize emojis (nada de 🚀, 📦, 🐛, ✨, etc.) nas notas de release ou changelogs. Mantenha a estética brutalista, minimalista e profissional.
+  - **Estrutura:** Título em maiúsculas (`PANDA IPTV V<VERSION> // RELEASE NOTES`), seguido por seções claras em tópicos (`OVERVIEW`, `FIXES & IMPROVEMENTS`, `DISTRIBUTION ARTIFACTS`, `INSTALLATION NOTES`).
 - **Nunca fazer releases manuais soltas:** Evite compilar releases manuais localmente para distribuição direta quando a pipeline estiver disponível; a esteira do GitHub garante repetibilidade, assinaturas e integridade dos binários.
 
 ### 1.3 Manutenção Crítica do Pacote AUR (`panda-iptv-bin`)

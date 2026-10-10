@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../core/network/xtream_http_client.dart';
 import '../../auth/models/xtream_account.dart';
 import '../models/series_category.dart';
 import '../models/series_detail.dart';
@@ -8,7 +9,7 @@ import '../models/series_item.dart';
 class SeriesService {
   final http.Client _client;
 
-  SeriesService({http.Client? client}) : _client = client ?? http.Client();
+  SeriesService({http.Client? client}) : _client = client ?? XtreamHttpClient();
 
   String _buildUrl(XtreamAccount account, String action, [Map<String, String>? params]) {
     final queryParams = {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../core/network/xtream_http_client.dart';
 import '../../auth/models/xtream_account.dart';
 import '../models/vod_category.dart';
 import '../models/vod_detail.dart';
@@ -8,7 +9,7 @@ import '../models/vod_item.dart';
 class VodService {
   final http.Client _client;
 
-  VodService({http.Client? client}) : _client = client ?? http.Client();
+  VodService({http.Client? client}) : _client = client ?? XtreamHttpClient();
 
   String _buildUrl(XtreamAccount account, String action, [Map<String, String>? params]) {
     final queryParams = {

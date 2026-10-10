@@ -1,10 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/network/xtream_http_client.dart';
 import '../models/xtream_account.dart';
 
 /// Serviço de integração com o protocolo Xtream Codes
 class XtreamService {
+  final http.Client _client;
+
+  XtreamService({http.Client? client}) : _client = client ?? XtreamHttpClient();
   /// Normaliza a URL do servidor:
   /// - Remove espaços nas extremidades
   /// - Adiciona http:// se faltar protocolo
@@ -44,7 +48,7 @@ class XtreamService {
     final endpoint = Uri.parse('$cleanUrl/player_api.php?username=$username&password=$password');
 
     try {
-      final response = await http.get(endpoint).timeout(const Duration(seconds: 15));
+      final response = await _client.get(endpoint).timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) {
         throw Exception('Falha ao conectar ao servidor (HTTP ${response.statusCode})');

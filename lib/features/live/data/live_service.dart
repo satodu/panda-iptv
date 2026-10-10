@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../core/network/xtream_http_client.dart';
 import '../../auth/models/xtream_account.dart';
 import '../models/live_category.dart';
 import '../models/live_epg_item.dart';
@@ -8,7 +9,7 @@ import '../models/live_stream_item.dart';
 class LiveService {
   final http.Client _client;
 
-  LiveService({http.Client? client}) : _client = client ?? http.Client();
+  LiveService({http.Client? client}) : _client = client ?? XtreamHttpClient();
 
   String _buildUrl(XtreamAccount account, String action, [Map<String, String>? params]) {
     final queryParams = {
