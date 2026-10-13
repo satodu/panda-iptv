@@ -1394,7 +1394,7 @@
     <section class="hero">
       <div class="hero-badge-row">
         <span class="hanko-seal">ORIENTAL BRUTALISMO</span>
-        <span class="hanko-seal cyan">v1.0.1 STABLE</span>
+        <span class="hanko-seal cyan">v1.0.2 STABLE</span>
         <span class="hanko-seal live"><span class="status-dot"></span> OPEN SOURCE</span>
       </div>
       <div class="tech-crosses">+ + + [ PANDA STREAM ENGINE ] + + +</div>
@@ -1647,7 +1647,7 @@
               <div class="steps-list">
                 <div class="step-item">
                   <div class="step-num">1</div>
-                  <div>Baixe o pacote portátil <strong>Panda-IPTV-1.0.1-windows-x64.zip</strong> na seção de releases do GitHub.</div>
+                  <div>Baixe o pacote portátil <strong>Panda-IPTV-1.0.2-windows-x64.zip</strong> na seção de releases do GitHub.</div>
                 </div>
                 <div class="step-item">
                   <div class="step-num">2</div>
@@ -1659,8 +1659,19 @@
                 </div>
               </div>
 
+              <!-- Pré-requisito / Troubleshooting DLLs -->
+              <div style="margin-top: 18px; padding: 14px 18px; background: rgba(10, 132, 255, 0.05); border: 1px dashed rgba(10, 132, 255, 0.3); border-radius: 8px; font-size: 0.85rem; line-height: 1.5;">
+                <div style="color: var(--accent); font-weight: bold; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                  <span>[ PRÉ-REQUISITO // DICA TÉCNICA ]</span>
+                </div>
+                <div style="color: var(--text-muted);">
+                  Em máquinas virtuais (KVM/VirtualBox) ou instalações limpas do Windows que não possuem o pacote de bibliotecas C++ da Microsoft, caso ocorra erro de DLL ausente (<code>MSVCP140.dll</code> ou <code>VCRUNTIME140.dll</code>), basta instalar o pacote oficial:
+                  <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe" target="_blank" style="color: var(--accent); text-decoration: underline; font-weight: 600; display: inline-block; margin-top: 4px;">Baixar Microsoft Visual C++ 2015–2022 Redistributable (x64)</a>
+                </div>
+              </div>
+
               <div class="actions-row">
-                <a href="https://github.com/satodu/panda-iptv/releases/latest/download/Panda-IPTV-1.0.1-windows-x64.zip" class="action-btn primary" target="_blank">
+                <a href="https://github.com/satodu/panda-iptv/releases/latest/download/Panda-IPTV-1.0.2-windows-x64.zip" class="action-btn primary" target="_blank">
                   <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   <span>BAIXAR ZIP PORTÁTIL (WINDOWS x64)</span>
                 </a>

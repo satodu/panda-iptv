@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 /// Cliente HTTP personalizado que injeta cabeçalhos universais de IPTV
@@ -30,5 +31,18 @@ class XtreamHttpClient extends http.BaseClient {
   @override
   void close() {
     _inner.close();
+  }
+}
+
+/// Global HttpOverrides para que todo o framework (incluindo CachedNetworkImage,
+/// Image.network e download de pôsteres/logos) envie o cabeçalho padrão de IPTV
+/// e não seja bloqueado por proxies/Cloudflare no Windows ou Linux.
+class XtreamHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    final client = super.createHttpClient(context);
+    client.userAgent = XtreamHttpClient.userAgent;
+    client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+    return client;
   }
 }

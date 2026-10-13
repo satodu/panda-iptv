@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -5,6 +6,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 import 'core/localization/app_localizations.dart';
 import 'core/localization/locale_provider.dart';
+import 'core/network/xtream_http_client.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/hanko_loader.dart';
@@ -30,6 +32,7 @@ class AppScrollBehavior extends MaterialScrollBehavior {
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = XtreamHttpOverrides();
   MediaKit.ensureInitialized();
   runApp(const PandaIptvApp());
 }
