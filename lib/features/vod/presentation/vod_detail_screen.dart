@@ -13,6 +13,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/brutalist_button.dart';
 import '../../../core/widgets/brutalist_entrance.dart';
+import '../../../core/widgets/brutalist_skeleton.dart';
 import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
@@ -21,6 +22,7 @@ import '../../auth/presentation/auth_provider.dart';
 import '../../player/presentation/video_player_screen.dart';
 import '../models/vod_detail.dart';
 import '../models/vod_item.dart';
+import '../utils/vod_matcher.dart';
 import 'actor_detail_screen.dart';
 import 'vod_provider.dart';
 
@@ -39,6 +41,8 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
   bool _isFavorite = false;
 
   List<TmdbMovie> _similarMovies = [];
+  Map<int, VodItem> _similarMatches = {};
+  bool _loadingSimilarMatches = false;
   List<TmdbActor> _cast = [];
   bool _loadingTmdb = false;
   String? _movieDuration;
@@ -46,6 +50,17 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('====================================================');
+    debugPrint('[DEBUG VOD] >>> ENTROU NO FILME <<<');
+    debugPrint('[DEBUG VOD] ID (stream_id): ${widget.item.streamId}');
+    debugPrint('[DEBUG VOD] Nome: ${widget.item.name}');
+    debugPrint('[DEBUG VOD] Categoria ID: ${widget.item.categoryId}');
+    debugPrint('[DEBUG VOD] Extensão: ${widget.item.containerExtension}');
+    debugPrint('[DEBUG VOD] Ano: ${widget.item.displayYear}');
+    debugPrint('[DEBUG VOD] Rating: ${widget.item.rating}');
+    debugPrint('[DEBUG VOD] Capa/Ícone: ${widget.item.streamIcon}');
+    debugPrint('====================================================');
+
     WatchHistoryService.loadHistory();
     FullWatchHistoryService.loadHistory();
     WatchedService.loadWatched();
@@ -91,6 +106,13 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
     if (account == null) return;
 
     final detail = await context.read<VodProvider>().loadVodDetail(account, widget.item.streamId);
+    debugPrint('[DEBUG VOD] Detalhes recebidos da API (get_vod_info):');
+    debugPrint('[DEBUG VOD] -> Diretor: ${detail?.director}');
+    debugPrint('[DEBUG VOD] -> Gênero: ${detail?.genre}');
+    debugPrint('[DEBUG VOD] -> Duração: ${detail?.duration}');
+    debugPrint('[DEBUG VOD] -> TMDB ID: ${detail?.tmdbId}');
+    debugPrint('[DEBUG VOD] -> Rating: ${detail?.rating}');
+    debugPrint('[DEBUG VOD] -> Extensão final: ${detail?.containerExtension}');
     if (mounted) {
       setState(() {
         _detail = detail;
@@ -132,10 +154,38 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
           _similarMovies = similar;
           _cast = cast;
           _loadingTmdb = false;
+          _loadingSimilarMatches = similar.isNotEmpty;
         });
+
+        if (similar.isNotEmpty) {
+          final allCatalog = context.read<VodProvider>().allCachedMovies;
+          final queries = similar
+              .map((m) => VodMatchQuery(
+                    id: m.id,
+                    title: m.title,
+                    releaseDate: m.releaseDate,
+                  ))
+              .toList();
+
+          // Executa em Isolate em background para garantir zero travamento na UI
+          final matches = await VodMatcher.matchAllAsync(
+            queries: queries,
+            catalog: allCatalog,
+          );
+
+          if (mounted) {
+            setState(() {
+              _similarMatches = matches;
+              _loadingSimilarMatches = false;
+            });
+          }
+        }
       }
     } else if (mounted) {
-      setState(() => _loadingTmdb = false);
+      setState(() {
+        _loadingTmdb = false;
+        _loadingSimilarMatches = false;
+      });
     }
   }
 
@@ -146,6 +196,13 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
     final vodProvider = context.read<VodProvider>();
     final ext = _detail?.containerExtension ?? widget.item.containerExtension;
     final streamUrl = vodProvider.buildStreamUrl(account, widget.item.streamId, ext);
+
+    debugPrint('====================================================');
+    debugPrint('[DEBUG VOD] >>> INICIANDO REPRODUÇÃO <<<');
+    debugPrint('[DEBUG VOD] ID: ${widget.item.streamId}');
+    debugPrint('[DEBUG VOD] Nome: ${widget.item.name}');
+    debugPrint('[DEBUG VOD] Stream URL: $streamUrl');
+    debugPrint('====================================================');
 
     final mediaId = 'vod_${widget.item.streamId}';
     final saved = _getSavedMovieHistory();
@@ -783,10 +840,41 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
   }
 
   Widget _buildSimilarMoviesSection(BuildContext context, bool isNarrow) {
-    if (_similarMovies.isEmpty) return const SizedBox.shrink();
+    if (_loadingTmdb || _loadingSimilarMatches) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'TÍTULOS SEMELHANTES.',
+                    style: AppTypography.sectionTitle(fontSize: isNarrow ? 14 : 16),
+                  ),
+                  const SizedBox(width: 8),
+                  const HankoBadge(
+                    text: '[ SINCRONIZANDO... ]',
+                    borderColor: AppColors.accentPrimary,
+                    textColor: AppColors.accentPrimary,
+                  ),
+                ],
+              ),
+              const TechCrosses(count: 3, spacing: 6),
+            ],
+          ),
+          const SizedBox(height: 14),
+          BrutalistSkeleton.horizontalCarousel(
+            count: 6,
+            itemWidth: 125,
+            height: 220,
+          ),
+        ],
+      );
+    }
 
-    final vodProvider = context.read<VodProvider>();
-    final allIptvMovies = vodProvider.movies.isNotEmpty ? vodProvider.movies : vodProvider.filteredMovies;
+    if (_similarMovies.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -821,17 +909,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
             itemBuilder: (context, index) {
               final movie = _similarMovies[index];
               final poster = movie.posterUrl;
-
-              final cleanTmdb = movie.title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-              final iptvMatch = allIptvMovies.cast<VodItem?>().firstWhere(
-                (m) {
-                  if (m == null) return false;
-                  final cleanIptv = m.name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-                  if (cleanIptv.isEmpty || cleanTmdb.isEmpty) return false;
-                  return cleanIptv.contains(cleanTmdb) || cleanTmdb.contains(cleanIptv);
-                },
-                orElse: () => null,
-              );
+              final iptvMatch = _similarMatches[movie.id];
 
               return BrutalistEntrance(
                 index: index,

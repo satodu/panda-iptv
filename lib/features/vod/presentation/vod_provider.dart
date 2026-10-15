@@ -49,6 +49,26 @@ class VodProvider extends ChangeNotifier {
   List<VodItem> get movies => _movies;
   List<VodItem> get filteredMovies => _filteredMovies;
 
+  /// Retorna todos os filmes disponíveis em cache de qualquer categoria visitada na sessão
+  List<VodItem> get allCachedMovies {
+    if (_moviesCache.isEmpty) return _movies;
+    final seen = <int>{};
+    final list = <VodItem>[];
+    for (final catList in _moviesCache.values) {
+      for (final item in catList) {
+        if (seen.add(item.streamId)) {
+          list.add(item);
+        }
+      }
+    }
+    for (final item in _movies) {
+      if (seen.add(item.streamId)) {
+        list.add(item);
+      }
+    }
+    return list;
+  }
+
   void _recomputeFilteredMovies() {
     var result = List<VodItem>.from(_movies);
 

@@ -12,6 +12,7 @@ import '../../../core/widgets/brutalist_button.dart';
 import '../../../core/widgets/hanko_badge.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import 'auth_provider.dart';
+import 'widgets/login_backdrop.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -107,14 +108,16 @@ class _LoginScreenState extends State<LoginScreen> {
             _isCheckingUpdate = false;
           });
           if (!silent) {
-            AppToast.info(context, 'NOVA ATUALIZAÇÃO DISPONÍVEL (v${info.latestVersion}).');
+            AppToast.info(context,
+                'NOVA ATUALIZAÇÃO DISPONÍVEL (v${info.latestVersion}).');
           }
         } else {
           setState(() {
             _isCheckingUpdate = false;
           });
           if (!silent) {
-            AppToast.success(context, 'O APP JÁ ESTÁ NA VERSÃO MAIS RECENTE (v$_currentAppVersion).');
+            AppToast.success(context,
+                'O APP JÁ ESTÁ NA VERSÃO MAIS RECENTE (v$_currentAppVersion).');
           }
         }
       }
@@ -162,7 +165,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final pass = _passwordController.text.trim();
 
     if (server.isEmpty || user.isEmpty || pass.isEmpty) {
-      AppToast.error(context, context.tr('auth.empty_fields_error').toUpperCase());
+      AppToast.error(
+          context, context.tr('auth.empty_fields_error').toUpperCase());
       return;
     }
 
@@ -204,7 +208,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(12),
                 side: const BorderSide(color: AppColors.accentCyan, width: 2),
               ),
-              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              insetPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 480),
                 child: Padding(
@@ -216,7 +221,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Cabeçalho Brutalista
                       Row(
                         children: [
-                          Icon(prefixIcon, color: AppColors.accentCyan, size: 18),
+                          Icon(prefixIcon,
+                              color: AppColors.accentCyan, size: 18),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -238,16 +244,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: BoxDecoration(
                           color: AppColors.surfaceHover,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.accentPrimary, width: 1.5),
+                          border: Border.all(
+                              color: AppColors.accentPrimary, width: 1.5),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 2),
                         child: TextField(
                           controller: modalTextController,
                           autofocus: true,
                           obscureText: obscureInModal,
                           keyboardType: keyboardType,
                           textInputAction: TextInputAction.done,
-                          style: AppTypography.mono(fontSize: 14, color: AppColors.textPrimary),
+                          style: AppTypography.mono(
+                              fontSize: 14, color: AppColors.textPrimary),
                           decoration: InputDecoration(
                             hintText: hintText,
                             hintStyle: AppTypography.mono(
@@ -266,13 +275,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                       size: 18,
                                     ),
                                     onPressed: () {
-                                      setModalState(() => obscureInModal = !obscureInModal);
+                                      setModalState(() =>
+                                          obscureInModal = !obscureInModal);
                                     },
                                   )
                                 : (modalTextController.text.isNotEmpty
                                     ? IconButton(
-                                        focusNode: FocusNode(skipTraversal: true),
-                                        icon: const Icon(Icons.clear, color: AppColors.textMuted, size: 16),
+                                        focusNode:
+                                            FocusNode(skipTraversal: true),
+                                        icon: const Icon(Icons.clear,
+                                            color: AppColors.textMuted,
+                                            size: 16),
                                         onPressed: () {
                                           modalTextController.clear();
                                           setModalState(() {});
@@ -294,11 +307,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextButton(
                             onPressed: () => Navigator.of(dialogCtx).pop(false),
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
                             ),
                             child: Text(
                               'CANCELAR.',
-                              style: AppTypography.mono(fontSize: 11, color: AppColors.textMuted),
+                              style: AppTypography.mono(
+                                  fontSize: 11, color: AppColors.textMuted),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -307,8 +322,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               backgroundColor: AppColors.accentCyan,
                               foregroundColor: Colors.black,
                               elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 18, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6)),
                             ),
                             onPressed: () => Navigator.of(dialogCtx).pop(true),
                             child: Text(
@@ -346,58 +363,65 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            padding: EdgeInsets.symmetric(
-              horizontal: isLandscape ? 24 : 18,
-              vertical: isLandscape ? 12 : 20,
-            ),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isLandscape ? 880 : 440,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: LoginBackdrop()),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isLandscape ? 24 : 18,
+                  vertical: isLandscape ? 12 : 20,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isLandscape ? 880 : 440,
+                  ),
+                  child: isLandscape && screenWidth > 680
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              flex: 4,
+                              child: _buildBrandingPanel(isLandscape: true),
+                            ),
+                            const SizedBox(width: 28),
+                            Expanded(
+                              flex: 5,
+                              child: _buildFormCard(isLandscape: true),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildBrandingPanel(isLandscape: false),
+                            const SizedBox(height: 18),
+                            _buildFormCard(isLandscape: false),
+                            const SizedBox(height: 16),
+                            _buildDisclaimerText(isCompact: true),
+                          ],
+                        ),
+                ),
               ),
-              child: isLandscape && screenWidth > 680
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          flex: 4,
-                          child: _buildBrandingPanel(isLandscape: true),
-                        ),
-                        const SizedBox(width: 28),
-                        Expanded(
-                          flex: 5,
-                          child: _buildFormCard(isLandscape: true),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildBrandingPanel(isLandscape: false),
-                        const SizedBox(height: 18),
-                        _buildFormCard(isLandscape: false),
-                        const SizedBox(height: 16),
-                        _buildDisclaimerText(isCompact: true),
-                      ],
-                    ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildBrandingPanel({required bool isLandscape}) {
     return Column(
-      crossAxisAlignment: isLandscape ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      crossAxisAlignment:
+          isLandscape ? CrossAxisAlignment.start : CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         ClipRRect(
@@ -428,14 +452,17 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            const HankoBadge(text: 'XTREAM // V2.0', borderColor: AppColors.accentCyan),
+            const HankoBadge(
+                text: 'XTREAM // V2.0', borderColor: AppColors.accentCyan),
           ],
         ),
         const SizedBox(height: 10),
         Text(
           'PANDA IPTV.',
           textAlign: isLandscape ? TextAlign.start : TextAlign.center,
-          style: isLandscape ? AppTypography.sectionTitle(fontSize: 22) : AppTypography.displayLarge(),
+          style: isLandscape
+              ? AppTypography.sectionTitle(fontSize: 22)
+              : AppTypography.displayLarge(),
         ),
         const SizedBox(height: 4),
         Text(
@@ -469,6 +496,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final auth = context.watch<AuthProvider>();
 
     return BentoCard(
+      backgroundColor: AppColors.surfaceCard.withValues(alpha: 0.96),
       padding: EdgeInsets.symmetric(
         horizontal: 22,
         vertical: isLandscape ? 16 : 22,
@@ -542,17 +570,20 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: AppColors.statusError.withValues(alpha: 0.1),
-                border: Border.all(color: AppColors.statusError.withValues(alpha: 0.4)),
+                border: Border.all(
+                    color: AppColors.statusError.withValues(alpha: 0.4)),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline, size: 14, color: AppColors.statusError),
+                  const Icon(Icons.error_outline,
+                      size: 14, color: AppColors.statusError),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       auth.errorMessage!,
-                      style: AppTypography.mono(fontSize: 10, color: AppColors.statusError),
+                      style: AppTypography.mono(
+                          fontSize: 10, color: AppColors.statusError),
                     ),
                   ),
                 ],
@@ -573,6 +604,7 @@ class _LoginScreenState extends State<LoginScreen> {
             label: context.tr('auth.login_button'),
             icon: Icons.login_rounded,
             isLoading: auth.status == AuthStatus.authenticating,
+            hasGlow: false,
             onPressed: _submit,
           ),
         ],
@@ -603,7 +635,8 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                context.tr('auth.downloading_update', args: {'progress': '${(_downloadProgress * 100).toInt()}'}),
+                context.tr('auth.downloading_update',
+                    args: {'progress': '${(_downloadProgress * 100).toInt()}'}),
                 style: AppTypography.mono(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -650,15 +683,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: isFocused ? Colors.white : AppColors.accentCyan,
                   width: isFocused ? 2.0 : 1.2,
                 ),
-                boxShadow: isFocused
-                    ? [
-                        BoxShadow(
-                          color: AppColors.accentCyan.withValues(alpha: 0.5),
-                          blurRadius: 14,
-                          spreadRadius: 2,
-                        ),
-                      ]
-                    : null,
               ),
               child: Row(
                 children: [
@@ -670,7 +694,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      context.tr('auth.update_available', args: {'version': _updateInfo!.latestVersion}),
+                      context.tr('auth.update_available',
+                          args: {'version': _updateInfo!.latestVersion}),
                       style: AppTypography.mono(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -766,8 +791,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       label,
                       style: AppTypography.mono(
                         fontSize: 10,
-                        fontWeight: isFocused ? FontWeight.bold : FontWeight.normal,
-                        color: isFocused ? AppColors.accentCyan : AppColors.textPrimary,
+                        fontWeight:
+                            isFocused ? FontWeight.bold : FontWeight.normal,
+                        color: isFocused
+                            ? AppColors.accentCyan
+                            : AppColors.textPrimary,
                       ),
                     ),
                     if (isFocused)
@@ -784,30 +812,27 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 4),
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                   decoration: BoxDecoration(
-                    color: isFocused ? AppColors.surfaceHover : AppColors.surfaceCard,
+                    color:
+                        isFocused ? AppColors.surfaceHover : AppColors.canvas,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isFocused ? AppColors.accentCyan : AppColors.borderHairline,
+                      color: isFocused
+                          ? AppColors.accentCyan
+                          : AppColors.borderHairline,
                       width: isFocused ? 2.0 : 1.0,
                     ),
-                    boxShadow: isFocused
-                        ? [
-                            BoxShadow(
-                              color: AppColors.accentCyan.withValues(alpha: 0.35),
-                              blurRadius: 10,
-                              spreadRadius: 1,
-                            ),
-                          ]
-                        : null,
                   ),
                   child: Row(
                     children: [
                       Icon(
                         prefixIcon,
                         size: 16,
-                        color: isFocused ? AppColors.accentCyan : AppColors.textMuted,
+                        color: isFocused
+                            ? AppColors.accentCyan
+                            : AppColors.textMuted,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -830,11 +855,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
                             size: 18,
-                            color: isFocused ? AppColors.accentCyan : AppColors.textMuted,
+                            color: isFocused
+                                ? AppColors.accentCyan
+                                : AppColors.textMuted,
                           ),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
                         ),
                     ],
                   ),
@@ -877,7 +907,9 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(6),
-                border: isFocused ? Border.all(color: AppColors.accentCyan, width: 1.5) : null,
+                border: isFocused
+                    ? Border.all(color: AppColors.accentCyan, width: 1.5)
+                    : null,
                 color: isFocused ? AppColors.surfaceHover : Colors.transparent,
               ),
               child: Row(
@@ -890,9 +922,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       value: _rememberMe,
                       activeColor: AppColors.accentPrimary,
                       checkColor: Colors.white,
-                      side: const BorderSide(color: AppColors.borderHairline, width: 1.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                      onChanged: (val) => setState(() => _rememberMe = val ?? true),
+                      side: const BorderSide(
+                          color: AppColors.borderHairline, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4)),
+                      onChanged: (val) =>
+                          setState(() => _rememberMe = val ?? true),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -900,7 +935,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     context.tr('auth.remember_me'),
                     style: AppTypography.mono(
                       fontSize: 10,
-                      color: isFocused ? AppColors.accentCyan : AppColors.textPrimary,
+                      color: isFocused
+                          ? AppColors.accentCyan
+                          : AppColors.textPrimary,
                     ),
                   ),
                   if (isFocused) ...[

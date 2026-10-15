@@ -4,12 +4,15 @@ import 'package:provider/provider.dart';
 import '../../../core/services/tmdb_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/bento_card.dart';
+import '../../../core/widgets/brutalist_button.dart';
 import '../../../core/widgets/brutalist_entrance.dart';
+import '../../../core/widgets/brutalist_skeleton.dart';
 import '../../../core/widgets/hanko_badge.dart';
-import '../../../core/widgets/hanko_loader.dart';
 import '../../../core/widgets/tech_crosses.dart';
 import '../models/vod_item.dart';
+import '../utils/vod_matcher.dart';
 import 'vod_detail_screen.dart';
 import 'vod_provider.dart';
 
@@ -32,6 +35,9 @@ class ActorDetailScreen extends StatefulWidget {
 class _ActorDetailScreenState extends State<ActorDetailScreen> {
   TmdbActorDetail? _detail;
   bool _loading = true;
+  final Map<int, VodItem> _filmographyMatches = {};
+  int _visibleCount = 30;
+  bool _matchingInProgress = false;
 
   @override
   void initState() {
@@ -46,7 +52,60 @@ class _ActorDetailScreenState extends State<ActorDetailScreen> {
         _detail = detail;
         _loading = false;
       });
+
+      if (detail != null && detail.filmography.isNotEmpty) {
+        _matchBatch(0, _visibleCount);
+      }
     }
+  }
+
+  Future<void> _matchBatch(int start, int end) async {
+    if (_detail == null || _matchingInProgress) return;
+    final total = _detail!.filmography.length;
+    final actualEnd = end.clamp(0, total);
+    if (start >= actualEnd) return;
+
+    _matchingInProgress = true;
+    final sublist = _detail!.filmography.sublist(start, actualEnd);
+    final allCatalog = context.read<VodProvider>().allCachedMovies;
+
+    final queries = sublist
+        .map((m) => VodMatchQuery(
+              id: m.id,
+              title: m.title,
+              releaseDate: m.releaseDate,
+            ))
+        .toList();
+
+    try {
+      final matches = await VodMatcher.matchAllAsync(
+        queries: queries,
+        catalog: allCatalog,
+      );
+
+      if (mounted) {
+        setState(() {
+          _filmographyMatches.addAll(matches);
+        });
+      }
+    } catch (e) {
+      debugPrint('[ACTOR MATCH ERROR] $e');
+    } finally {
+      _matchingInProgress = false;
+    }
+  }
+
+  VodItem? _resolveOnDemand(TmdbMovie movie) {
+    final allCatalog = context.read<VodProvider>().allCachedMovies;
+    final match = VodMatcher.findBestMatch(
+      tmdbTitle: movie.title,
+      tmdbReleaseDate: movie.releaseDate,
+      iptvCatalog: allCatalog,
+    );
+    if (match != null) {
+      _filmographyMatches[movie.id] = match;
+    }
+    return match;
   }
 
   @override
@@ -89,8 +148,52 @@ class _ActorDetailScreenState extends State<ActorDetailScreen> {
 
             Expanded(
               child: _loading
-                  ? const Center(
-                      child: HankoLoader(label: 'CARREGANDO ATOR.'),
+                  ? Padding(
+                      padding: EdgeInsets.all(isNarrow ? 16 : 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              BrutalistSkeleton(
+                                width: isNarrow ? 120 : 160,
+                                height: isNarrow ? 160 : 210,
+                                borderRadius: 12,
+                              ),
+                              const SizedBox(width: 24),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    BrutalistSkeleton(width: 140, height: 18, borderRadius: 4),
+                                    SizedBox(height: 12),
+                                    BrutalistSkeleton(width: 220, height: 28, borderRadius: 6),
+                                    SizedBox(height: 16),
+                                    BrutalistSkeleton(width: double.infinity, height: 50, borderRadius: 6),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+                          const BrutalistSkeleton(width: 160, height: 22, borderRadius: 4),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: GridView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: isNarrow ? 2 : 4,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                                childAspectRatio: 0.65,
+                              ),
+                              itemCount: 8,
+                              itemBuilder: (_, __) => BrutalistSkeleton.movieCard(),
+                            ),
+                          ),
+                        ],
+                      ),
                     )
                   : SingleChildScrollView(
                       padding: EdgeInsets.all(isNarrow ? 16 : 24),
@@ -237,8 +340,9 @@ class _ActorDetailScreenState extends State<ActorDetailScreen> {
       );
     }
 
-    final vodProvider = context.read<VodProvider>();
-    final allIptvMovies = vodProvider.filteredMovies;
+    final totalMovies = _detail!.filmography.length;
+    final visibleList = _detail!.filmography.take(_visibleCount).toList();
+    final hasMore = totalMovies > _visibleCount;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -249,116 +353,127 @@ class _ActorDetailScreenState extends State<ActorDetailScreen> {
           crossAxisCount = 3;
         }
 
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            childAspectRatio: 0.65,
-          ),
-          itemCount: _detail!.filmography.length,
-          itemBuilder: (context, index) {
-            final movie = _detail!.filmography[index];
-            final poster = movie.posterUrl;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: 0.65,
+              ),
+              itemCount: visibleList.length,
+              itemBuilder: (context, index) {
+                final movie = visibleList[index];
+                final poster = movie.posterUrl;
+                final iptvMatch = _filmographyMatches[movie.id];
 
-            // Tenta encontrar se o filme existe na lista do IPTV
-            final iptvMatch = allIptvMovies.cast<VodItem?>().firstWhere(
-              (m) => m != null && m.name.toLowerCase().contains(movie.title.toLowerCase()),
-              orElse: () => null,
-            );
-
-            return BrutalistEntrance(
-              index: index,
-              child: BentoCard(
-                padding: EdgeInsets.zero,
-                onTap: () {
-                  if (iptvMatch != null) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => VodDetailScreen(item: iptvMatch),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: AppColors.surfaceCard,
-                        content: Text(
-                          'Título não encontrado na lista atual do seu IPTV.',
-                          style: AppTypography.mono(color: AppColors.accentCyan),
+                return BrutalistEntrance(
+                  index: index,
+                  child: BentoCard(
+                    padding: EdgeInsets.zero,
+                    onTap: () {
+                      final targetMatch = iptvMatch ?? _resolveOnDemand(movie);
+                      if (targetMatch != null) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => VodDetailScreen(item: targetMatch),
+                          ),
+                        );
+                      } else {
+                        AppToast.info(
+                          context,
+                          'TÍTULO NÃO ENCONTRADO NA SUA IPTV.',
+                        );
+                      }
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ClipRRect(
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                                child: poster != null
+                                    ? CachedNetworkImage(
+                                        imageUrl: poster,
+                                        fit: BoxFit.cover,
+                                        errorWidget: (_, __, ___) => _buildFallbackCover(),
+                                      )
+                                    : _buildFallbackCover(),
+                              ),
+                              if (iptvMatch != null)
+                                const Positioned(
+                                  top: 8,
+                                  left: 8,
+                                  child: HankoBadge(
+                                    text: 'DISPONÍVEL',
+                                    borderColor: AppColors.statusLive,
+                                    textColor: AppColors.statusLive,
+                                  ),
+                                ),
+                              if (movie.rating > 0)
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
+                                  child: HankoBadge(
+                                    text: '★ ${movie.rating.toStringAsFixed(1)}',
+                                    borderColor: AppColors.accentPrimary,
+                                    textColor: AppColors.accentPrimary,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                            child: poster != null
-                                ? CachedNetworkImage(
-                                    imageUrl: poster,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) => _buildFallbackCover(),
-                                  )
-                                : _buildFallbackCover(),
-                          ),
-                          if (iptvMatch != null)
-                            const Positioned(
-                              top: 8,
-                              left: 8,
-                              child: HankoBadge(
-                                text: 'DISPONÍVEL',
-                                borderColor: AppColors.statusLive,
-                                textColor: AppColors.statusLive,
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                movie.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.titleMedium(fontSize: 12),
                               ),
-                            ),
-                          if (movie.rating > 0)
-                            Positioned(
-                              bottom: 8,
-                              right: 8,
-                              child: HankoBadge(
-                                text: '★ ${movie.rating.toStringAsFixed(1)}',
-                                borderColor: AppColors.accentPrimary,
-                                textColor: AppColors.accentPrimary,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            movie.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.titleMedium(fontSize: 12),
+                              if (movie.releaseDate != null && movie.releaseDate!.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  movie.releaseDate!.split('-').first,
+                                  style: AppTypography.mono(fontSize: 10, color: AppColors.textMuted),
+                                ),
+                              ],
+                            ],
                           ),
-                          if (movie.releaseDate != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              movie.releaseDate!.split('-').first,
-                              style: AppTypography.mono(fontSize: 10, color: AppColors.textMuted),
-                            ),
-                          ],
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                );
+              },
+            ),
+            if (hasMore) ...[
+              const SizedBox(height: 24),
+              Center(
+                child: BrutalistButton(
+                  label: 'CARREGAR MAIS FILMES (+${totalMovies - _visibleCount})',
+                  icon: Icons.add_rounded,
+                  onPressed: () {
+                    final oldEnd = _visibleCount;
+                    setState(() {
+                      _visibleCount = (_visibleCount + 30).clamp(0, totalMovies);
+                    });
+                    _matchBatch(oldEnd, _visibleCount);
+                  },
                 ),
               ),
-            );
-          },
+            ],
+          ],
         );
       },
     );

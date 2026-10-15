@@ -17,6 +17,7 @@ class BrutalistButton extends StatefulWidget {
   final double? height;
   final EdgeInsetsGeometry? padding;
   final double? fontSize;
+  final bool hasGlow;
 
   const BrutalistButton({
     super.key,
@@ -31,6 +32,7 @@ class BrutalistButton extends StatefulWidget {
     this.height,
     this.padding,
     this.fontSize,
+    this.hasGlow = true,
   });
 
   @override
@@ -102,29 +104,32 @@ class _BrutalistButtonState extends State<BrutalistButton> {
             color: borderColor,
             width: _isFocused ? 2.0 : 1.0,
           ),
-          boxShadow: _isFocused
-              ? [
-                  BoxShadow(
-                    color: AppColors.accentPrimary.withValues(alpha: 0.5),
-                    blurRadius: 18,
-                    spreadRadius: 1,
-                    offset: const Offset(0, 3),
-                  ),
-                  BoxShadow(
-                    color: AppColors.accentCyan.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : (widget.isSecondary
-                  ? null
-                  : [
+          boxShadow: !widget.hasGlow
+              ? null
+              : (_isFocused
+                  ? [
                       BoxShadow(
-                        color: AppColors.accentPrimary.withValues(alpha: active ? 0.4 : 0.25),
-                        blurRadius: active ? 16 : 10,
-                        offset: const Offset(0, 2),
+                        color: AppColors.accentPrimary.withValues(alpha: 0.5),
+                        blurRadius: 18,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 3),
                       ),
-                    ]),
+                      BoxShadow(
+                        color: AppColors.accentCyan.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 1),
+                      ),
+                    ]
+                  : (widget.isSecondary
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: AppColors.accentPrimary
+                                .withValues(alpha: active ? 0.4 : 0.25),
+                            blurRadius: active ? 16 : 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ])),
         ),
         child: Material(
           color: Colors.transparent,
