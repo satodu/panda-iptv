@@ -296,7 +296,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                               children: [
                                 SizedBox(
                                   width: 140,
-                                  child: _buildPoster(cover),
+                                  child: _FocusableBlock(child: _buildPoster(cover)),
                                 ),
                                 const SizedBox(width: 20),
                                 Expanded(
@@ -309,7 +309,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (backdrop != null && backdrop.isNotEmpty)
-                                  ClipRRect(
+                                  _FocusableBlock(child: ClipRRect(
                                     borderRadius: BorderRadius.circular(14),
                                     child: AspectRatio(
                                       aspectRatio: 16 / 9,
@@ -319,7 +319,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                         errorWidget: (_, __, ___) => const SizedBox(),
                                       ),
                                     ),
-                                  ),
+                                  )),
                                 const SizedBox(height: 16),
                                 _buildInfoSection(title, rating, plot, isNarrow),
                               ],
@@ -383,11 +383,13 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
           ],
         ),
         const SizedBox(height: 14),
-        Text(
-          title,
-          style: AppTypography.displayLarge().copyWith(fontSize: isNarrow ? 18 : 22),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+        _FocusableBlock(
+          child: Text(
+            title,
+            style: AppTypography.displayLarge().copyWith(fontSize: isNarrow ? 18 : 22),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         const SizedBox(height: 6),
 
@@ -399,11 +401,13 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
           const SizedBox(height: 8),
         ],
 
-        Text(
-          plot,
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-          style: AppTypography.body(color: AppColors.textPrimary).copyWith(fontSize: 12, height: 1.4),
+        _FocusableBlock(
+          child: Text(
+            plot,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.body(color: AppColors.textPrimary).copyWith(fontSize: 12, height: 1.4),
+          ),
         ),
         const SizedBox(height: 10),
 
@@ -851,3 +855,39 @@ class _FocusableSeasonChipState extends State<_FocusableSeasonChip> {
   }
 }
 
+
+
+/// Bloco apenas focável (sem ação) para o D-Pad poder parar e rolar até o conteúdo.
+class _FocusableBlock extends StatefulWidget {
+  final Widget child;
+  const _FocusableBlock({required this.child});
+
+  @override
+  State<_FocusableBlock> createState() => _FocusableBlockState();
+}
+
+class _FocusableBlockState extends State<_FocusableBlock> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      onFocusChange: (f) => setState(() => _isFocused = f),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _isFocused ? AppColors.accentPrimary : Colors.transparent,
+            width: 2,
+          ),
+          boxShadow: _isFocused
+              ? [BoxShadow(color: AppColors.accentPrimary.withValues(alpha: 0.35), blurRadius: 14)]
+              : null,
+        ),
+        child: widget.child,
+      ),
+    );
+  }
+}

@@ -336,7 +336,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                                     // Poster
                                     SizedBox(
                                       width: 260,
-                                      child: _buildPoster(cover),
+                                      child: _FocusableBlock(child: _buildPoster(cover)),
                                     ),
                                     const SizedBox(width: 32),
                                     // Informações
@@ -355,7 +355,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (backdrop != null && backdrop.isNotEmpty)
-                                  ClipRRect(
+                                  _FocusableBlock(child: ClipRRect(
                                     borderRadius: BorderRadius.circular(14),
                                     child: AspectRatio(
                                       aspectRatio: 16 / 9,
@@ -365,7 +365,7 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
                                         errorWidget: (_, __, ___) => const SizedBox(),
                                       ),
                                     ),
-                                  ),
+                                  )),
                                 const SizedBox(height: 20),
                                 _buildInfoSection(title, rating, plot, isLandscape, isNarrow),
                                 const SizedBox(height: 32),
@@ -447,9 +447,11 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
               ],
             ),
             const SizedBox(height: 14),
-            Text(
-              title,
-              style: AppTypography.displayLarge().copyWith(fontSize: isNarrow ? 22 : 28),
+            _FocusableBlock(
+              child: Text(
+                title,
+                style: AppTypography.displayLarge().copyWith(fontSize: isNarrow ? 22 : 28),
+              ),
             ),
             const SizedBox(height: 8),
 
@@ -461,9 +463,11 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
               const SizedBox(height: 12),
             ],
 
-            Text(
-              plot,
-              style: AppTypography.body(color: AppColors.textPrimary).copyWith(height: 1.5),
+            _FocusableBlock(
+              child: Text(
+                plot,
+                style: AppTypography.body(color: AppColors.textPrimary).copyWith(height: 1.5),
+              ),
             ),
             const SizedBox(height: 24),
 
@@ -1004,6 +1008,42 @@ class _VodDetailScreenState extends State<VodDetailScreen> {
       color: AppColors.surfaceCard,
       child: const Center(
         child: Icon(Icons.movie_outlined, size: 32, color: AppColors.textDisabled),
+      ),
+    );
+  }
+}
+
+
+/// Bloco apenas focável (sem ação) para o D-Pad poder parar e rolar até o conteúdo.
+class _FocusableBlock extends StatefulWidget {
+  final Widget child;
+  const _FocusableBlock({required this.child});
+
+  @override
+  State<_FocusableBlock> createState() => _FocusableBlockState();
+}
+
+class _FocusableBlockState extends State<_FocusableBlock> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      onFocusChange: (f) => setState(() => _isFocused = f),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _isFocused ? AppColors.accentPrimary : Colors.transparent,
+            width: 2,
+          ),
+          boxShadow: _isFocused
+              ? [BoxShadow(color: AppColors.accentPrimary.withValues(alpha: 0.35), blurRadius: 14)]
+              : null,
+        ),
+        child: widget.child,
       ),
     );
   }

@@ -159,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final server = _serverController.text.trim();
     final user = _usernameController.text.trim();
     final pass = _passwordController.text.trim();
@@ -170,12 +170,18 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    context.read<AuthProvider>().login(
-          serverUrl: server,
-          username: user,
-          password: pass,
-          rememberMe: _rememberMe,
-        );
+    final auth = context.read<AuthProvider>();
+    final success = await auth.login(
+      serverUrl: server,
+      username: user,
+      password: pass,
+      rememberMe: _rememberMe,
+    );
+
+    if (!success && mounted) {
+      final friendlyError = auth.getLocalizedError(context);
+      AppToast.error(context, friendlyError.toUpperCase());
+    }
   }
 
   /// Diálogo brutalista para inserção de texto na TV/Mobile.
@@ -353,6 +359,7 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         controller.text = modalTextController.text.trim();
       });
+      context.read<AuthProvider>().clearError();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           onConfirmed?.call();
@@ -564,26 +571,29 @@ class _LoginScreenState extends State<LoginScreen> {
             onConfirmedNext: () => _connectFocusNode.requestFocus(),
           ),
 
-          if (auth.errorMessage != null) ...[
+          if (auth.status == AuthStatus.error) ...[
             const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.statusError.withValues(alpha: 0.1),
+                color: AppColors.statusError.withValues(alpha: 0.12),
                 border: Border.all(
-                    color: AppColors.statusError.withValues(alpha: 0.4)),
+                    color: AppColors.statusError.withValues(alpha: 0.5),
+                    width: 1.2),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline,
-                      size: 14, color: AppColors.statusError),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.error_outline_rounded,
+                      size: 16, color: AppColors.statusError),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      auth.errorMessage!,
+                      auth.getLocalizedError(context).toUpperCase(),
                       style: AppTypography.mono(
-                          fontSize: 10, color: AppColors.statusError),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.statusError),
                     ),
                   ),
                 ],

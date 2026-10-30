@@ -1,8 +1,21 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/network/xtream_http_client.dart';
 import '../models/xtream_account.dart';
+
+/// Exceção estruturada de autenticação com chave de internacionalização
+class AuthException implements Exception {
+  final String key;
+  final Map<String, String>? args;
+  final String? fallback;
+
+  const AuthException(this.key, {this.args, this.fallback});
+
+  @override
+  String toString() => fallback ?? key;
+}
 
 /// Serviço de integração com o protocolo Xtream Codes
 class XtreamService {
@@ -50,18 +63,43 @@ class XtreamService {
     try {
       final response = await _client.get(endpoint).timeout(const Duration(seconds: 15));
 
-      if (response.statusCode != 200) {
-        throw Exception('Falha ao conectar ao servidor (HTTP ${response.statusCode})');
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        throw const AuthException('auth.invalid_credentials');
       }
 
-      final data = jsonDecode(response.body);
+      if (response.statusCode != 200) {
+        throw AuthException('auth.server_http_error', args: {'code': '${response.statusCode}'});
+      }
+
+      final body = response.body.trim();
+      if (body.isEmpty) {
+        throw const AuthException('auth.server_invalid_response');
+      }
+
+      // Servidores como XUI.one ou outros retornam páginas HTML quando o painel responde erro, debug ou restrição
+      if (body.startsWith('<') || body.toLowerCase().contains('<html') || body.toLowerCase().contains('xui.one')) {
+        throw const AuthException('auth.invalid_credentials_or_server');
+      }
+
+      dynamic data;
+      try {
+        data = jsonDecode(body);
+      } on FormatException {
+        throw const AuthException('auth.server_invalid_response');
+      }
+
       if (data is! Map<String, dynamic>) {
-        throw Exception('Resposta do servidor em formato inválido');
+        throw const AuthException('auth.server_invalid_response');
       }
 
       final userInfoJson = data['user_info'];
-      if (userInfoJson == null || userInfoJson['auth'] == 0 || userInfoJson['status'] == 'Disabled') {
-        throw Exception('Credenciais inválidas ou conta desativada');
+      if (userInfoJson == null || userInfoJson['auth'] == 0) {
+        throw const AuthException('auth.invalid_credentials');
+      }
+
+      final status = userInfoJson['status']?.toString().toLowerCase();
+      if (status == 'disabled' || status == 'expired' || status == 'banned') {
+        throw const AuthException('auth.account_disabled');
       }
 
       final userInfo = XtreamUserInfo.fromJson(userInfoJson);
@@ -85,11 +123,29 @@ class XtreamService {
         userInfo: userInfo,
         serverInfo: serverInfo,
       );
-    } catch (e) {
-      if (e.toString().contains('Failed host lookup') || e.toString().contains('Connection refused')) {
-        throw Exception('Não foi possível alcançar o servidor. Verifique a URL e sua conexão.');
-      }
+    } on AuthException {
       rethrow;
+    } catch (e) {
+      if (e is TimeoutException) {
+        throw const AuthException('auth.server_timeout');
+      }
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('failed host lookup') ||
+          errStr.contains('connection refused') ||
+          errStr.contains('network is unreachable') ||
+          errStr.contains('socketexception') ||
+          errStr.contains('clientexception')) {
+        throw const AuthException('auth.server_connection_error');
+      }
+      if (errStr.contains('formatexception') ||
+          errStr.contains('unexpected character') ||
+          errStr.contains('<html')) {
+        throw const AuthException('auth.invalid_credentials_or_server');
+      }
+      throw AuthException(
+        'auth.server_connection_error',
+        fallback: e.toString().replaceFirst('Exception: ', ''),
+      );
     }
   }
 
